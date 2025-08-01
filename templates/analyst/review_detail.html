@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Security Review Analysis - {{ review[16] }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-microscope text-primary"></i> Security Review Analysis</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('analyst_dashboard') }}">Analyst Dashboard</a></li>
+                    <li class="breadcrumb-item active">{{ review[16] }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Application Overview -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Application Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Application Name:</strong> {{ review[16] }}<br>
+                            <strong>Description:</strong> {{ review[17] or 'Not provided' }}<br>
+                            <strong>Technology Stack:</strong> {{ review[18] or 'Not specified' }}<br>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Business Criticality:</strong> 
+                            <span class="badge {% if review[20] == 'critical' %}bg-danger{% elif review[20] == 'high' %}bg-warning{% else %}bg-info{% endif %}">
+                                {{ review[20]|title }}
+                            </span><br>
+                            <strong>Data Classification:</strong> {{ review[21] or 'Not specified' }}<br>
+                            <strong>Submitted By:</strong> {{ review[22] }} {{ review[23] }} ({{ review[24] }})
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Review Status</h5>
+                </div>
+                <div class="card-body">
+                    <strong>Status:</strong> 
+                    <span class="badge {% if review[7] == 'completed' %}bg-success{% elif review[7] == 'in_review' %}bg-warning{% else %}bg-info{% endif %}">
+                        {{ review[7]|title }}
+                    </span><br><br>
+                    
+                    <strong>Risk Score:</strong> 
+                    {% if review[5] %}
+                        <span class="badge {% if review[5] < 40 %}bg-danger{% elif review[5] < 70 %}bg-warning{% else %}bg-success{% endif %}">
+                            {{ "%.1f"|format(review[5]) }}%
+                        </span>
+                    {% else %}
+                        <span class="text-muted">Not calculated</span>
+                    {% endif %}<br><br>
+                    
+                    <strong>Submitted:</strong> {{ review[8][:10] if review[8] else 'N/A' }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STRIDE Threat Analysis -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-sitemap"></i> STRIDE Threat Analysis</h5>
+                    <small class="text-muted">Analyze threats using the STRIDE methodology framework</small>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('save_stride_analysis', review_id=review[0]) }}">
+                        <div class="row">
+                            {% for category_key, category_data in stride_categories.items() %}
+                            <div class="col-lg-6 mb-4">
+                                <div class="card border-0" style="border-left: 4px solid {{ category_data.color }} !important;">
+                                    <div class="card-body">
+                                        <h6 class="text-primary">
+                                            <i class="fas fa-shield-alt"></i> {{ category_data.name }}
+                                        </h6>
+                                        <p class="text-muted small">{{ category_data.description }}</p>
+                                        
+                                        <!-- Identified Threats -->
+                                        {% if identified_threats[category_key] %}
+                                        <div class="alert alert-warning alert-sm mb-3">
+                                            <strong>Identified Issues:</strong>
+                                            <ul class="mb-0 mt-2">
+                                                {% for threat in identified_threats[category_key][:3] %}
+                                                <li class="small">{{ threat.question }} ({{ threat.risk_level }})</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Threat Description -->
+                                        <div class="mb-3">
+                                            <label for="threat_{{ category_key }}" class="form-label">Threat Description</label>
+                                            <textarea class="form-control" name="threat_{{ category_key }}" 
+                                                    id="threat_{{ category_key }}" rows="3"
+                                                    placeholder="Describe potential {{ category_data.name.lower() }} threats...">{% for analysis in stride_analysis %}{% if analysis[2] == category_key %}{{ analysis[3] }}{% endif %}{% endfor %}</textarea>
+                                        </div>
+                                        
+                                        <!-- Risk Level -->
+                                        <div class="mb-3">
+                                            <label for="risk_{{ category_key }}" class="form-label">Risk Level</label>
+                                            <select class="form-select" name="risk_{{ category_key }}" id="risk_{{ category_key }}">
+                                                <option value="">Select risk level</option>
+                                                <option value="Low" {% for analysis in stride_analysis %}{% if analysis[2] == category_key and analysis[4] == 'Low' %}selected{% endif %}{% endfor %}>Low</option>
+                                                <option value="Medium" {% for analysis in stride_analysis %}{% if analysis[2] == category_key and analysis[4] == 'Medium' %}selected{% endif %}{% endfor %}>Medium</option>
+                                                <option value="High" {% for analysis in stride_analysis %}{% if analysis[2] == category_key and analysis[4] == 'High' %}selected{% endif %}{% endfor %}>High</option>
+                                                <option value="Critical" {% for analysis in stride_analysis %}{% if analysis[2] == category_key and analysis[4] == 'Critical' %}selected{% endif %}{% endfor %}>Critical</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <!-- Mitigation Status -->
+                                        <div class="mb-3">
+                                            <label for="mitigation_{{ category_key }}" class="form-label">Mitigation Status</label>
+                                            <select class="form-select" name="mitigation_{{ category_key }}" id="mitigation_{{ category_key }}">
+                                                <option value="">Select status</option>
+                                                <option value="Not Required" {% for analysis in stride_analysis %}{% if analysis[2] == category_key and analysis[5] == 'Not Required' %}selected{% endif %}{% endfor %}>Not Required</option>
+                                                <option value="Recommended" {% for analysis in stride_analysis %}{% if analysis[2] == category_key and analysis[5] == 'Recommended' %}selected{% endif %}{% endfor %}>Recommended</option>
+                                                <option value="Required" {% for analysis in stride_analysis %}{% if analysis[2] == category_key and analysis[5] == 'Required' %}selected{% endif %}{% endfor %}>Required</option>
+                                                <option value="Implemented" {% for analysis in stride_analysis %}{% if analysis[2] == category_key and analysis[5] == 'Implemented' %}selected{% endif %}{% endfor %}>Implemented</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <!-- Recommendations -->
+                                        <div class="mb-3">
+                                            <label for="recommendations_{{ category_key }}" class="form-label">Recommendations</label>
+                                            <textarea class="form-control" name="recommendations_{{ category_key }}" 
+                                                    id="recommendations_{{ category_key }}" rows="2"
+                                                    placeholder="Mitigation recommendations...">{% for analysis in stride_analysis %}{% if analysis[2] == category_key %}{{ analysis[6] }}{% endif %}{% endfor %}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save"></i> Save STRIDE Analysis
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Final Report Section -->
+    {% if review[7] in ['in_review', 'completed'] %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-file-alt"></i> Final Security Report</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('finalize_review', review_id=review[0]) }}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="overall_risk" class="form-label">Overall Risk Assessment</label>
+                                    <select class="form-select" name="overall_risk" id="overall_risk" required>
+                                        <option value="">Select overall risk</option>
+                                        <option value="Low">Low Risk</option>
+                                        <option value="Medium">Medium Risk</option>
+                                        <option value="High">High Risk</option>
+                                        <option value="Critical">Critical Risk</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="analyst_notes" class="form-label">Analyst Notes</label>
+                                    <textarea class="form-control" name="analyst_notes" id="analyst_notes" rows="3"
+                                            placeholder="Internal analyst notes..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="final_report" class="form-label">Executive Summary</label>
+                            <textarea class="form-control" name="final_report" id="final_report" rows="5" required
+                                    placeholder="Provide a comprehensive executive summary of the security assessment findings..."></textarea>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="final_recommendations" class="form-label">Final Recommendations</label>
+                            <textarea class="form-control" name="final_recommendations" id="final_recommendations" rows="6" required
+                                    placeholder="Provide detailed security recommendations based on STRIDE analysis..."></textarea>
+                        </div>
+                        
+                        {% if review[7] != 'completed' %}
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check-circle"></i> Finalize Security Review
+                            </button>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> This review has been completed and finalized.
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Navigation -->
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <a href="{{ url_for('analyst_dashboard') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.alert-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.card {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+}
+
+.form-select, .form-control {
+    border-radius: 0.35rem;
+}
+
+.breadcrumb {
+    background-color: transparent;
+    padding: 0;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+}
+</style>
+{% endblock %} 

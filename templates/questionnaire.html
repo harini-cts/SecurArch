@@ -1,224 +1,323 @@
 {% extends "base.html" %}
 
-{% block title %}Security Review - {{ application.name }} - SecureArch Portal{% endblock %}
+{% block title %}Security Assessment - {{ application.name }}{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h4><i class="fas fa-shield-alt"></i> Security Architecture Review</h4>
-                <p class="mb-0 text-muted">Application: <strong>{{ application.name }}</strong></p>
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Progress Header -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="mb-0">
+                            <i class="fas fa-shield-alt text-primary"></i>
+                            Security Assessment
+                        </h2>
+                        <span class="badge bg-primary fs-6 px-3 py-2">
+                            {{ application.name }}
+                        </span>
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="progress mb-3" style="height: 8px;">
+                        <div class="progress-bar bg-primary" role="progressbar" 
+                             style="width: 0%" 
+                             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+                             id="progress-bar"></div>
+                    </div>
+                    
+                                         <div class="d-flex justify-content-between align-items-center">
+                         <small class="text-muted">
+                             <span id="current-section">1</span> of <span id="total-sections">14</span> sections
+                         </small>
+                         <small class="text-muted">
+                             <span id="progress-text">0%</span> navigation progress
+                         </small>
+                     </div>
+                     <div class="mt-2">
+                         <small class="text-info" id="completion-progress">
+                             0/0 questions answered (0%)
+                         </small>
+                     </div>
+                </div>
             </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('submit_questionnaire', app_id=application.id) }}">
-                    <!-- Comprehensive Security Review Information -->
-                    <div class="alert alert-primary mb-4">
-                        <h6><i class="fas fa-shield-alt"></i> {{ field_name }}</h6>
-                        <p class="mb-0">Complete OWASP-based security assessment covering all 14 essential security topics</p>
-                        <small class="text-muted">This comprehensive review evaluates your application against industry-standard security practices.</small>
-                    </div>
-                    {% for category, questions in questionnaire.items() %}
-                    <div class="questionnaire-section mb-4">
-                        <h5 class="mb-3">
-                            <i class="fas fa-folder-open"></i> {{ category }}
-                        </h5>
-                        
-                        {% for question in questions %}
-                        <div class="question-item mb-3">
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <h6>{{ question.question }}</h6>
-                                    {% if question.description %}
-                                    <p class="text-muted small">{{ question.description }}</p>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="btn-group-toggle d-flex justify-content-end" data-toggle="buttons">
-                                        <label class="btn btn-outline-success btn-sm me-1">
-                                            <input type="radio" name="{{ question.id }}" value="yes" required> Yes
-                                        </label>
-                                        <label class="btn btn-outline-danger btn-sm me-1">
-                                            <input type="radio" name="{{ question.id }}" value="no" required> No
-                                        </label>
-                                        <label class="btn btn-outline-warning btn-sm">
-                                            <input type="radio" name="{{ question.id }}" value="partial" required> Partial
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Comments field -->
-                            <div class="mt-2">
-                                <textarea class="form-control form-control-sm" 
-                                          name="{{ question.id }}_comment" 
-                                          placeholder="Optional: Add comments or implementation details..."
-                                          rows="2"></textarea>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    <hr>
-                    {% endfor %}
 
-                    <!-- Risk Assessment Section -->
-                    <div class="questionnaire-section mb-4">
-                        <h5 class="mb-3">
-                            <i class="fas fa-exclamation-triangle"></i> Risk Assessment
-                        </h5>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Overall Security Confidence</label>
-                                    <select class="form-control" name="security_confidence" required>
-                                        <option value="">Select confidence level</option>
-                                        <option value="very_high">Very High (90-100%)</option>
-                                        <option value="high">High (70-89%)</option>
-                                        <option value="medium">Medium (50-69%)</option>
-                                        <option value="low">Low (30-49%)</option>
-                                        <option value="very_low">Very Low (0-29%)</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Primary Security Concerns</label>
-                                    <select class="form-control" name="primary_concern" required>
-                                        <option value="">Select primary concern</option>
-                                        <option value="authentication">Authentication & Authorization</option>
-                                        <option value="data_protection">Data Protection</option>
-                                        <option value="input_validation">Input Validation</option>
-                                        <option value="session_management">Session Management</option>
-                                        <option value="encryption">Encryption & Cryptography</option>
-                                        <option value="access_control">Access Control</option>
-                                        <option value="infrastructure">Infrastructure Security</option>
-                                        <option value="none">No Major Concerns</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Additional Comments</label>
-                            <textarea class="form-control" name="additional_comments" rows="3" 
-                                      placeholder="Any additional security concerns, questions, or implementation notes..."></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Submit Section -->
-                    <div class="d-flex justify-content-between align-items-center">
-                        <a href="{{ url_for('web_applications') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Back to Applications
-                        </a>
-                        
-                        <div>
-                            <button type="button" class="btn btn-outline-primary me-2" onclick="saveProgress()">
-                                <i class="fas fa-save"></i> Save Progress
-                            </button>
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-check"></i> Submit Security Review
-                            </button>
-                        </div>
-                    </div>
-                </form>
+            <!-- Information -->
+            <div class="alert alert-info mb-4">
+                <h6><i class="fas fa-info-circle"></i> Flexible Assessment</h6>
+                <p class="mb-0">
+                    Navigate freely between sections and answer questions at your own pace. 
+                    You can skip questions and return to them later - no question is mandatory to proceed.
+                </p>
             </div>
-        </div>
 
-        <!-- Help Panel -->
-        <div class="card mt-4">
-            <div class="card-body">
-                <h6><i class="fas fa-question-circle"></i> How to Answer</h6>
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="text-success">
-                            <strong>Yes:</strong> Fully implemented and tested
+            <!-- Questionnaire Form -->
+            <form id="questionnaire-form" method="POST" action="{{ url_for('submit_questionnaire', app_id=application.id) }}">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <!-- Section Container -->
+                        <div id="section-container">
+                            <!-- Sections will be populated by JavaScript -->
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="text-warning">
-                            <strong>Partial:</strong> Partially implemented or needs improvement
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="text-danger">
-                            <strong>No:</strong> Not implemented or not applicable
+                        
+                        <!-- Navigation Buttons -->
+                        <div class="row mt-4">
+                            <div class="col-6">
+                                <button type="button" class="btn btn-outline-secondary" id="prev-btn" disabled>
+                                    <i class="fas fa-chevron-left"></i> Previous
+                                </button>
+                            </div>
+                            <div class="col-6 text-end">
+                                <button type="button" class="btn btn-primary" id="next-btn">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </button>
+                                <button type="submit" class="btn btn-success d-none" id="submit-btn">
+                                    <i class="fas fa-check"></i> Submit Assessment
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <hr>
-                <p class="mb-0 small text-muted">
-                    This questionnaire is based on OWASP Application Security Verification Standard (ASVS) and OWASP Top 10 security risks. 
-                    Your answers will generate a comprehensive security report with actionable recommendations.
-                </p>
-            </div>
+            </form>
         </div>
     </div>
 </div>
 
-<script>
-function saveProgress() {
-    // Collect form data
-    const formData = new FormData(document.querySelector('form'));
-    
-    // Show loading
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-    btn.disabled = true;
-    
-    // Simulate save (replace with actual AJAX call)
-    setTimeout(() => {
-        btn.innerHTML = '<i class="fas fa-check"></i> Saved';
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }, 1000);
-    }, 1000);
-}
+<!-- Question Data -->
+<script type="application/json" id="questionnaire-data">
+{{ questionnaire | tojson }}
+</script>
 
-// Auto-save functionality
-let autoSaveTimer;
-document.addEventListener('change', function(e) {
-    if (e.target.type === 'radio' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
-        clearTimeout(autoSaveTimer);
-        autoSaveTimer = setTimeout(() => {
-            console.log('Auto-saving form data...');
-            // Implement auto-save functionality here
-        }, 5000); // Auto-save after 5 seconds of inactivity
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const questionnaireData = JSON.parse(document.getElementById('questionnaire-data').textContent);
+    const sections = Object.keys(questionnaireData);
+    let currentSection = 0;
+    
+    const sectionContainer = document.getElementById('section-container');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const submitBtn = document.getElementById('submit-btn');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const currentSectionSpan = document.getElementById('current-section');
+    const totalSectionsSpan = document.getElementById('total-sections');
+    
+    // Set total sections
+    totalSectionsSpan.textContent = sections.length;
+    
+    function updateProgress() {
+        const progress = Math.round(((currentSection + 1) / sections.length) * 100);
+        progressBar.style.width = progress + '%';
+        progressBar.setAttribute('aria-valuenow', progress);
+        progressText.textContent = progress + '%';
+        currentSectionSpan.textContent = currentSection + 1;
     }
+    
+    function renderSection(sectionIndex) {
+        const sectionKey = sections[sectionIndex];
+        const section = questionnaireData[sectionKey];
+        
+        let html = `
+            <div class="section-header mb-4">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h3 class="text-primary mb-2">
+                            <i class="fas fa-clipboard-list"></i> ${section.title}
+                        </h3>
+                        <p class="text-muted mb-0">${section.description}</p>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-light text-dark border">
+                            ${section.questions.length} questions
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="questions-container">
+        `;
+        
+        section.questions.forEach((question, qIndex) => {
+            html += `
+                <div class="question-card card border-left-primary mb-4" style="border-left: 4px solid #007bff;">
+                    <div class="card-body">
+                        <div class="question-header mb-3">
+                            <h5 class="mb-1">
+                                <span class="badge bg-primary me-2">${qIndex + 1}</span>
+                                ${question.question}
+                            </h5>
+                            ${question.description ? `<small class="text-muted">${question.description}</small>` : ''}
+                        </div>
+                        
+                        <div class="question-options">
+                            ${question.options.map((option, optIndex) => `
+                                                                 <div class="form-check mb-2">
+                                     <input class="form-check-input" type="radio" 
+                                            name="${question.id}" 
+                                            id="${question.id}_${optIndex}" 
+                                            value="${optIndex}">
+                                     <label class="form-check-label" for="${question.id}_${optIndex}">
+                                         ${option}
+                                     </label>
+                                 </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        sectionContainer.innerHTML = html;
+        
+                 // Add fade-in animation
+         sectionContainer.style.opacity = '0';
+         setTimeout(() => {
+             sectionContainer.style.opacity = '1';
+             sectionContainer.style.transition = 'opacity 0.3s ease-in-out';
+             
+             // Add event listeners to radio buttons for real-time progress update
+             document.querySelectorAll('input[type="radio"]').forEach(input => {
+                 input.addEventListener('change', updateProgressBasedOnAnswers);
+             });
+             
+             // Update progress for any already selected answers
+             updateProgressBasedOnAnswers();
+         }, 100);
+    }
+    
+    function updateButtons() {
+        prevBtn.disabled = currentSection === 0;
+        
+        if (currentSection === sections.length - 1) {
+            nextBtn.classList.add('d-none');
+            submitBtn.classList.remove('d-none');
+        } else {
+            nextBtn.classList.remove('d-none');
+            submitBtn.classList.add('d-none');
+        }
+    }
+    
+         function updateProgressBasedOnAnswers() {
+         let totalQuestions = 0;
+         let answeredQuestions = 0;
+         
+         // Count all questions and answered questions across all sections
+         sections.forEach(sectionKey => {
+             const section = questionnaireData[sectionKey];
+             section.questions.forEach(question => {
+                 totalQuestions++;
+                 const inputs = document.querySelectorAll(`input[name="${question.id}"]:checked`);
+                 if (inputs.length > 0) {
+                     answeredQuestions++;
+                 }
+             });
+         });
+         
+         // Update progress based on actual completion
+         const completionProgress = totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
+         
+         // Update the secondary progress indicator
+         const secondaryProgress = document.getElementById('completion-progress');
+         if (secondaryProgress) {
+             secondaryProgress.textContent = `${answeredQuestions}/${totalQuestions} questions answered (${completionProgress}%)`;
+         }
+     }
+    
+    // Event Listeners
+         prevBtn.addEventListener('click', function() {
+         if (currentSection > 0) {
+             currentSection--;
+             renderSection(currentSection);
+             updateProgress();
+             updateButtons();
+             updateProgressBasedOnAnswers();
+             window.scrollTo({ top: 0, behavior: 'smooth' });
+         }
+     });
+    
+         nextBtn.addEventListener('click', function() {
+         if (currentSection < sections.length - 1) {
+             currentSection++;
+             renderSection(currentSection);
+             updateProgress();
+             updateButtons();
+             updateProgressBasedOnAnswers();
+             window.scrollTo({ top: 0, behavior: 'smooth' });
+         }
+     });
+    
+         // Initialize
+     renderSection(0);
+     updateProgress();
+     updateButtons();
+     updateProgressBasedOnAnswers();
 });
 </script>
 
 <style>
-.question-item {
-    background: white;
-    border-radius: 8px;
-    padding: 15px;
-    margin: 10px 0;
-    border-left: 4px solid var(--secondary-color);
+.border-left-primary {
+    border-left: 4px solid #007bff !important;
+}
+
+.question-card {
     transition: all 0.3s ease;
 }
 
-.question-item:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+.question-card:hover {
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
 }
 
-.btn-group-toggle label {
+.form-check-input:checked {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.form-check-label {
     cursor: pointer;
+    line-height: 1.4;
 }
 
-.btn-group-toggle input[type="radio"]:checked + label {
-    background-color: var(--primary-color);
-    color: white;
+.section-header {
+    border-bottom: 2px solid #f8f9fa;
+    padding-bottom: 1rem;
 }
 
-.questionnaire-section {
-    background: #f8f9fa;
+.progress {
     border-radius: 10px;
-    padding: 20px;
-    margin: 15px 0;
+    background-color: #e9ecef;
+}
+
+.progress-bar {
+    border-radius: 10px;
+    transition: width 0.6s ease;
+}
+
+#section-container {
+    min-height: 400px;
+}
+
+.badge {
+    font-size: 0.875em;
+}
+
+.btn {
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    border: none;
+}
+
+.btn-success {
+    background: linear-gradient(45deg, #28a745, #1e7e34);
+    border: none;
 }
 </style>
 {% endblock %} 

@@ -35,6 +35,58 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+def migrate_database():
+    """Migrate existing database to support STRIDE analysis"""
+    conn = get_db()
+    
+    try:
+        # Check if analyst_id column exists in security_reviews
+        conn.execute('SELECT analyst_id FROM security_reviews LIMIT 1')
+        print("📊 Database schema is up to date")
+    except sqlite3.OperationalError:
+        # Add missing columns to security_reviews table
+        print("🔧 Migrating database schema for STRIDE analysis...")
+        try:
+            conn.execute('ALTER TABLE security_reviews ADD COLUMN analyst_id TEXT')
+            print("   ✅ Added analyst_id column")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            conn.execute('ALTER TABLE security_reviews ADD COLUMN stride_analysis TEXT')
+            print("   ✅ Added stride_analysis column")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            conn.execute('ALTER TABLE security_reviews ADD COLUMN final_report TEXT')
+            print("   ✅ Added final_report column")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            conn.execute('ALTER TABLE security_reviews ADD COLUMN analyst_reviewed_at TIMESTAMP')
+            print("   ✅ Added analyst_reviewed_at column")
+        except sqlite3.OperationalError:
+            pass
+        
+        # Create STRIDE analysis table if it doesn't exist
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS stride_analysis (
+                id TEXT PRIMARY KEY,
+                review_id TEXT,
+                threat_category TEXT,
+                threat_description TEXT,
+                risk_level TEXT,
+                mitigation_status TEXT,
+                recommendations TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (review_id) REFERENCES security_reviews (id)
+            )
+        ''')
+        print("   ✅ Created stride_analysis table")
+        print("🎉 Database migration completed successfully!")
+    
+    conn.commit()
+    conn.close()
+
 def init_db():
     """Initialize database with tables"""
     conn = get_db()
@@ -86,13 +138,33 @@ def init_db():
             security_level TEXT,
             recommendations TEXT,
             status TEXT DEFAULT 'in_progress',
+            analyst_id TEXT,
+            stride_analysis TEXT,
+            final_report TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             completed_at TIMESTAMP,
-            FOREIGN KEY (application_id) REFERENCES applications (id)
+            analyst_reviewed_at TIMESTAMP,
+            FOREIGN KEY (application_id) REFERENCES applications (id),
+            FOREIGN KEY (analyst_id) REFERENCES users (id)
         )
     ''')
     
-    # Create demo user if not exists
+    # STRIDE Analysis table for threat modeling
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS stride_analysis (
+            id TEXT PRIMARY KEY,
+            review_id TEXT,
+            threat_category TEXT,
+            threat_description TEXT,
+            risk_level TEXT,
+            mitigation_status TEXT,
+            recommendations TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (review_id) REFERENCES security_reviews (id)
+        )
+    ''')
+    
+    # Create demo users if not exists
     existing_demo = conn.execute('SELECT id FROM users WHERE email = ?', ('admin@demo.com',)).fetchone()
     if not existing_demo:
         demo_user_id = str(uuid.uuid4())
@@ -101,6 +173,16 @@ def init_db():
             INSERT INTO users (id, email, password_hash, first_name, last_name, role, organization_name, onboarding_completed)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (demo_user_id, 'admin@demo.com', demo_password_hash, 'Demo', 'Admin', 'admin', 'SecureArch Corp', 1))
+    
+    # Create demo Security Analyst if not exists
+    existing_analyst = conn.execute('SELECT id FROM users WHERE email = ?', ('analyst@demo.com',)).fetchone()
+    if not existing_analyst:
+        analyst_user_id = str(uuid.uuid4())
+        analyst_password_hash = generate_password_hash('analyst123')
+        conn.execute('''
+            INSERT INTO users (id, email, password_hash, first_name, last_name, role, organization_name, job_title, onboarding_completed)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (analyst_user_id, 'analyst@demo.com', analyst_password_hash, 'Security', 'Analyst', 'security_analyst', 'SecureArch Corp', 'Senior Security Analyst', 1))
     
     conn.commit()
     conn.close()
@@ -114,6 +196,84 @@ def login_required(f):
             return redirect(url_for('web_login'))
         return f(*args, **kwargs)
     return decorated_function
+
+def analyst_required(f):
+    """Decorator to require Security Analyst role"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Please log in to access this page.', 'warning')
+            return redirect(url_for('web_login'))
+        
+        # Check if user has analyst role
+        conn = get_db()
+        user = conn.execute('SELECT role FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+        conn.close()
+        
+        if not user or user[0] not in ['security_analyst', 'admin']:
+            flash('Access denied. Security Analyst role required.', 'error')
+            return redirect(url_for('web_dashboard'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+# STRIDE Threat Modeling Categories
+STRIDE_CATEGORIES = {
+    "spoofing": {
+        "name": "Spoofing",
+        "description": "Impersonating someone or something else",
+        "examples": ["Credential theft", "Identity spoofing", "Session hijacking"],
+        "color": "#e74c3c"
+    },
+    "tampering": {
+        "name": "Tampering",
+        "description": "Modifying data or code",
+        "examples": ["Data manipulation", "Code injection", "Configuration changes"],
+        "color": "#f39c12"
+    },
+    "repudiation": {
+        "name": "Repudiation",
+        "description": "Claiming to have not performed an action",
+        "examples": ["Lack of logging", "Non-repudiation failures", "Audit trail gaps"],
+        "color": "#9b59b6"
+    },
+    "information_disclosure": {
+        "name": "Information Disclosure",
+        "description": "Exposing information to unauthorized users",
+        "examples": ["Data leaks", "Information exposure", "Privacy violations"],
+        "color": "#3498db"
+    },
+    "denial_of_service": {
+        "name": "Denial of Service",
+        "description": "Denying or degrading service to valid users",
+        "examples": ["Resource exhaustion", "Service disruption", "Availability attacks"],
+        "color": "#e67e22"
+    },
+    "elevation_of_privilege": {
+        "name": "Elevation of Privilege",
+        "description": "Gaining capabilities without proper authorization",
+        "examples": ["Privilege escalation", "Authorization bypass", "Access control failures"],
+        "color": "#e74c3c"
+    }
+}
+
+# OWASP to STRIDE Mapping
+OWASP_TO_STRIDE_MAPPING = {
+    "input_validation": ["tampering", "denial_of_service"],
+    "authentication": ["spoofing", "elevation_of_privilege"],
+    "authorization": ["elevation_of_privilege", "information_disclosure"],
+    "configuration_management": ["tampering", "information_disclosure"],
+    "sensitive_data": ["information_disclosure", "tampering"],
+    "session_management": ["spoofing", "elevation_of_privilege"],
+    "database_security": ["tampering", "information_disclosure"],
+    "file_management": ["tampering", "denial_of_service"],
+    "exception_management": ["information_disclosure", "denial_of_service"],
+    "cryptography": ["information_disclosure", "tampering"],
+    "auditing_logging": ["repudiation", "information_disclosure"],
+    "data_protection": ["information_disclosure", "tampering"],
+    "api_security": ["spoofing", "tampering", "information_disclosure"],
+    "ai_security": ["tampering", "information_disclosure", "denial_of_service"]
+}
 
 # Field-Specific OWASP Security Questionnaires
 SECURITY_QUESTIONNAIRES = {
@@ -1976,10 +2136,202 @@ def web_questionnaire(app_id):
     
     # Use comprehensive questionnaire covering all 14 security topics
     return render_template('questionnaire.html', 
-                         application=app, 
+                                     application=app, 
+            questionnaire=SECURITY_QUESTIONNAIRE,
+            field='comprehensive',
+            field_name='Comprehensive OWASP Security Review')
+
+# === SECURITY ANALYST ROUTES ===
+
+@app.route('/analyst/dashboard')
+@analyst_required
+def analyst_dashboard():
+    """Security Analyst Dashboard"""
+    conn = get_db()
+    
+    # Get pending reviews
+    pending_reviews = conn.execute('''
+        SELECT sr.id, sr.application_id, sr.status, sr.created_at, sr.risk_score,
+               a.name as app_name, a.business_criticality,
+               u.first_name, u.last_name
+        FROM security_reviews sr
+        JOIN applications a ON sr.application_id = a.id
+        JOIN users u ON a.author_id = u.id
+        WHERE sr.status IN ('submitted', 'in_review')
+        ORDER BY sr.created_at DESC
+    ''').fetchall()
+    
+    # Get completed reviews
+    completed_reviews = conn.execute('''
+        SELECT sr.id, sr.application_id, sr.status, sr.analyst_reviewed_at, sr.risk_score,
+               a.name as app_name, a.business_criticality,
+               u.first_name, u.last_name
+        FROM security_reviews sr
+        JOIN applications a ON sr.application_id = a.id
+        JOIN users u ON a.author_id = u.id
+        WHERE sr.status = 'completed' AND sr.analyst_id = ?
+        ORDER BY sr.analyst_reviewed_at DESC
+        LIMIT 10
+    ''', (session['user_id'],)).fetchall()
+    
+    # Get statistics
+    total_pending = len(pending_reviews)
+    total_completed = len(completed_reviews)
+    high_risk_count = len([r for r in pending_reviews if r[4] and r[4] < 50])  # risk_score < 50
+    
+    conn.close()
+    
+    return render_template('analyst/dashboard.html', 
+                         pending_reviews=pending_reviews,
+                         completed_reviews=completed_reviews,
+                         stats={
+                             'total_pending': total_pending,
+                             'total_completed': total_completed,
+                             'high_risk_count': high_risk_count
+                         })
+
+@app.route('/analyst/review/<review_id>')
+@analyst_required
+def analyst_review_detail(review_id):
+    """Detailed review page for analysts"""
+    conn = get_db()
+    
+    # Get review details
+    review = conn.execute('''
+        SELECT sr.*, a.name as app_name, a.description, a.technology_stack,
+               a.deployment_environment, a.business_criticality, a.data_classification,
+               u.first_name, u.last_name, u.email
+        FROM security_reviews sr
+        JOIN applications a ON sr.application_id = a.id
+        JOIN users u ON a.author_id = u.id
+        WHERE sr.id = ?
+    ''', (review_id,)).fetchone()
+    
+    if not review:
+        flash('Review not found.', 'error')
+        return redirect(url_for('analyst_dashboard'))
+    
+    # Parse questionnaire responses
+    responses = json.loads(review[3]) if review[3] else {}  # questionnaire_responses
+    
+    # Get existing STRIDE analysis
+    stride_analysis = conn.execute('''
+        SELECT * FROM stride_analysis WHERE review_id = ? ORDER BY threat_category
+    ''', (review_id,)).fetchall()
+    
+    conn.close()
+    
+    # Generate STRIDE threats based on responses
+    identified_threats = analyze_stride_threats(responses)
+    
+    return render_template('analyst/review_detail.html', 
+                         review=review,
+                         responses=responses,
                          questionnaire=SECURITY_QUESTIONNAIRE,
-                         field='comprehensive',
-                         field_name='Comprehensive OWASP Security Review')
+                         stride_categories=STRIDE_CATEGORIES,
+                         stride_analysis=stride_analysis,
+                         identified_threats=identified_threats)
+
+@app.route('/analyst/review/<review_id>/stride', methods=['POST'])
+@analyst_required
+def save_stride_analysis(review_id):
+    """Save STRIDE analysis for a review"""
+    conn = get_db()
+    
+    # Verify review exists and analyst can access it
+    review = conn.execute('SELECT id FROM security_reviews WHERE id = ?', (review_id,)).fetchone()
+    if not review:
+        flash('Review not found.', 'error')
+        return redirect(url_for('analyst_dashboard'))
+    
+    # Clear existing STRIDE analysis
+    conn.execute('DELETE FROM stride_analysis WHERE review_id = ?', (review_id,))
+    
+    # Save new STRIDE analysis
+    for category in STRIDE_CATEGORIES.keys():
+        threat_desc = request.form.get(f'threat_{category}')
+        risk_level = request.form.get(f'risk_{category}')
+        mitigation_status = request.form.get(f'mitigation_{category}')
+        recommendations = request.form.get(f'recommendations_{category}')
+        
+        if threat_desc and risk_level:
+            stride_id = str(uuid.uuid4())
+            conn.execute('''
+                INSERT INTO stride_analysis (id, review_id, threat_category, threat_description, 
+                                           risk_level, mitigation_status, recommendations)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (stride_id, review_id, category, threat_desc, risk_level, mitigation_status, recommendations))
+    
+    # Update review status
+    conn.execute('''
+        UPDATE security_reviews 
+        SET status = 'in_review', analyst_id = ?
+        WHERE id = ?
+    ''', (session['user_id'], review_id))
+    
+    conn.commit()
+    conn.close()
+    
+    flash('STRIDE analysis saved successfully!', 'success')
+    return redirect(url_for('analyst_review_detail', review_id=review_id))
+
+@app.route('/analyst/review/<review_id>/finalize', methods=['POST'])
+@analyst_required
+def finalize_review(review_id):
+    """Finalize security review with analyst recommendations"""
+    conn = get_db()
+    
+    final_report = request.form.get('final_report')
+    overall_risk = request.form.get('overall_risk')
+    final_recommendations = request.form.get('final_recommendations')
+    
+    # Create final report structure
+    final_report_data = {
+        'overall_risk_level': overall_risk,
+        'executive_summary': final_report,
+        'detailed_recommendations': final_recommendations,
+        'analyst_notes': request.form.get('analyst_notes', ''),
+        'finalized_by': session['user_id'],
+        'finalized_at': datetime.now().isoformat()
+    }
+    
+    # Update review
+    conn.execute('''
+        UPDATE security_reviews 
+        SET status = 'completed', 
+            final_report = ?,
+            analyst_reviewed_at = CURRENT_TIMESTAMP,
+            analyst_id = ?
+        WHERE id = ?
+    ''', (json.dumps(final_report_data), session['user_id'], review_id))
+    
+    conn.commit()
+    conn.close()
+    
+    flash('Security review finalized successfully!', 'success')
+    return redirect(url_for('analyst_dashboard'))
+
+def analyze_stride_threats(responses):
+    """Analyze questionnaire responses to identify STRIDE threats"""
+    threats = {category: [] for category in STRIDE_CATEGORIES.keys()}
+    
+    for category_key, category_data in SECURITY_QUESTIONNAIRE.items():
+        stride_categories = OWASP_TO_STRIDE_MAPPING.get(category_key, [])
+        
+        for question in category_data['questions']:
+            question_id = question['id']
+            if question_id in responses:
+                response_index = int(responses[question_id])
+                # If response indicates low security (index 3 or 4), add as threat
+                if response_index >= 3:
+                    for stride_cat in stride_categories:
+                        threats[stride_cat].append({
+                            'question': question['question'],
+                            'category': category_data['title'],
+                            'risk_level': 'High' if response_index == 4 else 'Medium'
+                        })
+    
+    return threats
 
 @app.route('/submit-questionnaire/<app_id>', methods=['POST'])
 @login_required
@@ -2160,12 +2512,16 @@ def internal_error(error):
 if __name__ == '__main__':
     # Initialize database
     init_db()
+    # Migrate database for STRIDE analysis support
+    migrate_database()
     print("🚀 SecureArch Portal Web Application starting...")
-    print("📊 Database initialized with demo user")
+    print("📊 Database initialized with demo users")
     print("🔐 Authentication system ready")
     print("📋 Security questionnaires loaded")
+    print("🛡️ STRIDE threat modeling ready")
     print("🌐 Server starting on http://localhost:5000")
-    print("🎯 Demo Login: admin@demo.com / password123")
+    print("👤 Demo User: admin@demo.com / password123")
+    print("🔍 Demo Analyst: analyst@demo.com / analyst123")
     
     # Start Flask app
     app.run(host='0.0.0.0', port=5000, debug=True) 
