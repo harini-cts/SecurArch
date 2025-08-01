@@ -2391,10 +2391,10 @@ def submit_questionnaire(app_id):
     conn.execute('''
         INSERT INTO security_reviews (id, application_id, questionnaire_responses, 
                                      risk_score, security_level, recommendations, 
-                                     status, completed_at)
+                                     status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', (review_id, app_id, json.dumps(responses), risk_score, security_level, 
-          json.dumps(recommendations), 'completed', datetime.now().isoformat()))
+          json.dumps(recommendations), 'submitted', datetime.now().isoformat()))
     
     conn.commit()
     conn.close()
