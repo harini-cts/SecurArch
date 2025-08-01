@@ -1,0 +1,22 @@
+# GitHub Setup Commands for SecureArch Portal
+
+# 1. Add your GitHub repository as remote origin
+git remote add origin https://github.com/YOUR-USERNAME/securearch-portal.git
+
+# 2. Set the main branch name
+git branch -M main
+
+# 3. Push your code to GitHub
+git push -u origin main
+
+# Alternative: If you prefer SSH (after setting up SSH keys)
+# git remote add origin git@github.com:YOUR-USERNAME/securearch-portal.git
+
+# 4. Verify the connection
+git remote -v
+
+# 5. Check status
+git status
+
+# Replace YOUR-USERNAME with your actual GitHub username
+# Example: git remote add origin https://github.com/johnsmith/securearch-portal.git 
