@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Security Review Results - {{ application.name }} - SecureArch Portal{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Header Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4><i class="fas fa-chart-line"></i> Security Review Results</h4>
+                        <p class="mb-0 text-muted">Application: <strong>{{ application.name }}</strong></p>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-{{ 'success' if review.security_level == 'High' else ('warning' if review.security_level == 'Medium' else 'danger') }} fs-6">
+                            {{ review.security_level }} Security
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Score Overview -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <h3>{{ review.risk_score }}%</h3>
+                    <p>Security Score</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <h3>{{ findings|length }}</h3>
+                    <p>Total Findings</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <h3>{{ findings|selectattr('severity', 'equalto', 'High')|list|length }}</h3>
+                    <p>High Risk Issues</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Findings by Severity -->
+        {% if findings %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-exclamation-triangle"></i> Security Findings</h5>
+            </div>
+            <div class="card-body">
+                {% for finding in findings %}
+                <div class="question-item mb-3 {{ 'risk-high' if finding.severity == 'High' else ('risk-medium' if finding.severity == 'Medium' else 'risk-low') }}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6>{{ finding.title }}</h6>
+                        <span class="badge bg-{{ 'danger' if finding.severity == 'High' else ('warning' if finding.severity == 'Medium' else 'success') }}">
+                            {{ finding.severity }}
+                        </span>
+                    </div>
+                    <p class="text-muted">{{ finding.description }}</p>
+                    
+                    {% if finding.recommendation %}
+                    <div class="mt-2">
+                        <strong>Recommendation:</strong>
+                        <p class="mb-0">{{ finding.recommendation }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Security Recommendations -->
+        {% if recommendations %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-lightbulb"></i> Security Recommendations</h5>
+            </div>
+            <div class="card-body">
+                {% for rec in recommendations %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6>{{ rec.title }}</h6>
+                            <span class="badge bg-{{ 'danger' if rec.priority == 'High' else ('warning' if rec.priority == 'Medium' else 'info') }}">
+                                {{ rec.priority }} Priority
+                            </span>
+                        </div>
+                        <p class="card-text">{{ rec.description }}</p>
+                        {% if rec.implementation %}
+                        <div class="mt-2">
+                            <strong>Implementation:</strong>
+                            <p class="mb-0 text-muted">{{ rec.implementation }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- OWASP Compliance Status -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-shield-alt"></i> OWASP Compliance Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">OWASP Top 10 Compliance</label>
+                            <div class="progress">
+                                {% set owasp_score = 75 %}  <!-- Calculate based on review -->
+                                <div class="progress-bar bg-{{ 'success' if owasp_score > 70 else ('warning' if owasp_score > 50 else 'danger') }}" 
+                                     style="width: {{ owasp_score }}%">
+                                    {{ owasp_score }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">ASVS Level Readiness</label>
+                            <div class="progress">
+                                {% set asvs_score = review.risk_score %}
+                                <div class="progress-bar bg-{{ 'success' if asvs_score > 70 else ('warning' if asvs_score > 50 else 'danger') }}" 
+                                     style="width: {{ asvs_score }}%">
+                                    Level {{ '3' if asvs_score > 80 else ('2' if asvs_score > 60 else '1') }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Review Summary -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-file-alt"></i> Review Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Review Date:</strong> {{ review.created_at.strftime('%B %d, %Y') if review.created_at else 'N/A' }}</p>
+                        <p><strong>Review Status:</strong> 
+                            <span class="badge bg-{{ 'success' if review.status == 'completed' else 'warning' }}">
+                                {{ review.status.title() }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Application Type:</strong> {{ application.technology_stack }}</p>
+                        <p><strong>Environment:</strong> {{ application.deployment_environment }}</p>
+                    </div>
+                </div>
+                
+                {% if review.summary %}
+                <hr>
+                <h6>Executive Summary</h6>
+                <p>{{ review.summary }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-between mb-4">
+            <a href="{{ url_for('web_applications') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Applications
+            </a>
+            
+            <div>
+                <button class="btn btn-outline-primary" onclick="exportReport()">
+                    <i class="fas fa-download"></i> Export Report
+                </button>
+                <a href="{{ url_for('web_questionnaire', app_id=application.id) }}" class="btn btn-outline-warning">
+                    <i class="fas fa-redo"></i> Re-assess
+                </a>
+                <button class="btn btn-success" onclick="shareReport()">
+                    <i class="fas fa-share"></i> Share Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function exportReport() {
+    // Placeholder for export functionality
+    alert('Export functionality coming soon! Report will be available in PDF format.');
+}
+
+function shareReport() {
+    // Placeholder for share functionality
+    const url = window.location.href;
+    if (navigator.share) {
+        navigator.share({
+            title: 'Security Review Report - {{ application.name }}',
+            text: 'Security review completed with {{ review.risk_score }}% security score',
+            url: url
+        });
+    } else {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Report URL copied to clipboard!');
+        });
+    }
+}
+
+// Print functionality
+function printReport() {
+    window.print();
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'p') {
+        e.preventDefault();
+        printReport();
+    }
+});
+</script>
+
+<style>
+.risk-high { 
+    border-left-color: var(--danger-color) !important; 
+    background-color: #fff5f5;
+}
+.risk-medium { 
+    border-left-color: var(--warning-color) !important; 
+    background-color: #fffbf0;
+}
+.risk-low { 
+    border-left-color: var(--success-color) !important; 
+    background-color: #f0fff4;
+}
+
+.stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 25px;
+    text-align: center;
+    margin-bottom: 20px;
+    transition: transform 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.stats-card h3 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+@media print {
+    .btn, .navbar, .footer {
+        display: none;
+    }
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Login - SecureArch Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-lg-5 col-md-7">
+        <div class="card">
+            <div class="card-header text-center">
+                <h4><i class="fas fa-shield-alt"></i> Login to SecureArch Portal</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('web_login') }}">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">
+                            <i class="fas fa-envelope"></i> Email Address
+                        </label>
+                        <input type="email" class="form-control" id="email" name="email" 
+                               placeholder="Enter your email" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-lock"></i> Password
+                        </label>
+                        <input type="password" class="form-control" id="password" name="password" 
+                               placeholder="Enter your password" required>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
+                        <label class="form-check-label" for="remember_me">
+                            Remember me
+                        </label>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
+                    </div>
+                </form>
+                
+                <hr class="my-4">
+                
+                <div class="text-center">
+                    <p class="mb-0">Don't have an account?</p>
+                    <a href="{{ url_for('web_register') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </a>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> 
+                        Use demo credentials: admin@demo.com / password123
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6><i class="fas fa-shield-check"></i> Secure Platform Features</h6>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <i class="fas fa-search fa-2x text-primary mb-2"></i>
+                            <p><small>Security Reviews</small></p>
+                        </div>
+                        <div class="col-4">
+                            <i class="fas fa-clipboard-check fa-2x text-success mb-2"></i>
+                            <p><small>OWASP Standards</small></p>
+                        </div>
+                        <div class="col-4">
+                            <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                            <p><small>Risk Assessment</small></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

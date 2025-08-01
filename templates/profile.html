@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - SecureArch Portal{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-user"></i> User Profile</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="first_name" class="form-label">First Name</label>
+                                <input type="text" class="form-control" id="first_name" name="first_name" 
+                                       value="{{ user.first_name }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="last_name" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="last_name" name="last_name" 
+                                       value="{{ user.last_name }}" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="email" name="email" 
+                               value="{{ user.email }}" readonly>
+                        <div class="form-text">Email cannot be changed. Contact support if needed.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="organization_name" class="form-label">Organization</label>
+                        <input type="text" class="form-control" id="organization_name" name="organization_name" 
+                               value="{{ user.organization_name or '' }}">
+                    </div>
+
+                    <hr>
+
+                    <h5>Change Password</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="current_password" class="form-label">Current Password</label>
+                                <input type="password" class="form-control" id="current_password" name="current_password">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="new_password" class="form-label">New Password</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('web_dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Account Information -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> Account Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Role:</strong> {{ user.role.title() }}</p>
+                        <p><strong>Member Since:</strong> {{ user.created_at.strftime('%B %d, %Y') if user.created_at else 'N/A' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Account Status:</strong> <span class="badge bg-success">Active</span></p>
+                        <p><strong>Last Login:</strong> Today</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

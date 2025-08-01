@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SecureArch Portal{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-tachometer-alt"></i> Security Dashboard</h2>
+            <p class="text-muted">Welcome back, {{ session.user_name }}! Here's your security overview.</p>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <i class="fas fa-laptop-code fa-2x mb-2"></i>
+                <h3>{{ stats.applications }}</h3>
+                <p>Applications</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <i class="fas fa-search fa-2x mb-2"></i>
+                <h3>{{ stats.reviews }}</h3>
+                <p>Security Reviews</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <i class="fas fa-shield-alt fa-2x mb-2"></i>
+                <h3>{{ stats.risk_score }}%</h3>
+                <p>Security Score</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <i class="fas fa-check-circle fa-2x mb-2"></i>
+                <h3>{{ stats.compliance }}</h3>
+                <p>Compliance Status</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Quick Actions -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-rocket"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('web_create_application') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> New Security Assessment
+                        </a>
+                        <a href="{{ url_for('web_applications') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-list"></i> View All Applications
+                        </a>
+                        <a href="{{ url_for('web_profile') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-user"></i> Update Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5><i class="fas fa-shield-check"></i> Security Tips</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i>
+                            Enable MFA for all admin accounts
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i>
+                            Use parameterized queries to prevent SQL injection
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i>
+                            Implement proper session management
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i>
+                            Regular security assessments
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Applications -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-history"></i> Recent Applications</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_apps %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Application Name</th>
+                                    <th>Technology</th>
+                                    <th>Criticality</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for app in recent_apps %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ app.name }}</strong>
+                                        <br><small class="text-muted">{{ app.description[:50] }}...</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ app.technology_stack or 'Not specified' }}</span>
+                                    </td>
+                                    <td>
+                                        {% if app.business_criticality == 'critical' %}
+                                        <span class="badge bg-danger">Critical</span>
+                                        {% elif app.business_criticality == 'high' %}
+                                        <span class="badge bg-warning">High</span>
+                                        {% else %}
+                                        <span class="badge bg-success">{{ app.business_criticality or 'Medium' }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if app.status == 'draft' %}
+                                        <span class="badge bg-secondary">Draft</span>
+                                        {% elif app.status == 'in_review' %}
+                                        <span class="badge bg-primary">In Review</span>
+                                        {% else %}
+                                        <span class="badge bg-success">{{ app.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('web_questionnaire', app_id=app.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-clipboard-check"></i> Review
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-laptop-code fa-3x text-muted mb-3"></i>
+                        <h5>No applications yet</h5>
+                        <p class="text-muted">Start by creating your first application for security review.</p>
+                        <a href="{{ url_for('web_create_application') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create First Application
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

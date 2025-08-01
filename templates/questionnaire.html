@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Security Review - {{ application.name }} - SecureArch Portal{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-shield-alt"></i> Security Architecture Review</h4>
+                <p class="mb-0 text-muted">Application: <strong>{{ application.name }}</strong></p>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('submit_questionnaire', app_id=application.id) }}">
+                    <!-- Comprehensive Security Review Information -->
+                    <div class="alert alert-primary mb-4">
+                        <h6><i class="fas fa-shield-alt"></i> {{ field_name }}</h6>
+                        <p class="mb-0">Complete OWASP-based security assessment covering all 14 essential security topics</p>
+                        <small class="text-muted">This comprehensive review evaluates your application against industry-standard security practices.</small>
+                    </div>
+                    {% for category, questions in questionnaire.items() %}
+                    <div class="questionnaire-section mb-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-folder-open"></i> {{ category }}
+                        </h5>
+                        
+                        {% for question in questions %}
+                        <div class="question-item mb-3">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h6>{{ question.question }}</h6>
+                                    {% if question.description %}
+                                    <p class="text-muted small">{{ question.description }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="btn-group-toggle d-flex justify-content-end" data-toggle="buttons">
+                                        <label class="btn btn-outline-success btn-sm me-1">
+                                            <input type="radio" name="{{ question.id }}" value="yes" required> Yes
+                                        </label>
+                                        <label class="btn btn-outline-danger btn-sm me-1">
+                                            <input type="radio" name="{{ question.id }}" value="no" required> No
+                                        </label>
+                                        <label class="btn btn-outline-warning btn-sm">
+                                            <input type="radio" name="{{ question.id }}" value="partial" required> Partial
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Comments field -->
+                            <div class="mt-2">
+                                <textarea class="form-control form-control-sm" 
+                                          name="{{ question.id }}_comment" 
+                                          placeholder="Optional: Add comments or implementation details..."
+                                          rows="2"></textarea>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <hr>
+                    {% endfor %}
+
+                    <!-- Risk Assessment Section -->
+                    <div class="questionnaire-section mb-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-exclamation-triangle"></i> Risk Assessment
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Overall Security Confidence</label>
+                                    <select class="form-control" name="security_confidence" required>
+                                        <option value="">Select confidence level</option>
+                                        <option value="very_high">Very High (90-100%)</option>
+                                        <option value="high">High (70-89%)</option>
+                                        <option value="medium">Medium (50-69%)</option>
+                                        <option value="low">Low (30-49%)</option>
+                                        <option value="very_low">Very Low (0-29%)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Primary Security Concerns</label>
+                                    <select class="form-control" name="primary_concern" required>
+                                        <option value="">Select primary concern</option>
+                                        <option value="authentication">Authentication & Authorization</option>
+                                        <option value="data_protection">Data Protection</option>
+                                        <option value="input_validation">Input Validation</option>
+                                        <option value="session_management">Session Management</option>
+                                        <option value="encryption">Encryption & Cryptography</option>
+                                        <option value="access_control">Access Control</option>
+                                        <option value="infrastructure">Infrastructure Security</option>
+                                        <option value="none">No Major Concerns</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Additional Comments</label>
+                            <textarea class="form-control" name="additional_comments" rows="3" 
+                                      placeholder="Any additional security concerns, questions, or implementation notes..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Submit Section -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('web_applications') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Applications
+                        </a>
+                        
+                        <div>
+                            <button type="button" class="btn btn-outline-primary me-2" onclick="saveProgress()">
+                                <i class="fas fa-save"></i> Save Progress
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check"></i> Submit Security Review
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Panel -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6><i class="fas fa-question-circle"></i> How to Answer</h6>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-success">
+                            <strong>Yes:</strong> Fully implemented and tested
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-warning">
+                            <strong>Partial:</strong> Partially implemented or needs improvement
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-danger">
+                            <strong>No:</strong> Not implemented or not applicable
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <p class="mb-0 small text-muted">
+                    This questionnaire is based on OWASP Application Security Verification Standard (ASVS) and OWASP Top 10 security risks. 
+                    Your answers will generate a comprehensive security report with actionable recommendations.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function saveProgress() {
+    // Collect form data
+    const formData = new FormData(document.querySelector('form'));
+    
+    // Show loading
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    btn.disabled = true;
+    
+    // Simulate save (replace with actual AJAX call)
+    setTimeout(() => {
+        btn.innerHTML = '<i class="fas fa-check"></i> Saved';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }, 1000);
+    }, 1000);
+}
+
+// Auto-save functionality
+let autoSaveTimer;
+document.addEventListener('change', function(e) {
+    if (e.target.type === 'radio' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => {
+            console.log('Auto-saving form data...');
+            // Implement auto-save functionality here
+        }, 5000); // Auto-save after 5 seconds of inactivity
+    }
+});
+</script>
+
+<style>
+.question-item {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px 0;
+    border-left: 4px solid var(--secondary-color);
+    transition: all 0.3s ease;
+}
+
+.question-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.btn-group-toggle label {
+    cursor: pointer;
+}
+
+.btn-group-toggle input[type="radio"]:checked + label {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.questionnaire-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 15px 0;
+}
+</style>
+{% endblock %} 
