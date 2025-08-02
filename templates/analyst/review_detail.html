@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Security Review Analysis - {{ review[16] }}{% endblock %}
+{% block title %}Security Review Analysis - {{ review[12] }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -11,7 +11,7 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ url_for('analyst_dashboard') }}">Analyst Dashboard</a></li>
-                    <li class="breadcrumb-item active">{{ review[16] }}</li>
+                    <li class="breadcrumb-item active">{{ review[12] }}</li>
                 </ol>
             </nav>
         </div>
@@ -27,9 +27,9 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <strong>Application Name:</strong> {{ review[16] }}<br>
-                            <strong>Description:</strong> {{ review[17] or 'Not provided' }}<br>
-                            <strong>Technology Stack:</strong> {{ review[18] or 'Not specified' }}<br>
+                                                <strong>Application Name:</strong> {{ review[12] }}<br>
+                    <strong>Description:</strong> {{ review[13] or 'Not provided' }}<br>
+                    <strong>Technology Stack:</strong> {{ review[14] or 'Not specified' }}<br>
                         </div>
                         <div class="col-md-6">
                             <strong>Business Criticality:</strong> 
@@ -55,9 +55,9 @@
                     </span><br><br>
                     
                     <strong>Risk Score:</strong> 
-                    {% if review[5] %}
-                        <span class="badge {% if review[5] < 40 %}bg-danger{% elif review[5] < 70 %}bg-warning{% else %}bg-success{% endif %}">
-                            {{ "%.1f"|format(review[5]) }}%
+                    {% if review[3] %}
+                        <span class="badge {% if review[3] < 40 %}bg-danger{% elif review[3] < 70 %}bg-warning{% else %}bg-success{% endif %}">
+                            {{ "%.1f"|format(review[3]) }}%
                         </span>
                     {% else %}
                         <span class="text-muted">Not calculated</span>
