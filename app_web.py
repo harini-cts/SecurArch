@@ -59,6 +59,8 @@ def migrate_database():
     try:
         # Check if analyst_id column exists in security_reviews
         conn.execute('SELECT analyst_id FROM security_reviews LIMIT 1')
+        # Also check if stride_analysis table has question_id column
+        conn.execute('SELECT question_id FROM stride_analysis LIMIT 1')
         print("📊 Database schema is up to date")
     except sqlite3.OperationalError:
         # Add missing columns to security_reviews table
@@ -84,21 +86,30 @@ def migrate_database():
         except sqlite3.OperationalError:
             pass
         
-        # Create STRIDE analysis table if it doesn't exist
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS stride_analysis (
-                id TEXT PRIMARY KEY,
-                review_id TEXT,
-                threat_category TEXT,
-                threat_description TEXT,
-                risk_level TEXT,
-                mitigation_status TEXT,
-                recommendations TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (review_id) REFERENCES security_reviews (id)
-            )
-        ''')
-        print("   ✅ Created stride_analysis table")
+        # Check if stride_analysis table needs updating
+        try:
+            # Test if question_id column exists
+            conn.execute('SELECT question_id FROM stride_analysis LIMIT 1')
+            print("   ✅ stride_analysis table is up to date")
+        except sqlite3.OperationalError:
+            # Drop and recreate stride_analysis table with correct schema
+            print("   🔧 Updating stride_analysis table schema...")
+            conn.execute('DROP TABLE IF EXISTS stride_analysis')
+            conn.execute('''
+                CREATE TABLE stride_analysis (
+                    id TEXT PRIMARY KEY,
+                    review_id TEXT,
+                    threat_category TEXT,
+                    threat_description TEXT,
+                    risk_level TEXT,
+                    mitigation_status TEXT,
+                    question_id TEXT,
+                    recommendations TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (review_id) REFERENCES security_reviews (id)
+                )
+            ''')
+            print("   ✅ Updated stride_analysis table with new schema")
         print("🎉 Database migration completed successfully!")
     
     conn.commit()
@@ -192,6 +203,7 @@ def init_db():
             threat_description TEXT,
             risk_level TEXT,
             mitigation_status TEXT,
+            question_id TEXT,
             recommendations TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (review_id) REFERENCES security_reviews (id)
@@ -2068,6 +2080,37 @@ def web_dashboard():
     user_reviews = conn.execute('SELECT COUNT(*) as count FROM security_reviews sr JOIN applications a ON sr.application_id = a.id WHERE a.author_id = ?', 
                                (session['user_id'],)).fetchone()['count']
     
+    # Get findings count (STRIDE findings + questionnaire-based findings)
+    stride_findings_count = conn.execute('''
+        SELECT COUNT(*) as count FROM stride_analysis sa 
+        JOIN security_reviews sr ON sa.review_id = sr.id 
+        JOIN applications a ON sr.application_id = a.id 
+        WHERE a.author_id = ? AND sa.risk_level = 'High'
+    ''', (session['user_id'],)).fetchone()['count']
+    
+    # Count high-risk questionnaire responses (answered 'no')
+    user_reviews_data = conn.execute('''
+        SELECT sr.questionnaire_responses FROM security_reviews sr 
+        JOIN applications a ON sr.application_id = a.id 
+        WHERE a.author_id = ?
+    ''', (session['user_id'],)).fetchall()
+    
+    questionnaire_high_risk = 0
+    for review in user_reviews_data:
+        if review['questionnaire_responses']:
+            try:
+                questionnaire_data = json.loads(review['questionnaire_responses'])
+                if isinstance(questionnaire_data, dict) and 'high_risk_count' in questionnaire_data:
+                    questionnaire_high_risk += questionnaire_data['high_risk_count']
+                elif isinstance(questionnaire_data, dict):
+                    # Count 'no' responses in legacy format
+                    responses = questionnaire_data.get('responses', questionnaire_data)
+                    questionnaire_high_risk += len([r for r in responses.values() if r == 'no'])
+            except (json.JSONDecodeError, TypeError):
+                pass
+    
+    total_high_risk_findings = stride_findings_count + questionnaire_high_risk
+    
     # Get recent applications
     recent_apps = conn.execute('''
         SELECT * FROM applications 
@@ -2080,8 +2123,8 @@ def web_dashboard():
     stats = {
         'applications': user_apps,
         'reviews': user_reviews,
-        'high_risk_findings': 0,  # Count of high risk findings
-        'compliance': 'Good'
+        'high_risk_findings': total_high_risk_findings,
+        'compliance': 'Good' if total_high_risk_findings == 0 else ('Fair' if total_high_risk_findings < 5 else 'Needs Attention')
     }
     
     return render_template('dashboard.html', stats=stats, recent_apps=recent_apps)
@@ -2409,7 +2452,7 @@ def save_stride_analysis(review_id):
                 conn.execute('''
                     INSERT INTO stride_analysis (id, review_id, threat_category, threat_description, 
                                                risk_level, mitigation_status, question_id, 
-                                               recommendation, created_at)
+                                               recommendations, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (finding_id, review_id, stride_category, description, risk_level, 
                       'identified', question_id, recommendation, datetime.now().isoformat()))
@@ -2432,10 +2475,11 @@ def save_stride_analysis(review_id):
                     analysis_id = str(uuid.uuid4())
                     conn.execute('''
                         INSERT INTO stride_analysis (id, review_id, threat_category, threat_description, 
-                                                   risk_level, mitigation_status, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                                                   risk_level, mitigation_status, question_id, 
+                                                   recommendations, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ''', (analysis_id, review_id, category_key, threat_desc, risk_level, 
-                          mitigation_status, datetime.now().isoformat()))
+                          mitigation_status, None, '', datetime.now().isoformat()))
             
             conn.commit()
             flash('STRIDE analysis saved successfully!', 'success')
@@ -2678,9 +2722,8 @@ def web_review_results(app_id):
     review = conn.execute('SELECT * FROM security_reviews WHERE application_id = ? ORDER BY created_at DESC LIMIT 1', 
                          (app_id,)).fetchone()
     
-    conn.close()
-    
     if not app or not review:
+        conn.close()
         flash('Review not found.', 'error')
         return redirect(url_for('web_applications'))
     
@@ -2720,7 +2763,8 @@ def web_review_results(app_id):
                             'description': question.get('description', ''),
                             'severity': 'High',
                             'category': category['title'],
-                            'recommendation': f"Implement security controls for: {question['question']}"
+                            'recommendation': f"Implement security controls for: {question['question']}",
+                            'source': 'questionnaire'
                         })
                         break
         elif response == 'partial':
@@ -2733,9 +2777,43 @@ def web_review_results(app_id):
                             'description': question.get('description', ''),
                             'severity': 'Medium',
                             'category': category['title'],
-                            'recommendation': f"Complete implementation for: {question['question']}"
+                            'recommendation': f"Complete implementation for: {question['question']}",
+                            'source': 'questionnaire'
                         })
                         break
+    
+    # Add STRIDE findings created by analysts
+    stride_findings = conn.execute('''
+        SELECT threat_category, threat_description, risk_level, recommendations, question_id, created_at
+        FROM stride_analysis 
+        WHERE review_id = ?
+        ORDER BY created_at DESC
+    ''', (review['id'],)).fetchall()
+    
+    for stride_finding in stride_findings:
+        # Get question details if question_id exists
+        question_title = "General Security Finding"
+        question_category = stride_finding['threat_category'].replace('_', ' ').title()
+        
+        if stride_finding['question_id']:
+            for category_key, category in SECURITY_QUESTIONNAIRE.items():
+                for question in category['questions']:
+                    if question['id'] == stride_finding['question_id']:
+                        question_title = question['question']
+                        question_category = category['title']
+                        break
+        
+        findings.append({
+            'title': f"STRIDE Analysis: {question_title}",
+            'description': stride_finding['threat_description'] or f"{stride_finding['threat_category'].replace('_', ' ').title()} threat identified by analyst",
+            'severity': stride_finding['risk_level'] or 'Medium',
+            'category': question_category,
+            'recommendation': stride_finding['recommendations'] or 'Review security implementation',
+            'source': 'analyst',
+            'stride_category': stride_finding['threat_category']
+        })
+    
+    conn.close()
     
     return render_template('review_results.html', 
                          application=app, 

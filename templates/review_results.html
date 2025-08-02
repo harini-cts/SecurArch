@@ -24,22 +24,28 @@
 
         <!-- Security Overview -->
         <div class="row mb-4">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="stats-card">
                     <h3>{{ findings|length }}</h3>
                     <p>Total Findings</p>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="stats-card">
                     <h3>{{ findings|selectattr('severity', 'equalto', 'High')|list|length }}</h3>
                     <p>High Risk Issues</p>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="stats-card">
                     <h3>{{ findings|selectattr('severity', 'equalto', 'Medium')|list|length }}</h3>
                     <p>Medium Risk Issues</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h3>{{ findings|selectattr('source', 'equalto', 'analyst')|list|length }}</h3>
+                    <p>Analyst Findings</p>
                 </div>
             </div>
         </div>
@@ -54,7 +60,22 @@
                 {% for finding in findings %}
                 <div class="question-item mb-3 {{ 'risk-high' if finding.severity == 'High' else ('risk-medium' if finding.severity == 'Medium' else 'risk-low') }}">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h6>{{ finding.title }}</h6>
+                        <div>
+                            <h6>{{ finding.title }}</h6>
+                            <div class="d-flex gap-2 mt-1">
+                                <span class="badge bg-{{ 'primary' if finding.source == 'analyst' else 'secondary' }}">
+                                    <i class="fas fa-{{ 'user-shield' if finding.source == 'analyst' else 'clipboard-list' }}"></i>
+                                    {{ 'Analyst Review' if finding.source == 'analyst' else 'Questionnaire' }}
+                                </span>
+                                {% if finding.stride_category %}
+                                <span class="badge bg-info">
+                                    <i class="fas fa-shield-alt"></i>
+                                    {{ finding.stride_category.replace('_', ' ').title() }}
+                                </span>
+                                {% endif %}
+                                <span class="badge bg-light text-dark">{{ finding.category }}</span>
+                            </div>
+                        </div>
                         <span class="badge bg-{{ 'danger' if finding.severity == 'High' else ('warning' if finding.severity == 'Medium' else 'success') }}">
                             {{ finding.severity }}
                         </span>
