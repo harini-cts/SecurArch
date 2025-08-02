@@ -69,6 +69,122 @@
         </div>
     </div>
 
+    <!-- Security Controls Assessment -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Security Controls Assessment</h5>
+                    <small class="text-muted">Review implemented security controls and identify gaps</small>
+                </div>
+                <div class="card-body">
+                    {% if responses %}
+                    <div class="row">
+                        {% for category_id, category_data in questionnaire.items() %}
+                        <div class="col-lg-6 mb-4">
+                            <div class="card border-0 h-100" style="border-left: 4px solid #007bff !important;">
+                                <div class="card-body">
+                                    <h6 class="text-primary mb-3">
+                                        <i class="fas fa-check-circle"></i> {{ category_data.title }}
+                                    </h6>
+                                    <p class="text-muted small mb-3">{{ category_data.description }}</p>
+                                    
+                                    {% set ns = namespace(implemented=0, partial=0, missing=0, total=0) %}
+                                    {% for question in category_data.questions %}
+                                        {% set ns.total = ns.total + 1 %}
+                                        {% set response = responses.get(question.id, '') %}
+                                        {% if response %}
+                                            {% if question.options[response|int] in ['Yes', 'Implemented', 'Strong'] %}
+                                                {% set ns.implemented = ns.implemented + 1 %}
+                                            {% elif question.options[response|int] in ['Partial', 'Moderate'] %}
+                                                {% set ns.partial = ns.partial + 1 %}
+                                            {% else %}
+                                                {% set ns.missing = ns.missing + 1 %}
+                                            {% endif %}
+                                        {% else %}
+                                            {% set ns.missing = ns.missing + 1 %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    <!-- Control Status Summary -->
+                                    <div class="row text-center mb-3">
+                                        <div class="col-4">
+                                            <div class="d-flex flex-column">
+                                                <span class="h5 text-success mb-0">{{ ns.implemented }}</span>
+                                                <small class="text-muted">Implemented</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="d-flex flex-column">
+                                                <span class="h5 text-warning mb-0">{{ ns.partial }}</span>
+                                                <small class="text-muted">Partial</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="d-flex flex-column">
+                                                <span class="h5 text-danger mb-0">{{ ns.missing }}</span>
+                                                <small class="text-muted">Missing</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Progress Bar -->
+                                    <div class="progress mb-3" style="height: 10px;">
+                                        {% set implementation_rate = (ns.implemented / ns.total * 100)|round(1) if ns.total > 0 else 0 %}
+                                        {% set partial_rate = (ns.partial / ns.total * 100)|round(1) if ns.total > 0 else 0 %}
+                                        <div class="progress-bar bg-success" style="width: {{ implementation_rate }}%"></div>
+                                        <div class="progress-bar bg-warning" style="width: {{ partial_rate }}%"></div>
+                                    </div>
+                                    <small class="text-muted">
+                                        {{ implementation_rate }}% Implemented | 
+                                        {{ partial_rate }}% Partial | 
+                                        {{ (100 - implementation_rate - partial_rate)|round(1) }}% Missing
+                                    </small>
+                                    
+                                    <!-- Key Gaps (showing missing/weak controls) -->
+                                    {% set key_gaps = [] %}
+                                    {% for question in category_data.questions %}
+                                        {% set response = responses.get(question.id, '') %}
+                                        {% if not response or (response and question.options[response|int] in ['No', 'Not Implemented', 'Weak']) %}
+                                            {% set _ = key_gaps.append(question) %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if key_gaps %}
+                                    <div class="mt-3">
+                                        <strong class="text-danger">Key Gaps Identified:</strong>
+                                        <ul class="list-unstyled mt-2">
+                                            {% for gap in key_gaps[:3] %}
+                                            <li class="small text-danger">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                                {{ gap.question[:80] }}{% if gap.question|length > 80 %}...{% endif %}
+                                            </li>
+                                            {% endfor %}
+                                            {% if key_gaps|length > 3 %}
+                                            <li class="small text-muted">
+                                                <i class="fas fa-ellipsis-h me-1"></i>
+                                                +{{ key_gaps|length - 3 }} more gaps
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        No questionnaire responses found for this review.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- STRIDE Threat Analysis -->
     <div class="row mb-4">
         <div class="col-12">
