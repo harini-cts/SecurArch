@@ -177,7 +177,7 @@
                 <button class="btn btn-outline-primary" onclick="exportReport()">
                     <i class="fas fa-download"></i> Export Report
                 </button>
-                <a href="{{ url_for('web_questionnaire', app_id=application.id) }}" class="btn btn-outline-warning">
+                <a href="{{ url_for('web_questionnaire', app_id=application.id, retake='true') }}" class="btn btn-outline-warning">
                     <i class="fas fa-redo"></i> Re-assess
                 </a>
                 <button class="btn btn-success" onclick="shareReport()">

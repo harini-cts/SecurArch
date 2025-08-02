@@ -2125,14 +2125,30 @@ def web_field_selection(app_id=None):
 @login_required
 def web_questionnaire(app_id):
     """Comprehensive security questionnaire for application"""
+    # Check if this is a retake request
+    retake = request.args.get('retake', 'false').lower() == 'true'
+    
     conn = get_db()
     app = conn.execute('SELECT * FROM applications WHERE id = ? AND author_id = ?', 
                       (app_id, session['user_id'])).fetchone()
-    conn.close()
     
     if not app:
+        conn.close()
         flash('Application not found.', 'error')
         return redirect(url_for('web_applications'))
+    
+    # Check if review already exists for this application (only if not retaking)
+    if not retake:
+        existing_review = conn.execute('SELECT * FROM security_reviews WHERE application_id = ? ORDER BY created_at DESC LIMIT 1', 
+                                     (app_id,)).fetchone()
+        
+        # If review already exists, redirect to review results
+        if existing_review:
+            conn.close()
+            flash('Security review already completed for this application. Showing results.', 'info')
+            return redirect(url_for('web_review_results', app_id=app_id))
+    
+    conn.close()
     
     # Use comprehensive questionnaire covering all 14 security topics
     return render_template('questionnaire.html', 
