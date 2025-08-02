@@ -22,14 +22,8 @@
             </div>
         </div>
 
-        <!-- Security Score Overview -->
+        <!-- Security Overview -->
         <div class="row mb-4">
-            <div class="col-md-4">
-                <div class="stats-card">
-                    <h3>{{ review.risk_score }}%</h3>
-                    <p>Security Score</p>
-                </div>
-            </div>
             <div class="col-md-4">
                 <div class="stats-card">
                     <h3>{{ findings|length }}</h3>
@@ -40,6 +34,12 @@
                 <div class="stats-card">
                     <h3>{{ findings|selectattr('severity', 'equalto', 'High')|list|length }}</h3>
                     <p>High Risk Issues</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <h3>{{ findings|selectattr('severity', 'equalto', 'Medium')|list|length }}</h3>
+                    <p>Medium Risk Issues</p>
                 </div>
             </div>
         </div>
@@ -103,34 +103,38 @@
         </div>
         {% endif %}
 
-        <!-- OWASP Compliance Status -->
+        <!-- Compliance Overview -->
         <div class="card mb-4">
             <div class="card-header">
-                <h5><i class="fas fa-shield-alt"></i> OWASP Compliance Status</h5>
+                <h5><i class="fas fa-shield-alt"></i> Security Compliance Overview</h5>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label class="form-label">OWASP Top 10 Compliance</label>
-                            <div class="progress">
-                                {% set owasp_score = 75 %}  <!-- Calculate based on review -->
-                                <div class="progress-bar bg-{{ 'success' if owasp_score > 70 else ('warning' if owasp_score > 50 else 'danger') }}" 
-                                     style="width: {{ owasp_score }}%">
-                                    {{ owasp_score }}%
-                                </div>
+                            <label class="form-label">Security Level Assessment</label>
+                            <div class="alert alert-{{ 'success' if review.security_level == 'High' else ('warning' if review.security_level == 'Medium' else 'danger') }}">
+                                <i class="fas fa-shield-alt"></i> <strong>{{ review.security_level }} Security Level</strong>
+                                <p class="mb-0 mt-2">
+                                    {% if review.security_level == 'High' %}
+                                        Your application demonstrates strong security controls across multiple areas.
+                                    {% elif review.security_level == 'Medium' %}
+                                        Your application has good security foundations with some areas for improvement.
+                                    {% else %}
+                                        Your application needs significant security improvements in multiple areas.
+                                    {% endif %}
+                                </p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label class="form-label">ASVS Level Readiness</label>
-                            <div class="progress">
-                                {% set asvs_score = review.risk_score %}
-                                <div class="progress-bar bg-{{ 'success' if asvs_score > 70 else ('warning' if asvs_score > 50 else 'danger') }}" 
-                                     style="width: {{ asvs_score }}%">
-                                    Level {{ '3' if asvs_score > 80 else ('2' if asvs_score > 60 else '1') }}
-                                </div>
+                            <label class="form-label">Review Status</label>
+                            <div class="alert alert-info">
+                                <i class="fas fa-check-circle"></i> <strong>Assessment Complete</strong>
+                                <p class="mb-0 mt-2">
+                                    Security review completed successfully. Check recommendations below for improvement opportunities.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -200,7 +204,7 @@ function shareReport() {
     if (navigator.share) {
         navigator.share({
             title: 'Security Review Report - {{ application.name }}',
-            text: 'Security review completed with {{ review.risk_score }}% security score',
+            text: 'Security review completed with {{ findings|length }} findings identified',
             url: url
         });
     } else {

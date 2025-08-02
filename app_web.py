@@ -14,6 +14,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import jwt
 from functools import wraps
+from werkzeug.utils import secure_filename
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -28,6 +29,22 @@ CORS(app, origins=['http://localhost:3000', 'http://localhost:5000', 'http://127
 
 # Database setup
 DATABASE = 'securearch_portal.db'
+
+# Configure file uploads
+UPLOAD_FOLDER = 'uploads'
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+ALLOWED_EXTENSIONS = {
+    'architecture': {'pdf', 'png', 'jpg', 'jpeg', 'svg', 'vsdx', 'drawio'},
+    'document': {'pdf', 'doc', 'docx', 'txt', 'md'}
+}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
+
+# Create uploads directory if it doesn't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(os.path.join(UPLOAD_FOLDER, 'architecture'), exist_ok=True)
+os.makedirs(os.path.join(UPLOAD_FOLDER, 'documents'), exist_ok=True)
 
 def get_db():
     """Get database connection"""
@@ -123,10 +140,27 @@ def init_db():
             data_classification TEXT,
             author_id TEXT,
             status TEXT DEFAULT 'draft',
+            logical_architecture_file TEXT,
+            physical_architecture_file TEXT,
+            overview_document_file TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (author_id) REFERENCES users (id)
         )
     ''')
+    
+    # Add file columns if they don't exist (migration)
+    try:
+        conn.execute('ALTER TABLE applications ADD COLUMN logical_architecture_file TEXT')
+    except:
+        pass
+    try:
+        conn.execute('ALTER TABLE applications ADD COLUMN physical_architecture_file TEXT')
+    except:
+        pass
+    try:
+        conn.execute('ALTER TABLE applications ADD COLUMN overview_document_file TEXT')
+    except:
+        pass
     
     # Security Reviews table
     conn.execute('''
@@ -288,7 +322,7 @@ SECURITY_QUESTIONNAIRES = {
                     {
                         "id": "input_1",
                         "question": "How does your application validate and sanitize user input?",
-                        "description": "Input validation prevents injection attacks (SQL, XSS, XXE, etc.)",
+                        "description": "Input validation prevents injection attacks (SQL, XSS, XXE, NoSQL, LDAP, etc.)",
                         "type": "radio",
                         "options": [
                             "Server-side whitelist validation + input encoding + parameterized queries",
@@ -302,7 +336,7 @@ SECURITY_QUESTIONNAIRES = {
                     {
                         "id": "input_2",
                         "question": "What protection do you have against SQL injection attacks?",
-                        "description": "SQL injection is the #1 web application vulnerability",
+                        "description": "SQL injection is one of the most dangerous vulnerabilities",
                         "type": "radio",
                         "options": [
                             "Prepared statements + ORM + input validation + least privilege DB access",
@@ -344,7 +378,7 @@ SECURITY_QUESTIONNAIRES = {
                 ]
             },
             "authentication": {
-                "title": "Authentication & Identity Management (IAM)",
+                "title": "Authentication & Identity Management",
                 "description": "OWASP A2 (Broken Authentication) - Securing user identity and authentication",
                 "questions": [
                     {
@@ -1180,7 +1214,7 @@ SECURITY_QUESTIONNAIRES = {
 # Comprehensive OWASP Security Questionnaire (All Application Types)
 SECURITY_QUESTIONNAIRE = {
     "input_validation": {
-        "title": "1. Input Validation & Injection Prevention",
+        "title": "Input Validation & Injection Prevention",
         "description": "OWASP A1 (Injection), A3 (Sensitive Data), A6 (Security Misconfiguration)",
         "questions": [
             {
@@ -1242,7 +1276,7 @@ SECURITY_QUESTIONNAIRE = {
         ]
     },
     "authentication": {
-        "title": "2. Authentication & Identity Management (IAM)",
+        "title": "Authentication & Identity Management",
         "description": "OWASP A2 (Broken Authentication) - Securing user identity and authentication",
         "questions": [
             {
@@ -1304,7 +1338,7 @@ SECURITY_QUESTIONNAIRE = {
         ]
     },
     "authorization": {
-        "title": "3. Authorization & Access Control",
+        "title": "Authorization & Access Control",
         "description": "OWASP A5 (Broken Access Control) - Ensuring proper authorization and permissions",
         "questions": [
             {
@@ -1352,7 +1386,7 @@ SECURITY_QUESTIONNAIRE = {
         ]
     },
     "configuration_management": {
-        "title": "4. Configuration Management",
+        "title": "Security Configuration Management",
         "description": "OWASP A6 (Security Misconfiguration) - Secure configuration and hardening",
         "questions": [
             {
@@ -1400,7 +1434,7 @@ SECURITY_QUESTIONNAIRE = {
         ]
     },
     "sensitive_data": {
-        "title": "5. Sensitive Data Protection",
+        "title": "Sensitive Data Protection",
         "description": "OWASP A3 (Sensitive Data Exposure) - Protecting sensitive information",
         "questions": [
             {
@@ -1462,7 +1496,7 @@ SECURITY_QUESTIONNAIRE = {
         ]
     },
     "session_management": {
-        "title": "6. Session Management",
+        "title": "Session Management",
         "description": "OWASP A5 (Security Misconfiguration) - Secure session handling",
         "questions": [
             {
@@ -1510,7 +1544,7 @@ SECURITY_QUESTIONNAIRE = {
         ]
     },
     "database_security": {
-        "title": "7. Database Security",
+        "title": "Database Security",
         "description": "Protecting database systems and data integrity",
         "questions": [
             {
@@ -1558,7 +1592,7 @@ SECURITY_QUESTIONNAIRE = {
         ]
     },
     "file_management": {
-        "title": "8. File Management Security",
+        "title": "File Management Security",
         "description": "Secure handling of file operations and storage",
         "questions": [
             {
@@ -1606,7 +1640,7 @@ SECURITY_QUESTIONNAIRE = {
         ]
     },
     "exception_management": {
-        "title": "9. Exception & Error Management",
+        "title": "Exception & Error Management",
         "description": "OWASP A3 (Sensitive Data Exposure) - Secure error handling",
         "questions": [
             {
@@ -1654,7 +1688,7 @@ SECURITY_QUESTIONNAIRE = {
         ]
     },
     "cryptography": {
-        "title": "10. Cryptography Implementation",
+        "title": "Cryptography Implementation",
         "description": "OWASP A3 (Sensitive Data Exposure) - Proper cryptographic controls",
         "questions": [
             {
@@ -1702,7 +1736,7 @@ SECURITY_QUESTIONNAIRE = {
         ]
     },
     "auditing_logging": {
-        "title": "11. Security Auditing & Logging",
+        "title": "Security Auditing & Logging",
         "description": "OWASP A10 (Insufficient Logging & Monitoring) - Security event detection",
         "questions": [
             {
@@ -1750,7 +1784,7 @@ SECURITY_QUESTIONNAIRE = {
         ]
     },
     "data_protection": {
-        "title": "12. Data Protection & Privacy",
+        "title": "Data Protection & Privacy",
         "description": "OWASP A6 (Security Misconfiguration) - Privacy and data protection compliance",
         "questions": [
             {
@@ -1798,12 +1832,12 @@ SECURITY_QUESTIONNAIRE = {
         ]
     },
     "api_security": {
-        "title": "13. API Security",
+        "title": "API Security",
         "description": "OWASP API Security Top 10 - Securing application programming interfaces",
         "questions": [
             {
                 "id": "api_1",
-                "question": "How are APIs authenticated and authorized (if applicable)?",
+                "question": "How are APIs authenticated and authorized?",
                 "description": "API security prevents unauthorized access to backend services",
                 "type": "radio",
                 "options": [
@@ -1811,13 +1845,13 @@ SECURITY_QUESTIONNAIRE = {
                     "API keys with proper rotation and scoping",
                     "Basic API authentication (API keys)",
                     "Session-based API authentication",
-                    "No APIs or No API authentication"
+                    "No API authentication"
                 ],
                 "weights": [10, 7, 4, 2, 0]
             },
             {
                 "id": "api_2",
-                "question": "What API input validation and rate limiting is implemented (if applicable)?",
+                "question": "What API input validation and rate limiting is implemented?",
                 "description": "API validation prevents injection and abuse",
                 "type": "radio",
                 "options": [
@@ -1825,13 +1859,13 @@ SECURITY_QUESTIONNAIRE = {
                     "Input validation with rate limiting",
                     "Basic input validation",
                     "Minimal API validation",
-                    "No APIs or No API input validation"
+                    "No API input validation"
                 ],
                 "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "api_3",
-                "question": "How is API documentation and security testing handled (if applicable)?",
+                "question": "How is API documentation and security testing handled?",
                 "description": "Proper API documentation and testing improves security",
                 "type": "radio",
                 "options": [
@@ -1839,14 +1873,14 @@ SECURITY_QUESTIONNAIRE = {
                     "API documentation with some security testing",
                     "Basic API documentation",
                     "Minimal API documentation",
-                    "No APIs or No API documentation or testing"
+                    "No API documentation or testing"
                 ],
                 "weights": [10, 7, 4, 2, 0]
             }
         ]
     },
     "ai_security": {
-        "title": "14. AI/ML Security",
+        "title": "AI/ML Security",
         "description": "Emerging security considerations for AI and machine learning components",
         "questions": [
             {
@@ -2046,7 +2080,7 @@ def web_dashboard():
     stats = {
         'applications': user_apps,
         'reviews': user_reviews,
-        'risk_score': 85,  # Calculated based on reviews
+        'high_risk_findings': 0,  # Count of high risk findings
         'compliance': 'Good'
     }
     
@@ -2058,7 +2092,7 @@ def web_applications():
     """Applications management page"""
     conn = get_db()
     apps = conn.execute('''
-        SELECT a.*, sr.risk_score, sr.security_level, sr.status as review_status
+        SELECT a.*, sr.security_level, sr.status as review_status
         FROM applications a
         LEFT JOIN security_reviews sr ON a.id = sr.application_id
         WHERE a.author_id = ?
@@ -2071,28 +2105,57 @@ def web_applications():
 @app.route('/create-application', methods=['GET', 'POST'])
 @login_required
 def web_create_application():
-    """Create new application"""
+    """Create new application with file upload support"""
     if request.method == 'POST':
+        # Extract form data
         data = {
-            'name': request.form['name'].strip(),
-            'description': request.form.get('description', '').strip(),
-            'technology_stack': ','.join(request.form.getlist('technology_stack')),
+            'name': request.form.get('name'),
+            'description': request.form.get('description'),
+            'technology_stack': ', '.join(request.form.getlist('technology_stack')),
             'deployment_environment': request.form.get('deployment_environment'),
             'business_criticality': request.form.get('business_criticality'),
             'data_classification': request.form.get('data_classification')
         }
         
+        # Validate required fields
+        if not all([data['name'], data['business_criticality'], data['data_classification']]):
+            flash('Please fill in all required fields.', 'error')
+            return redirect(url_for('web_create_application'))
+        
         app_id = str(uuid.uuid4())
+        
+        # Handle file uploads
+        file_paths = {}
+        file_fields = {
+            'logical_architecture': 'architecture',
+            'physical_architecture': 'architecture', 
+            'overview_document': 'document'
+        }
+        
+        for field_name, file_type in file_fields.items():
+            if field_name in request.files:
+                file = request.files[field_name]
+                if file.filename:  # File was selected
+                    file_path = secure_upload(file, file_type, session['user_id'], app_id)
+                    if file_path:
+                        file_paths[f"{field_name}_file"] = file_path
+                    else:
+                        flash(f'Invalid file type for {field_name.replace("_", " ").title()}. Please check allowed formats.', 'error')
+                        return redirect(url_for('web_create_application'))
         
         conn = get_db()
         conn.execute('''
             INSERT INTO applications (id, name, description, technology_stack, 
                                     deployment_environment, business_criticality, 
-                                    data_classification, author_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                    data_classification, author_id, logical_architecture_file,
+                                    physical_architecture_file, overview_document_file)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (app_id, data['name'], data['description'], data['technology_stack'],
               data['deployment_environment'], data['business_criticality'], 
-              data['data_classification'], session['user_id']))
+              data['data_classification'], session['user_id'],
+              file_paths.get('logical_architecture_file'),
+              file_paths.get('physical_architecture_file'),
+              file_paths.get('overview_document_file')))
         
         conn.commit()
         conn.close()
@@ -2209,16 +2272,16 @@ def analyst_dashboard():
 @app.route('/analyst/review/<review_id>')
 @analyst_required
 def analyst_review_detail(review_id):
-    """Detailed review page for analysts"""
+    """View detailed review for analysis"""
     conn = get_db()
     
-    # Get review details
+    # Get review with application details
     review = conn.execute('''
-        SELECT sr.id, sr.application_id, sr.questionnaire_responses, sr.risk_score, 
-               sr.security_level, sr.recommendations, sr.status, sr.created_at,
-               sr.completed_at, sr.analyst_id, sr.stride_analysis, sr.final_report,
-               a.name as app_name, a.description, a.technology_stack,
-               a.deployment_environment, a.business_criticality, a.data_classification,
+        SELECT sr.id, sr.application_id, sr.questionnaire_responses, sr.security_level, 
+               sr.recommendations, sr.status, sr.analyst_reviewed_at, sr.created_at,
+               a.name as app_name, a.description as app_description, 
+               a.technology_stack, a.deployment_environment, a.business_criticality, a.data_classification,
+               a.logical_architecture_file, a.physical_architecture_file, a.overview_document_file,
                u.first_name, u.last_name, u.email
         FROM security_reviews sr
         JOIN applications a ON sr.application_id = a.id
@@ -2230,8 +2293,26 @@ def analyst_review_detail(review_id):
         flash('Review not found.', 'error')
         return redirect(url_for('analyst_dashboard'))
     
-    # Parse questionnaire responses (now at index 2)
-    responses = json.loads(review[2]) if review[2] else {}  # questionnaire_responses
+    # Parse the questionnaire data (now contains responses, comments, screenshots)
+    questionnaire_data = json.loads(review[2]) if review[2] else {}  # questionnaire_responses
+    
+    # Extract components from the new data structure
+    if isinstance(questionnaire_data, dict) and 'responses' in questionnaire_data:
+        # New format with comments and screenshots
+        responses = questionnaire_data.get('responses', {})
+        comments = questionnaire_data.get('comments', {})
+        screenshots = questionnaire_data.get('screenshots', {})
+        answered_questions = questionnaire_data.get('answered_questions', 0)
+        total_questions = questionnaire_data.get('total_questions', 0)
+        high_risk_count = questionnaire_data.get('high_risk_count', 0)
+    else:
+        # Legacy format (just responses)
+        responses = questionnaire_data
+        comments = {}
+        screenshots = {}
+        answered_questions = len([r for r in responses.values() if r])
+        total_questions = sum(len(cat['questions']) for cat in SECURITY_QUESTIONNAIRE.values())
+        high_risk_count = len([r for r in responses.values() if r == 'no'])
     
     # Get existing STRIDE analysis
     stride_analysis = conn.execute('''
@@ -2240,16 +2321,64 @@ def analyst_review_detail(review_id):
     
     conn.close()
     
-    # Generate STRIDE threats based on responses
+    # Generate detailed analysis data for each question
+    question_analysis = []
+    for category_key, category in SECURITY_QUESTIONNAIRE.items():
+        for question in category['questions']:
+            question_id = question['id']
+            response = responses.get(question_id, 'Not answered')
+            comment = comments.get(question_id, '')
+            screenshot = screenshots.get(question_id, '')
+            
+            # Determine risk level based on response
+            if response == 'no':
+                risk_level = 'High'
+                risk_class = 'danger'
+            elif response == 'partial':
+                risk_level = 'Medium' 
+                risk_class = 'warning'
+            elif response == 'yes':
+                risk_level = 'Low'
+                risk_class = 'success'
+            else:
+                risk_level = 'Unknown'
+                risk_class = 'secondary'
+            
+            # Map to STRIDE categories
+            stride_categories = OWASP_TO_STRIDE_MAPPING.get(category_key, [])
+            
+            question_analysis.append({
+                'category': category['title'],
+                'question': question['question'],
+                'description': question.get('description', ''),
+                'question_id': question_id,
+                'response': response,
+                'comment': comment,
+                'screenshot': screenshot,
+                'risk_level': risk_level,
+                'risk_class': risk_class,
+                'stride_categories': stride_categories,
+                'category_key': category_key
+            })
+    
+    # Generate STRIDE threats based on responses (for the existing analyze_stride_threats function)
     identified_threats = analyze_stride_threats(responses)
     
     return render_template('analyst/review_detail.html', 
                          review=review,
                          responses=responses,
+                         comments=comments,
+                         screenshots=screenshots,
+                         question_analysis=question_analysis,
+                         answered_questions=answered_questions,
+                         total_questions=total_questions,
+                         high_risk_count=high_risk_count,
                          questionnaire=SECURITY_QUESTIONNAIRE,
                          stride_categories=STRIDE_CATEGORIES,
                          stride_analysis=stride_analysis,
-                         identified_threats=identified_threats)
+                         identified_threats=identified_threats,
+                         OWASP_TO_STRIDE_MAPPING=OWASP_TO_STRIDE_MAPPING,
+                         STRIDE_CATEGORIES=STRIDE_CATEGORIES)
 
 @app.route('/analyst/review/<review_id>/stride', methods=['POST'])
 @analyst_required
@@ -2260,39 +2389,63 @@ def save_stride_analysis(review_id):
     # Verify review exists and analyst can access it
     review = conn.execute('SELECT id FROM security_reviews WHERE id = ?', (review_id,)).fetchone()
     if not review:
-        flash('Review not found.', 'error')
-        return redirect(url_for('analyst_dashboard'))
+        return jsonify({'success': False, 'error': 'Review not found'}), 404
     
-    # Clear existing STRIDE analysis
-    conn.execute('DELETE FROM stride_analysis WHERE review_id = ?', (review_id,))
-    
-    # Save new STRIDE analysis
-    for category in STRIDE_CATEGORIES.keys():
-        threat_desc = request.form.get(f'threat_{category}')
-        risk_level = request.form.get(f'risk_{category}')
-        mitigation_status = request.form.get(f'mitigation_{category}')
-        recommendations = request.form.get(f'recommendations_{category}')
+    try:
+        # Get the finding data from the request
+        finding_data = request.get_json()
         
-        if threat_desc and risk_level:
-            stride_id = str(uuid.uuid4())
-            conn.execute('''
-                INSERT INTO stride_analysis (id, review_id, threat_category, threat_description, 
-                                           risk_level, mitigation_status, recommendations)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (stride_id, review_id, category, threat_desc, risk_level, mitigation_status, recommendations))
-    
-    # Update review status
-    conn.execute('''
-        UPDATE security_reviews 
-        SET status = 'in_review', analyst_id = ?
-        WHERE id = ?
-    ''', (session['user_id'], review_id))
-    
-    conn.commit()
-    conn.close()
-    
-    flash('STRIDE analysis saved successfully!', 'success')
-    return redirect(url_for('analyst_review_detail', review_id=review_id))
+        if finding_data and 'question_id' in finding_data:
+            # Individual finding from marking questions
+            question_id = finding_data['question_id']
+            stride_categories = finding_data.get('stride_categories', [])
+            description = finding_data.get('description', '')
+            recommendation = finding_data.get('recommendation', '')
+            risk_level = finding_data.get('risk_level', 'Medium')
+            
+            # Save individual finding
+            for stride_category in stride_categories:
+                finding_id = str(uuid.uuid4())
+                conn.execute('''
+                    INSERT INTO stride_analysis (id, review_id, threat_category, threat_description, 
+                                               risk_level, mitigation_status, question_id, 
+                                               recommendation, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (finding_id, review_id, stride_category, description, risk_level, 
+                      'identified', question_id, recommendation, datetime.now().isoformat()))
+            
+            conn.commit()
+            return jsonify({'success': True, 'message': 'Finding saved successfully'})
+        
+        else:
+            # Legacy bulk STRIDE analysis from form submission
+            # Clear existing STRIDE analysis
+            conn.execute('DELETE FROM stride_analysis WHERE review_id = ?', (review_id,))
+            
+            # Process each STRIDE category
+            for category_key in STRIDE_CATEGORIES.keys():
+                threat_desc = request.form.get(f'{category_key}_description', '').strip()
+                risk_level = request.form.get(f'{category_key}_risk', 'Low')
+                mitigation_status = request.form.get(f'{category_key}_status', 'identified')
+                
+                if threat_desc:  # Only save if description provided
+                    analysis_id = str(uuid.uuid4())
+                    conn.execute('''
+                        INSERT INTO stride_analysis (id, review_id, threat_category, threat_description, 
+                                                   risk_level, mitigation_status, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (analysis_id, review_id, category_key, threat_desc, risk_level, 
+                          mitigation_status, datetime.now().isoformat()))
+            
+            conn.commit()
+            flash('STRIDE analysis saved successfully!', 'success')
+            return redirect(url_for('analyst_review_detail', review_id=review_id))
+            
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
 
 @app.route('/analyst/review/<review_id>/finalize', methods=['POST'])
 @analyst_required
@@ -2340,14 +2493,35 @@ def analyze_stride_threats(responses):
         for question in category_data['questions']:
             question_id = question['id']
             if question_id in responses:
-                response_index = int(responses[question_id])
-                # If response indicates low security (index 3 or 4), add as threat
-                if response_index >= 3:
+                response_value = responses[question_id]
+                
+                # Handle both old numeric format and new string format
+                high_risk = False
+                if isinstance(response_value, str):
+                    # New format: 'yes', 'no', 'partial'
+                    if response_value in ['no', 'partial']:
+                        high_risk = True
+                        risk_level = 'High' if response_value == 'no' else 'Medium'
+                else:
+                    # Legacy numeric format (for backward compatibility)
+                    try:
+                        response_index = int(response_value)
+                        # If response indicates low security (index 3 or 4), add as threat
+                        if response_index >= 3:
+                            high_risk = True
+                            risk_level = 'High' if response_index == 4 else 'Medium'
+                    except (ValueError, TypeError):
+                        continue
+                
+                # Add threat if high risk response identified
+                if high_risk:
                     for stride_cat in stride_categories:
                         threats[stride_cat].append({
                             'question': question['question'],
                             'category': category_data['title'],
-                            'risk_level': 'High' if response_index == 4 else 'Medium'
+                            'risk_level': risk_level,
+                            'response': response_value,
+                            'question_id': question_id
                         })
     
     return threats
@@ -2355,71 +2529,142 @@ def analyze_stride_threats(responses):
 @app.route('/submit-questionnaire/<app_id>', methods=['POST'])
 @login_required
 def submit_questionnaire(app_id):
-    """Submit comprehensive questionnaire responses"""
+    """Submit comprehensive questionnaire responses with comments and screenshots"""
     responses = {}
-    total_score = 0
-    max_score = 0
+    comments = {}
+    screenshots = {}
+    
+    # Count answered questions for completion tracking
+    answered_questions = 0
+    high_risk_answers = 0
     
     # Use comprehensive questionnaire covering all 14 security topics
     questionnaire = SECURITY_QUESTIONNAIRE
     
     # Process all form responses
     for key, value in request.form.items():
-        if not key.startswith(('field', 'security_confidence', 'primary_concern', 'additional_comments')):
-            if '_comment' not in key:  # Skip comment fields for scoring
+        if '_comment' in key:
+            # Handle comment fields
+            question_id = key.replace('_comment', '')
+            if value.strip():  # Only store non-empty comments
+                comments[question_id] = value.strip()
+        elif not key.startswith(('field', 'security_confidence', 'primary_concern', 'additional_comments')):
+            # Handle regular question responses
+            if value:  # If question has an answer
                 responses[key] = value
-                
-                # Calculate score
-                for category in questionnaire.values():
-                    for question in category['questions']:
-                        if question['id'] == key:
-                            try:
-                                # Handle different value formats
-                                if value in ['yes', 'no', 'partial']:
-                                    if value == 'yes':
-                                        score = 10
-                                    elif value == 'partial':
-                                        score = 5
-                                    else:  # no
-                                        score = 0
-                                else:
-                                    option_index = int(value)
-                                    score = question['weights'][option_index]
-                                total_score += score
-                                max_score += 10  # Max weight is 10
-                            except (ValueError, IndexError):
-                                pass
+                answered_questions += 1
+                # Count high-risk answers (No responses)
+                if value == 'no':
+                    high_risk_answers += 1
     
-    # Calculate risk score percentage
-    risk_score = (total_score / max_score * 100) if max_score > 0 else 0
+    # Handle screenshot uploads
+    upload_dir = os.path.join(UPLOAD_FOLDER, 'screenshots', app_id)
+    os.makedirs(upload_dir, exist_ok=True)
     
-    # Determine security level
-    if risk_score >= 80:
+    for key, file in request.files.items():
+        if '_screenshot' in key and file.filename:
+            question_id = key.replace('_screenshot', '')
+            if allowed_file(file.filename, 'architecture'):  # Use architecture validation for images
+                file_path = secure_upload(file, 'architecture', session['user_id'], f"{app_id}_{question_id}")
+                if file_path:
+                    screenshots[question_id] = file_path
+    
+    # Determine security level based on high-risk answers
+    high_risk_percentage = (high_risk_answers / answered_questions * 100) if answered_questions > 0 else 0
+    
+    if high_risk_percentage <= 20:
         security_level = 'High'
-    elif risk_score >= 60:
+    elif high_risk_percentage <= 50:
         security_level = 'Medium'
     else:
         security_level = 'Low'
     
-    # Generate recommendations
-    recommendations = generate_recommendations(responses, risk_score)
+    # Generate recommendations (updated to not use risk_score)
+    recommendations = generate_recommendations(responses, high_risk_percentage)
+    
+    # Compile all data for storage
+    questionnaire_data = {
+        'responses': responses,
+        'comments': comments,
+        'screenshots': screenshots,
+        'answered_questions': answered_questions,
+        'total_questions': sum(len(cat['questions']) for cat in questionnaire.values()),
+        'high_risk_count': high_risk_answers
+    }
     
     # Save to database
     review_id = str(uuid.uuid4())
     conn = get_db()
     conn.execute('''
         INSERT INTO security_reviews (id, application_id, questionnaire_responses, 
-                                     risk_score, security_level, recommendations, 
+                                     security_level, recommendations, 
                                      status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (review_id, app_id, json.dumps(responses), risk_score, security_level, 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (review_id, app_id, json.dumps(questionnaire_data), security_level, 
           json.dumps(recommendations), 'submitted', datetime.now().isoformat()))
     
     conn.commit()
     conn.close()
     
-    flash('Security assessment completed!', 'success')
+    flash('Security assessment submitted successfully!', 'success')
     return redirect(url_for('web_review_results', app_id=app_id))
+
+def generate_recommendations(responses, high_risk_percentage):
+    """Generate security recommendations based on responses and risk percentage"""
+    recommendations = []
+    
+    # Check specific question responses for targeted recommendations
+    for question_id, response in responses.items():
+        if response == 'no':
+            # Add specific recommendations based on question
+            if 'input' in question_id:
+                recommendations.append({
+                    'category': 'Input Validation',
+                    'title': 'Implement Comprehensive Input Validation',
+                    'description': 'Implement server-side whitelist validation, input encoding, and parameterized queries.',
+                    'priority': 'High'
+                })
+            elif 'auth' in question_id:
+                recommendations.append({
+                    'category': 'Authentication',
+                    'title': 'Strengthen Authentication Controls',
+                    'description': 'Implement multi-factor authentication and strong password policies.',
+                    'priority': 'High'
+                })
+            elif 'crypto' in question_id:
+                recommendations.append({
+                    'category': 'Cryptography',
+                    'title': 'Improve Cryptographic Implementation',
+                    'description': 'Use strong algorithms (AES-256, RSA-4096) and proper key management.',
+                    'priority': 'High'
+                })
+    
+    # Add general recommendations based on overall risk
+    if high_risk_percentage > 50:
+        recommendations.append({
+            'category': 'General',
+            'title': 'Comprehensive Security Review Required',
+            'description': 'Multiple high-risk areas identified. Consider a thorough security audit.',
+            'priority': 'Critical'
+        })
+    elif high_risk_percentage > 20:
+        recommendations.append({
+            'category': 'General',
+            'title': 'Address Identified Risk Areas',
+            'description': 'Focus on improving security controls in areas marked as "No" or "Partial".',
+            'priority': 'Medium'
+        })
+    
+    # If no specific recommendations, add generic positive feedback
+    if not recommendations:
+        recommendations.append({
+            'category': 'General',
+            'title': 'Good Security Posture',
+            'description': 'Your application demonstrates strong security controls. Continue monitoring and updating.',
+            'priority': 'Low'
+        })
+    
+    return recommendations
 
 @app.route('/review-results/<app_id>')
 @login_required
@@ -2439,14 +2684,70 @@ def web_review_results(app_id):
         flash('Review not found.', 'error')
         return redirect(url_for('web_applications'))
     
-    responses = json.loads(review['questionnaire_responses'])
+    # Parse the questionnaire data (now contains responses, comments, screenshots)
+    questionnaire_data = json.loads(review['questionnaire_responses'])
+    
+    # Extract components from the new data structure
+    if isinstance(questionnaire_data, dict) and 'responses' in questionnaire_data:
+        # New format with comments and screenshots
+        responses = questionnaire_data.get('responses', {})
+        comments = questionnaire_data.get('comments', {})
+        screenshots = questionnaire_data.get('screenshots', {})
+        answered_questions = questionnaire_data.get('answered_questions', 0)
+        total_questions = questionnaire_data.get('total_questions', 0)
+        high_risk_count = questionnaire_data.get('high_risk_count', 0)
+    else:
+        # Legacy format (just responses)
+        responses = questionnaire_data
+        comments = {}
+        screenshots = {}
+        answered_questions = len([r for r in responses.values() if r])
+        total_questions = sum(len(cat['questions']) for cat in SECURITY_QUESTIONNAIRE.values())
+        high_risk_count = len([r for r in responses.values() if r == 'no'])
+    
     recommendations = json.loads(review['recommendations'])
+    
+    # Generate findings based on responses
+    findings = []
+    for question_id, response in responses.items():
+        if response == 'no':
+            # Find the question details
+            for category_key, category in SECURITY_QUESTIONNAIRE.items():
+                for question in category['questions']:
+                    if question['id'] == question_id:
+                        findings.append({
+                            'title': f"Security Gap: {question['question']}",
+                            'description': question.get('description', ''),
+                            'severity': 'High',
+                            'category': category['title'],
+                            'recommendation': f"Implement security controls for: {question['question']}"
+                        })
+                        break
+        elif response == 'partial':
+            # Find the question details
+            for category_key, category in SECURITY_QUESTIONNAIRE.items():
+                for question in category['questions']:
+                    if question['id'] == question_id:
+                        findings.append({
+                            'title': f"Partial Implementation: {question['question']}",
+                            'description': question.get('description', ''),
+                            'severity': 'Medium',
+                            'category': category['title'],
+                            'recommendation': f"Complete implementation for: {question['question']}"
+                        })
+                        break
     
     return render_template('review_results.html', 
                          application=app, 
                          review=review, 
                          responses=responses,
+                         comments=comments,
+                         screenshots=screenshots,
+                         findings=findings,
                          recommendations=recommendations,
+                         answered_questions=answered_questions,
+                         total_questions=total_questions,
+                         high_risk_count=high_risk_count,
                          questionnaire=SECURITY_QUESTIONNAIRE)
 
 @app.route('/logout')
@@ -2466,51 +2767,6 @@ def web_profile():
     
     return render_template('profile.html', user=user)
 
-def generate_recommendations(responses, risk_score):
-    """Generate security recommendations based on responses"""
-    recommendations = []
-    
-    # Check authentication responses
-    for response_id, value in responses.items():
-        if response_id == 'auth_1' and value in ['2', '3']:  # No MFA or limited MFA
-            recommendations.append({
-                'category': 'Authentication',
-                'priority': 'High',
-                'title': 'Implement Multi-Factor Authentication',
-                'description': 'Enable MFA for all users to significantly improve account security.',
-                'implementation': 'Use TOTP, SMS, or hardware tokens for second factor authentication.'
-            })
-        
-        if response_id == 'auth_2' and value in ['1', '2', '3']:  # Weak password storage
-            recommendations.append({
-                'category': 'Authentication', 
-                'priority': 'Critical',
-                'title': 'Improve Password Storage',
-                'description': 'Use proper password hashing with salt (bcrypt, scrypt, or Argon2).',
-                'implementation': 'Migrate to bcrypt with at least 12 rounds or Argon2.'
-            })
-        
-        if response_id == 'input_2' and value in ['2', '3']:  # SQL injection risk
-            recommendations.append({
-                'category': 'Input Validation',
-                'priority': 'Critical', 
-                'title': 'Prevent SQL Injection',
-                'description': 'Use parameterized queries for all database interactions.',
-                'implementation': 'Replace dynamic SQL with prepared statements or ORM.'
-            })
-    
-    # Add general recommendations based on score
-    if risk_score < 50:
-        recommendations.append({
-            'category': 'General',
-            'priority': 'High',
-            'title': 'Comprehensive Security Review',
-            'description': 'Your application needs significant security improvements.',
-            'implementation': 'Consider engaging a security consultant for detailed assessment.'
-        })
-    
-    return recommendations
-
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
@@ -2527,6 +2783,36 @@ def internal_error(error):
                          error_code=500, 
                          error_message='Internal server error',
                          timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')), 500
+
+def allowed_file(filename, file_type):
+    """Check if file extension is allowed for the given file type"""
+    if '.' not in filename:
+        return False
+    return filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS[file_type]
+
+def secure_upload(file, file_type, user_id, app_id):
+    """Securely upload and store file with proper naming and validation"""
+    if not file or file.filename == '':
+        return None
+    
+    if not allowed_file(file.filename, file_type):
+        return None
+    
+    # Create secure filename
+    original_filename = secure_filename(file.filename)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"{user_id}_{app_id}_{timestamp}_{original_filename}"
+    
+    # Determine subdirectory based on file type
+    subdir = 'architecture' if file_type == 'architecture' else 'documents'
+    filepath = os.path.join(UPLOAD_FOLDER, subdir, filename)
+    
+    try:
+        file.save(filepath)
+        return filepath
+    except Exception as e:
+        print(f"File upload error: {e}")
+        return None
 
 if __name__ == '__main__':
     # Initialize database

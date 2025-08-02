@@ -53,7 +53,7 @@
             </div>
 
             <!-- Questionnaire Form -->
-            <form id="questionnaire-form" method="POST" action="{{ url_for('submit_questionnaire', app_id=application.id) }}">
+            <form method="POST" enctype="multipart/form-data" id="questionnaireForm" action="{{ url_for('submit_questionnaire', app_id=application.id) }}">
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <!-- Section Container -->
@@ -145,24 +145,71 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="card-body">
                         <div class="question-header mb-3">
                             <h5 class="mb-1">
-                                <span class="badge bg-primary me-2">${qIndex + 1}</span>
                                 ${question.question}
                             </h5>
                             ${question.description ? `<small class="text-muted">${question.description}</small>` : ''}
                         </div>
                         
-                        <div class="question-options">
-                            ${question.options.map((option, optIndex) => `
-                                                                 <div class="form-check mb-2">
-                                     <input class="form-check-input" type="radio" 
-                                            name="${question.id}" 
-                                            id="${question.id}_${optIndex}" 
-                                            value="${optIndex}">
-                                     <label class="form-check-label" for="${question.id}_${optIndex}">
-                                         ${option}
-                                     </label>
-                                 </div>
-                            `).join('')}
+                        <div class="question-options mb-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" 
+                                               name="${question.id}" 
+                                               id="${question.id}_yes" 
+                                               value="yes">
+                                        <label class="form-check-label" for="${question.id}_yes">
+                                            <i class="fas fa-check-circle text-success"></i> <strong>Yes</strong>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" 
+                                               name="${question.id}" 
+                                               id="${question.id}_partial" 
+                                               value="partial">
+                                        <label class="form-check-label" for="${question.id}_partial">
+                                            <i class="fas fa-exclamation-triangle text-warning"></i> <strong>Partial</strong>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" 
+                                               name="${question.id}" 
+                                               id="${question.id}_no" 
+                                               value="no">
+                                        <label class="form-check-label" for="${question.id}_no">
+                                            <i class="fas fa-times-circle text-danger"></i> <strong>No</strong>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Comment Field -->
+                        <div class="mb-3">
+                            <label for="${question.id}_comment" class="form-label">
+                                <i class="fas fa-comment"></i> Additional Comments (Optional)
+                            </label>
+                            <textarea class="form-control" id="${question.id}_comment" 
+                                    name="${question.id}_comment" rows="2" 
+                                    placeholder="Provide additional context, explanation, or details..."></textarea>
+                        </div>
+                        
+                        <!-- Screenshot Upload -->
+                        <div class="mb-3">
+                            <label for="${question.id}_screenshot" class="form-label">
+                                <i class="fas fa-camera"></i> Supporting Screenshot (Optional)
+                            </label>
+                            <input type="file" class="form-control" id="${question.id}_screenshot" 
+                                   name="${question.id}_screenshot" 
+                                   accept=".png,.jpg,.jpeg,.gif,.webp"
+                                   data-max-size="5242880">
+                            <div class="form-text">
+                                Accepted formats: PNG, JPG, GIF, WebP - Max 5MB
+                            </div>
                         </div>
                     </div>
                 </div>

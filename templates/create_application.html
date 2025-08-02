@@ -10,7 +10,7 @@
                 <h4><i class="fas fa-plus"></i> Add New Application</h4>
             </div>
             <div class="card-body">
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data" id="applicationForm">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -42,13 +42,13 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="business_criticality" class="form-label">Business Criticality *</label>
-                                <select class="form-control" id="business_criticality" name="business_criticality" required>
-                                    <option value="">Select Criticality</option>
-                                    <option value="Critical">Critical</option>
-                                    <option value="High">High</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
+                                <label for="business_criticality" class="form-label">Business Criticality <span class="text-danger">*</span></label>
+                                <select class="form-select" id="business_criticality" name="business_criticality" required>
+                                    <option value="">Choose...</option>
+                                    <option value="critical">Critical</option>
+                                    <option value="high">High</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="low">Low</option>
                                 </select>
                             </div>
                         </div>
@@ -63,6 +63,44 @@
                                     <option value="Restricted">Restricted</option>
                                 </select>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- File Upload Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5><i class="fas fa-file-upload"></i> Architecture & Documentation</h5>
+                            <p class="text-muted">Upload supporting documents for security review (Optional)</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="logical_architecture" class="form-label">Logical Architecture Diagram</label>
+                        <input type="file" class="form-control" id="logical_architecture" name="logical_architecture" 
+                               accept=".pdf,.png,.jpg,.jpeg,.svg,.vsdx,.drawio" 
+                               data-max-size="10485760">
+                        <div class="form-text">
+                            Accepted formats: PDF, PNG, JPG, SVG, Visio (.vsdx), Draw.io (.drawio) - Max 10MB
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="physical_architecture" class="form-label">Physical Architecture Diagram</label>
+                        <input type="file" class="form-control" id="physical_architecture" name="physical_architecture" 
+                               accept=".pdf,.png,.jpg,.jpeg,.svg,.vsdx,.drawio"
+                               data-max-size="10485760">
+                        <div class="form-text">
+                            Accepted formats: PDF, PNG, JPG, SVG, Visio (.vsdx), Draw.io (.drawio) - Max 10MB
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="overview_document" class="form-label">Application Overview Document</label>
+                        <input type="file" class="form-control" id="overview_document" name="overview_document" 
+                               accept=".pdf,.doc,.docx,.txt,.md"
+                               data-max-size="10485760">
+                        <div class="form-text">
+                            Accepted formats: PDF, Word (.doc, .docx), Text (.txt), Markdown (.md) - Max 10MB
                         </div>
                     </div>
 

@@ -42,17 +42,7 @@
                             </small>
                         </div>
 
-                        {% if app.risk_score %}
-                        <div class="mb-3">
-                            <label class="form-label">Security Score</label>
-                            <div class="progress">
-                                {% set score_color = 'bg-danger' if app.risk_score < 50 else ('bg-warning' if app.risk_score < 75 else 'bg-success') %}
-                                <div class="progress-bar {{ score_color }}" style="width: {{ app.risk_score }}%">
-                                    {{ app.risk_score }}%
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
+
                     </div>
                     <div class="card-footer">
                         <div class="btn-group w-100" role="group">

@@ -105,7 +105,6 @@
                                     <th>Application</th>
                                     <th>Submitted By</th>
                                     <th>Business Criticality</th>
-                                    <th>Risk Score</th>
                                     <th>Status</th>
                                     <th>Submitted Date</th>
                                     <th>Actions</th>
@@ -122,15 +121,6 @@
                                         <span class="badge {% if review[6] == 'critical' %}bg-danger{% elif review[6] == 'high' %}bg-warning{% else %}bg-info{% endif %}">
                                             {{ review[6]|title }}
                                         </span>
-                                    </td>
-                                    <td>
-                                        {% if review[4] %}
-                                            <span class="badge {% if review[4] < 40 %}bg-danger{% elif review[4] < 70 %}bg-warning{% else %}bg-success{% endif %}">
-                                                {{ "%.1f"|format(review[4]) }}%
-                                            </span>
-                                        {% else %}
-                                            <span class="text-muted">Not calculated</span>
-                                        {% endif %}
                                     </td>
                                     <td>
                                         <span class="badge {% if review[2] == 'submitted' %}bg-info{% else %}bg-warning{% endif %}">
@@ -178,7 +168,7 @@
                                     <th>Application</th>
                                     <th>Submitted By</th>
                                     <th>Business Criticality</th>
-                                    <th>Final Risk Score</th>
+
                                     <th>Completed Date</th>
                                     <th>Actions</th>
                                 </tr>
@@ -193,15 +183,7 @@
                                             {{ review[6]|title }}
                                         </span>
                                     </td>
-                                    <td>
-                                        {% if review[4] %}
-                                            <span class="badge {% if review[4] < 40 %}bg-danger{% elif review[4] < 70 %}bg-warning{% else %}bg-success{% endif %}">
-                                                {{ "%.1f"|format(review[4]) }}%
-                                            </span>
-                                        {% else %}
-                                            <span class="text-muted">Not available</span>
-                                        {% endif %}
-                                    </td>
+
                                     <td>{{ review[3][:10] if review[3] else 'N/A' }}</td>
                                     <td>
                                         <a href="{{ url_for('analyst_review_detail', review_id=review[0]) }}" 
