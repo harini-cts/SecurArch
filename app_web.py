@@ -2214,7 +2214,10 @@ def analyst_review_detail(review_id):
     
     # Get review details
     review = conn.execute('''
-        SELECT sr.*, a.name as app_name, a.description, a.technology_stack,
+        SELECT sr.id, sr.application_id, sr.questionnaire_responses, sr.risk_score, 
+               sr.security_level, sr.recommendations, sr.status, sr.created_at,
+               sr.completed_at, sr.analyst_id, sr.stride_analysis, sr.final_report,
+               a.name as app_name, a.description, a.technology_stack,
                a.deployment_environment, a.business_criticality, a.data_classification,
                u.first_name, u.last_name, u.email
         FROM security_reviews sr
@@ -2227,8 +2230,8 @@ def analyst_review_detail(review_id):
         flash('Review not found.', 'error')
         return redirect(url_for('analyst_dashboard'))
     
-    # Parse questionnaire responses
-    responses = json.loads(review[3]) if review[3] else {}  # questionnaire_responses
+    # Parse questionnaire responses (now at index 2)
+    responses = json.loads(review[2]) if review[2] else {}  # questionnaire_responses
     
     # Get existing STRIDE analysis
     stride_analysis = conn.execute('''
