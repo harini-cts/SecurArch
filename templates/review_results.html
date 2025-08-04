@@ -23,32 +23,46 @@
         </div>
 
         <!-- Security Overview -->
+        {% if findings %}
         <div class="row mb-4">
             <div class="col-md-3">
                 <div class="stats-card">
                     <h3>{{ findings|length }}</h3>
-                    <p>Total Findings</p>
+                    <p>Security Findings</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stats-card">
                     <h3>{{ findings|selectattr('severity', 'equalto', 'High')|list|length }}</h3>
-                    <p>High Risk Issues</p>
+                    <p>High Risk</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stats-card">
                     <h3>{{ findings|selectattr('severity', 'equalto', 'Medium')|list|length }}</h3>
-                    <p>Medium Risk Issues</p>
+                    <p>Medium Risk</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stats-card">
-                    <h3>{{ findings|selectattr('source', 'equalto', 'analyst')|list|length }}</h3>
-                    <p>Analyst Findings</p>
+                    <h3>{{ findings|selectattr('severity', 'equalto', 'Low')|list|length }}</h3>
+                    <p>Low Risk</p>
                 </div>
             </div>
         </div>
+        {% else %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-clipboard-check fa-3x text-info"></i>
+                    </div>
+                    <h4><i class="fas fa-clock"></i> Pending Security Analyst Review</h4>
+                    <p class="mb-0">Your security questionnaire responses have been submitted successfully. A security analyst will review your responses and identify specific security findings. Please check back later for the detailed security analysis results.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Findings by Severity -->
         {% if findings %}

@@ -35,11 +35,14 @@
                              <span id="progress-text">0%</span> navigation progress
                          </small>
                      </div>
-                     <div class="mt-2">
-                         <small class="text-info" id="completion-progress">
-                             0/0 questions answered (0%)
-                         </small>
-                     </div>
+                                         <div class="mt-2">
+                        <small class="text-info" id="completion-progress">
+                            0/0 questions answered (0%)
+                        </small>
+                        <small class="text-muted ms-3" id="auto-save-status" style="display: none;">
+                            <i class="fas fa-save"></i> Draft saved
+                        </small>
+                    </div>
                 </div>
             </div>
 
@@ -51,6 +54,21 @@
                     You can skip questions and return to them later - no question is mandatory to proceed.
                 </p>
             </div>
+
+            <!-- Saved Progress Alert -->
+            {% if existing_responses and existing_responses|length > 0 %}
+            <div class="alert alert-success mb-4">
+                <h6><i class="fas fa-save"></i> Saved Progress Restored</h6>
+                <p class="mb-0">
+                    Welcome back! Your previous responses ({{ existing_responses|length }} questions) have been restored. 
+                    {% if saved_section > 0 %}You'll start from Section {{ saved_section + 1 }} where you left off.{% endif %}
+                </p>
+            </div>
+            {% endif %}
+            
+
+
+
 
             <!-- Questionnaire Form -->
             <form method="POST" enctype="multipart/form-data" id="questionnaireForm" action="{{ url_for('submit_questionnaire', app_id=application.id) }}">
@@ -89,11 +107,95 @@
 {{ questionnaire | tojson }}
 </script>
 
+<!-- Existing Responses Data -->
+<script type="application/json" id="existing-responses">
+{{ existing_responses | tojson }}
+</script>
+<script type="application/json" id="existing-comments">
+{{ existing_comments | tojson }}
+</script>
+<script type="application/json" id="existing-screenshots">
+{{ existing_screenshots | tojson }}
+</script>
+<script type="application/json" id="saved-section">
+{{ saved_section | tojson }}
+</script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const questionnaireData = JSON.parse(document.getElementById('questionnaire-data').textContent);
+    const existingResponses = JSON.parse(document.getElementById('existing-responses').textContent);
+    const existingComments = JSON.parse(document.getElementById('existing-comments').textContent);
+    const existingScreenshots = JSON.parse(document.getElementById('existing-screenshots').textContent);
+    const savedSection = JSON.parse(document.getElementById('saved-section').textContent);
+
     const sections = Object.keys(questionnaireData);
-    let currentSection = 0;
+    let currentSection = savedSection || 0; // Start from saved section or 0
+    let autoSaveTimeout;
+    
+    // Auto-save function
+    function autoSave() {
+        clearTimeout(autoSaveTimeout);
+        autoSaveTimeout = setTimeout(() => {
+            const responses = {};
+            const comments = {};
+            
+            // Collect all radio button responses across all sections
+            sections.forEach(sectionKey => {
+                const section = questionnaireData[sectionKey];
+                section.questions.forEach(question => {
+                    // Check for radio button responses
+                    const radioButtons = document.querySelectorAll(`input[name="${question.id}"]:checked`);
+                    if (radioButtons.length > 0) {
+                        responses[question.id] = radioButtons[0].value;
+                    }
+                    
+                    // Check for comments
+                    const commentTextarea = document.getElementById(`${question.id}_comment`);
+                    if (commentTextarea && commentTextarea.value.trim()) {
+                        comments[question.id] = commentTextarea.value.trim();
+                    }
+                });
+            });
+            
+            // Update global variables with latest responses
+            Object.keys(responses).forEach(questionId => {
+                existingResponses[questionId] = responses[questionId];
+            });
+            Object.keys(comments).forEach(questionId => {
+                existingComments[questionId] = comments[questionId];
+            });
+            
+            // Only save if there are responses
+            if (Object.keys(responses).length > 0 || Object.keys(comments).length > 0) {
+                // Save draft with current section
+                fetch('{{ url_for("auto_save_questionnaire", app_id=application.id) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        responses: responses,
+                        comments: comments,
+                        screenshots: existingScreenshots,
+                        current_section: currentSection
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show auto-save indicator
+                        const status = document.getElementById('auto-save-status');
+                        status.style.display = 'inline';
+                        setTimeout(() => {
+                            status.style.display = 'none';
+                        }, 3000);
+                    }
+                })
+                .catch(error => console.log('Auto-save error:', error));
+            }
+        }, 2000); // Auto-save after 2 seconds of inactivity
+    }
     
     const sectionContainer = document.getElementById('section-container');
     const prevBtn = document.getElementById('prev-btn');
@@ -106,6 +208,32 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set total sections
     totalSectionsSpan.textContent = sections.length;
+    
+    function populateCurrentSection() {
+        // Only populate responses for questions in the currently displayed section
+        const sectionKey = sections[currentSection];
+        const section = questionnaireData[sectionKey];
+        
+        section.questions.forEach(question => {
+            // Populate radio button responses for this section's questions
+            if (existingResponses[question.id]) {
+                const value = existingResponses[question.id];
+                const radioButton = document.getElementById(`${question.id}_${value}`);
+                if (radioButton) {
+                    radioButton.checked = true;
+                }
+            }
+            
+            // Populate comments for this section's questions
+            if (existingComments[question.id]) {
+                const comment = existingComments[question.id];
+                const textarea = document.getElementById(`${question.id}_comment`);
+                if (textarea) {
+                    textarea.value = comment;
+                }
+            }
+        });
+    }
     
     function updateProgress() {
         const progress = Math.round(((currentSection + 1) / sections.length) * 100);
@@ -219,20 +347,34 @@ document.addEventListener('DOMContentLoaded', function() {
         html += '</div>';
         sectionContainer.innerHTML = html;
         
-                 // Add fade-in animation
-         sectionContainer.style.opacity = '0';
-         setTimeout(() => {
-             sectionContainer.style.opacity = '1';
-             sectionContainer.style.transition = 'opacity 0.3s ease-in-out';
-             
-             // Add event listeners to radio buttons for real-time progress update
-             document.querySelectorAll('input[type="radio"]').forEach(input => {
-                 input.addEventListener('change', updateProgressBasedOnAnswers);
-             });
-             
-             // Update progress for any already selected answers
-             updateProgressBasedOnAnswers();
-         }, 100);
+                          // Add fade-in animation
+        sectionContainer.style.opacity = '0';
+        setTimeout(() => {
+            sectionContainer.style.opacity = '1';
+            sectionContainer.style.transition = 'opacity 0.3s ease-in-out';
+            
+            // Add event listeners to radio buttons for real-time progress update and auto-save
+            document.querySelectorAll('input[type="radio"]').forEach(input => {
+                input.addEventListener('change', function() {
+                    updateProgressBasedOnAnswers();
+                    autoSave();
+                });
+            });
+            
+            // Add event listeners to comment textareas for auto-save
+            document.querySelectorAll('textarea').forEach(textarea => {
+                textarea.addEventListener('input', autoSave);
+                textarea.addEventListener('blur', autoSave);
+            });
+            
+            // Update progress for any already selected answers
+            updateProgressBasedOnAnswers();
+            
+            // Populate saved responses for this section (with small delay to ensure DOM is ready)
+            setTimeout(() => {
+                populateCurrentSection();
+            }, 50);
+        }, 100);
     }
     
     function updateButtons() {
@@ -296,11 +438,72 @@ document.addEventListener('DOMContentLoaded', function() {
          }
      });
     
-         // Initialize
-     renderSection(0);
-     updateProgress();
-     updateButtons();
-     updateProgressBasedOnAnswers();
+    // Handle form submission - collect ALL responses before submitting
+    const form = document.getElementById('questionnaireForm');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault(); // Prevent default submission
+        
+        // Collect ALL responses and comments from all sections
+        const allResponses = {};
+        const allComments = {};
+        
+        sections.forEach(sectionKey => {
+            const section = questionnaireData[sectionKey];
+            section.questions.forEach(question => {
+                // Check if this question was answered (from existingResponses or from current form state)
+                let response = existingResponses[question.id] || '';
+                let comment = existingComments[question.id] || '';
+                
+                // If this question is in the current section, get the latest value from the form
+                if (sectionKey === sections[currentSection]) {
+                    const radioButtons = document.querySelectorAll(`input[name="${question.id}"]:checked`);
+                    if (radioButtons.length > 0) {
+                        response = radioButtons[0].value;
+                    }
+                    
+                    const commentTextarea = document.getElementById(`${question.id}_comment`);
+                    if (commentTextarea && commentTextarea.value.trim()) {
+                        comment = commentTextarea.value.trim();
+                    }
+                }
+                
+                // Store response and comment if they exist
+                if (response) {
+                    allResponses[question.id] = response;
+                }
+                if (comment) {
+                    allComments[question.id] = comment;
+                }
+            });
+        });
+        
+        // Create hidden fields for all responses
+        Object.keys(allResponses).forEach(questionId => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = questionId;
+            input.value = allResponses[questionId];
+            form.appendChild(input);
+        });
+        
+        // Create hidden fields for all comments
+        Object.keys(allComments).forEach(questionId => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = questionId + '_comment';
+            input.value = allComments[questionId];
+            form.appendChild(input);
+        });
+        
+        // Now submit the form with all data
+        form.submit();
+    });
+    
+                 // Initialize - start from saved section or 0
+    renderSection(currentSection);
+    updateProgress();
+    updateButtons();
+    updateProgressBasedOnAnswers();
 });
 </script>
 

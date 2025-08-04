@@ -2080,36 +2080,13 @@ def web_dashboard():
     user_reviews = conn.execute('SELECT COUNT(*) as count FROM security_reviews sr JOIN applications a ON sr.application_id = a.id WHERE a.author_id = ?', 
                                (session['user_id'],)).fetchone()['count']
     
-    # Get findings count (STRIDE findings + questionnaire-based findings)
-    stride_findings_count = conn.execute('''
+    # Get findings count (only analyst STRIDE findings)
+    analyst_findings_count = conn.execute('''
         SELECT COUNT(*) as count FROM stride_analysis sa 
         JOIN security_reviews sr ON sa.review_id = sr.id 
         JOIN applications a ON sr.application_id = a.id 
-        WHERE a.author_id = ? AND sa.risk_level = 'High'
-    ''', (session['user_id'],)).fetchone()['count']
-    
-    # Count high-risk questionnaire responses (answered 'no')
-    user_reviews_data = conn.execute('''
-        SELECT sr.questionnaire_responses FROM security_reviews sr 
-        JOIN applications a ON sr.application_id = a.id 
         WHERE a.author_id = ?
-    ''', (session['user_id'],)).fetchall()
-    
-    questionnaire_high_risk = 0
-    for review in user_reviews_data:
-        if review['questionnaire_responses']:
-            try:
-                questionnaire_data = json.loads(review['questionnaire_responses'])
-                if isinstance(questionnaire_data, dict) and 'high_risk_count' in questionnaire_data:
-                    questionnaire_high_risk += questionnaire_data['high_risk_count']
-                elif isinstance(questionnaire_data, dict):
-                    # Count 'no' responses in legacy format
-                    responses = questionnaire_data.get('responses', questionnaire_data)
-                    questionnaire_high_risk += len([r for r in responses.values() if r == 'no'])
-            except (json.JSONDecodeError, TypeError):
-                pass
-    
-    total_high_risk_findings = stride_findings_count + questionnaire_high_risk
+    ''', (session['user_id'],)).fetchone()['count']
     
     # Get recent applications
     recent_apps = conn.execute('''
@@ -2123,8 +2100,8 @@ def web_dashboard():
     stats = {
         'applications': user_apps,
         'reviews': user_reviews,
-        'high_risk_findings': total_high_risk_findings,
-        'compliance': 'Good' if total_high_risk_findings == 0 else ('Fair' if total_high_risk_findings < 5 else 'Needs Attention')
+        'high_risk_findings': analyst_findings_count,
+        'compliance': 'Good' if analyst_findings_count == 0 else ('Fair' if analyst_findings_count < 5 else 'Needs Attention')
     }
     
     return render_template('dashboard.html', stats=stats, recent_apps=recent_apps)
@@ -2135,9 +2112,18 @@ def web_applications():
     """Applications management page"""
     conn = get_db()
     apps = conn.execute('''
-        SELECT a.*, sr.security_level, sr.status as review_status
+        SELECT a.*, 
+               sr.security_level, 
+               sr.status as review_status
         FROM applications a
-        LEFT JOIN security_reviews sr ON a.id = sr.application_id
+        LEFT JOIN (
+            SELECT application_id, 
+                   security_level, 
+                   status,
+                   MAX(created_at) as latest_created
+            FROM security_reviews 
+            GROUP BY application_id
+        ) sr ON a.id = sr.application_id
         WHERE a.author_id = ?
         ORDER BY a.created_at DESC
     ''', (session['user_id'],)).fetchall()
@@ -2208,6 +2194,56 @@ def web_create_application():
     
     return render_template('create_application.html')
 
+@app.route('/delete-application/<app_id>', methods=['DELETE'])
+@login_required
+def delete_application(app_id):
+    """Delete application and all related data"""
+    try:
+        conn = get_db()
+        
+        # Verify the application belongs to the current user
+        app = conn.execute('SELECT * FROM applications WHERE id = ? AND author_id = ?', 
+                          (app_id, session['user_id'])).fetchone()
+        
+        if not app:
+            conn.close()
+            return jsonify({'error': 'Application not found or access denied'}), 404
+        
+        # Get all security reviews for this application
+        reviews = conn.execute('SELECT id FROM security_reviews WHERE application_id = ?', 
+                              (app_id,)).fetchall()
+        
+        # Delete STRIDE analysis for all reviews of this application
+        for review in reviews:
+            conn.execute('DELETE FROM stride_analysis WHERE review_id = ?', (review['id'],))
+        
+        # Delete all security reviews for this application
+        conn.execute('DELETE FROM security_reviews WHERE application_id = ?', (app_id,))
+        
+        # Delete uploaded files if they exist
+        import os
+        file_columns = ['logical_architecture_file', 'physical_architecture_file', 'overview_document_file']
+        for column in file_columns:
+            file_path = app[column]
+            if file_path:
+                try:
+                    full_path = os.path.join('uploads', file_path)
+                    if os.path.exists(full_path):
+                        os.remove(full_path)
+                except Exception as e:
+                    print(f"Warning: Could not delete file {file_path}: {e}")
+        
+        # Finally, delete the application itself
+        conn.execute('DELETE FROM applications WHERE id = ?', (app_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Application deleted successfully'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/field-selection')
 @app.route('/field-selection/<app_id>')
 @login_required
@@ -2243,16 +2279,42 @@ def web_questionnaire(app_id):
         flash('Application not found.', 'error')
         return redirect(url_for('web_applications'))
     
-    # Check if review already exists for this application (only if not retaking)
+    # Check for existing reviews and drafts
+    existing_responses = {}
+    existing_comments = {}
+    existing_screenshots = {}
+    saved_section = 0
+    
     if not retake:
-        existing_review = conn.execute('SELECT * FROM security_reviews WHERE application_id = ? ORDER BY created_at DESC LIMIT 1', 
-                                     (app_id,)).fetchone()
+        # Check for completed review first
+        completed_review = conn.execute('''
+            SELECT * FROM security_reviews 
+            WHERE application_id = ? AND status IN ('submitted', 'completed') 
+            ORDER BY created_at DESC LIMIT 1
+        ''', (app_id,)).fetchone()
         
-        # If review already exists, redirect to review results
-        if existing_review:
+        # If completed review exists, redirect to results
+        if completed_review:
             conn.close()
             flash('Security review already completed for this application. Showing results.', 'info')
             return redirect(url_for('web_review_results', app_id=app_id))
+        
+        # Check for draft to load existing responses
+        draft_review = conn.execute('''
+            SELECT questionnaire_responses FROM security_reviews 
+            WHERE application_id = ? AND status = 'draft' 
+            ORDER BY created_at DESC LIMIT 1
+        ''', (app_id,)).fetchone()
+        
+        if draft_review and draft_review['questionnaire_responses']:
+            try:
+                draft_data = json.loads(draft_review['questionnaire_responses'])
+                existing_responses = draft_data.get('responses', {})
+                existing_comments = draft_data.get('comments', {})
+                existing_screenshots = draft_data.get('screenshots', {})
+                saved_section = draft_data.get('current_section', 0)
+            except:
+                pass
     
     conn.close()
     
@@ -2261,7 +2323,11 @@ def web_questionnaire(app_id):
                                      application=app, 
             questionnaire=SECURITY_QUESTIONNAIRE,
             field='comprehensive',
-            field_name='Comprehensive OWASP Security Review')
+            field_name='Comprehensive OWASP Security Review',
+            existing_responses=existing_responses,
+            existing_comments=existing_comments,
+            existing_screenshots=existing_screenshots,
+            saved_section=saved_section)
 
 # === SECURITY ANALYST ROUTES ===
 
@@ -2271,7 +2337,7 @@ def analyst_dashboard():
     """Security Analyst Dashboard"""
     conn = get_db()
     
-    # Get pending reviews
+    # Get pending reviews (latest per application)
     pending_reviews = conn.execute('''
         SELECT sr.id, sr.application_id, sr.status, sr.created_at, sr.risk_score,
                a.name as app_name, a.business_criticality,
@@ -2280,10 +2346,15 @@ def analyst_dashboard():
         JOIN applications a ON sr.application_id = a.id
         JOIN users u ON a.author_id = u.id
         WHERE sr.status IN ('submitted', 'in_review')
+        AND sr.id IN (
+            SELECT MAX(id) FROM security_reviews 
+            WHERE status IN ('submitted', 'in_review') 
+            GROUP BY application_id
+        )
         ORDER BY sr.created_at DESC
     ''').fetchall()
     
-    # Get completed reviews
+    # Get completed reviews (latest per application)
     completed_reviews = conn.execute('''
         SELECT sr.id, sr.application_id, sr.status, sr.analyst_reviewed_at, sr.risk_score,
                a.name as app_name, a.business_criticality,
@@ -2292,9 +2363,14 @@ def analyst_dashboard():
         JOIN applications a ON sr.application_id = a.id
         JOIN users u ON a.author_id = u.id
         WHERE sr.status = 'completed' AND sr.analyst_id = ?
+        AND sr.id IN (
+            SELECT MAX(id) FROM security_reviews 
+            WHERE status = 'completed' AND analyst_id = ?
+            GROUP BY application_id
+        )
         ORDER BY sr.analyst_reviewed_at DESC
         LIMIT 10
-    ''', (session['user_id'],)).fetchall()
+    ''', (session['user_id'], session['user_id'])).fetchall()
     
     # Get statistics
     total_pending = len(pending_reviews)
@@ -2339,6 +2415,8 @@ def analyst_review_detail(review_id):
     # Parse the questionnaire data (now contains responses, comments, screenshots)
     questionnaire_data = json.loads(review[2]) if review[2] else {}  # questionnaire_responses
     
+    # Parse questionnaire responses and comments
+    
     # Extract components from the new data structure
     if isinstance(questionnaire_data, dict) and 'responses' in questionnaire_data:
         # New format with comments and screenshots
@@ -2364,8 +2442,9 @@ def analyst_review_detail(review_id):
     
     conn.close()
     
-    # Generate detailed analysis data for each question
+    # Generate detailed analysis data - Show ALL questions (answered and unanswered)
     question_analysis = []
+    
     for category_key, category in SECURITY_QUESTIONNAIRE.items():
         for question in category['questions']:
             question_id = question['id']
@@ -2416,7 +2495,7 @@ def analyst_review_detail(review_id):
                          answered_questions=answered_questions,
                          total_questions=total_questions,
                          high_risk_count=high_risk_count,
-                         questionnaire=SECURITY_QUESTIONNAIRE,
+                         questionnaire=SECURITY_QUESTIONNAIRE,  # Show ALL questions
                          stride_categories=STRIDE_CATEGORIES,
                          stride_analysis=stride_analysis,
                          identified_threats=identified_threats,
@@ -2570,6 +2649,59 @@ def analyze_stride_threats(responses):
     
     return threats
 
+@app.route('/auto-save-questionnaire/<app_id>', methods=['POST'])
+@login_required 
+def auto_save_questionnaire(app_id):
+    """Auto-save questionnaire responses as draft"""
+    try:
+        data = request.get_json()
+        responses = data.get('responses', {})
+        comments = data.get('comments', {})
+        screenshots = data.get('screenshots', {})
+        
+        # Compile draft data
+        questionnaire_data = {
+            'responses': responses,
+            'comments': comments, 
+            'screenshots': screenshots,
+            'answered_questions': len([r for r in responses.values() if r]),
+            'current_section': data.get('current_section', 0),
+            'is_draft': True
+        }
+        
+        conn = get_db()
+        
+        # Check if draft already exists
+        existing_draft = conn.execute('''
+            SELECT id FROM security_reviews 
+            WHERE application_id = ? AND status = 'draft'
+        ''', (app_id,)).fetchone()
+        
+        if existing_draft:
+            # Update existing draft
+            conn.execute('''
+                UPDATE security_reviews 
+                SET questionnaire_responses = ?
+                WHERE id = ?
+            ''', (json.dumps(questionnaire_data), existing_draft[0]))
+        else:
+            # Create new draft
+            draft_id = str(uuid.uuid4())
+            conn.execute('''
+                INSERT INTO security_reviews (id, application_id, questionnaire_responses, 
+                                             status, created_at)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (draft_id, app_id, json.dumps(questionnaire_data), 'draft', 
+                  datetime.now().isoformat()))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Draft saved'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/submit-questionnaire/<app_id>', methods=['POST'])
 @login_required
 def submit_questionnaire(app_id):
@@ -2639,6 +2771,10 @@ def submit_questionnaire(app_id):
     # Save to database
     review_id = str(uuid.uuid4())
     conn = get_db()
+    
+    # Delete any existing draft for this application
+    conn.execute('DELETE FROM security_reviews WHERE application_id = ? AND status = "draft"', (app_id,))
+    
     conn.execute('''
         INSERT INTO security_reviews (id, application_id, questionnaire_responses, 
                                      security_level, recommendations, 
@@ -2748,41 +2884,16 @@ def web_review_results(app_id):
         total_questions = sum(len(cat['questions']) for cat in SECURITY_QUESTIONNAIRE.values())
         high_risk_count = len([r for r in responses.values() if r == 'no'])
     
-    recommendations = json.loads(review['recommendations'])
+    # Handle recommendations (might be None for older records)
+    try:
+        recommendations = json.loads(review['recommendations']) if review['recommendations'] else []
+    except (json.JSONDecodeError, TypeError):
+        recommendations = []
     
-    # Generate findings based on responses
+    # Only show analyst findings - no automatic findings from questionnaire responses
     findings = []
-    for question_id, response in responses.items():
-        if response == 'no':
-            # Find the question details
-            for category_key, category in SECURITY_QUESTIONNAIRE.items():
-                for question in category['questions']:
-                    if question['id'] == question_id:
-                        findings.append({
-                            'title': f"Security Gap: {question['question']}",
-                            'description': question.get('description', ''),
-                            'severity': 'High',
-                            'category': category['title'],
-                            'recommendation': f"Implement security controls for: {question['question']}",
-                            'source': 'questionnaire'
-                        })
-                        break
-        elif response == 'partial':
-            # Find the question details
-            for category_key, category in SECURITY_QUESTIONNAIRE.items():
-                for question in category['questions']:
-                    if question['id'] == question_id:
-                        findings.append({
-                            'title': f"Partial Implementation: {question['question']}",
-                            'description': question.get('description', ''),
-                            'severity': 'Medium',
-                            'category': category['title'],
-                            'recommendation': f"Complete implementation for: {question['question']}",
-                            'source': 'questionnaire'
-                        })
-                        break
     
-    # Add STRIDE findings created by analysts
+    # Get STRIDE findings created by analysts
     stride_findings = conn.execute('''
         SELECT threat_category, threat_description, risk_level, recommendations, question_id, created_at
         FROM stride_analysis 

@@ -45,20 +45,23 @@
 
                     </div>
                     <div class="card-footer">
-                        <div class="btn-group w-100" role="group">
+                        <div class="d-flex gap-2 mb-2">
                             {% if app.review_status %}
-                                <a href="{{ url_for('web_review_results', app_id=app.id) }}" class="btn btn-outline-primary btn-sm">
+                                <a href="{{ url_for('web_review_results', app_id=app.id) }}" class="btn btn-outline-primary btn-sm flex-fill">
                                     <i class="fas fa-chart-line"></i> View Results
                                 </a>
                             {% else %}
-                                <a href="{{ url_for('web_questionnaire', app_id=app.id) }}" class="btn btn-outline-success btn-sm">
+                                <a href="{{ url_for('web_questionnaire', app_id=app.id) }}" class="btn btn-outline-success btn-sm flex-fill">
                                     <i class="fas fa-clipboard-check"></i> Start Review
                                 </a>
                             {% endif %}
                             <button class="btn btn-outline-secondary btn-sm" onclick="editApplication('{{ app.id }}')">
-                                <i class="fas fa-edit"></i> Edit
+                                <i class="fas fa-edit"></i>
                             </button>
                         </div>
+                        <button class="btn btn-outline-danger btn-sm w-100" onclick="deleteApplication('{{ app.id }}', '{{ app.name }}')">
+                            <i class="fas fa-trash"></i> Delete Application
+                        </button>
                     </div>
                 </div>
             </div>
@@ -83,6 +86,41 @@
 function editApplication(appId) {
     // Placeholder for edit functionality
     alert('Edit functionality coming soon for application: ' + appId);
+}
+
+function deleteApplication(appId, appName) {
+    // Show confirmation dialog
+    if (confirm(`Are you sure you want to delete the application "${appName}"?\n\nThis will permanently delete:\n• The application\n• All security reviews\n• All STRIDE analysis\n• All uploaded files\n\nThis action cannot be undone.`)) {
+        // Show loading state
+        const deleteBtn = event.target.closest('button');
+        const originalContent = deleteBtn.innerHTML;
+        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+        deleteBtn.disabled = true;
+        
+        // Send delete request
+        fetch(`/delete-application/${appId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // Success - reload page to refresh the list
+                window.location.reload();
+            } else {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Failed to delete application');
+                });
+            }
+        })
+        .catch(error => {
+            // Reset button and show error
+            deleteBtn.innerHTML = originalContent;
+            deleteBtn.disabled = false;
+            alert('Error deleting application: ' + error.message);
+        });
+    }
 }
 </script>
 {% endblock %} 
