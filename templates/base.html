@@ -239,11 +239,6 @@
                             <i class="fas fa-laptop-code"></i> Applications
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('web_review_results', app_id='all') }}">
-                            <i class="fas fa-search"></i> Reviews
-                        </a>
-                    </li>
                     {% if session.user_role in ['security_analyst', 'admin'] %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('analyst_dashboard') }}">
@@ -256,6 +251,30 @@
                 
                 <ul class="navbar-nav">
                     {% if session.user_id %}
+                    <!-- Notifications Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown" id="notificationsDropdown">
+                            <i class="fas fa-bell"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notificationBadge" style="display: none;">
+                                0
+                            </span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end notification-dropdown" style="width: 350px; max-height: 400px; overflow-y: auto;">
+                            <div class="dropdown-header d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-bell"></i> Notifications</span>
+                                <button class="btn btn-link btn-sm text-decoration-none" id="markAllRead" style="font-size: 0.8rem;">
+                                    Mark all read
+                                </button>
+                            </div>
+                            <div id="notificationsList">
+                                <div class="text-center p-3 text-muted">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <!-- User Dropdown -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user"></i> {{ session.user_name or 'User' }}
@@ -318,6 +337,263 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Notifications JavaScript -->
+    {% if session.user_id %}
+    <script>
+    class NotificationManager {
+        constructor() {
+            this.notificationsList = document.getElementById('notificationsList');
+            this.notificationBadge = document.getElementById('notificationBadge');
+            this.markAllReadBtn = document.getElementById('markAllRead');
+            this.init();
+        }
+
+        init() {
+            this.loadNotifications();
+            this.loadUnreadCount();
+            this.setupEventListeners();
+            
+            // Refresh notifications every 30 seconds
+            setInterval(() => {
+                this.loadUnreadCount();
+            }, 30000);
+        }
+
+        setupEventListeners() {
+            // Load notifications when dropdown is opened
+            document.getElementById('notificationsDropdown').addEventListener('click', () => {
+                this.loadNotifications();
+            });
+
+            // Mark all as read
+            this.markAllReadBtn?.addEventListener('click', () => {
+                this.markAllAsRead();
+            });
+        }
+
+        async loadNotifications() {
+            try {
+                const response = await fetch('/api/notifications?limit=15');
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.renderNotifications(data.notifications);
+                } else {
+                    this.showError('Failed to load notifications');
+                }
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                this.showError('Error loading notifications');
+            }
+        }
+
+        async loadUnreadCount() {
+            try {
+                const response = await fetch('/api/notifications/unread-count');
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.updateBadge(data.count);
+                }
+            } catch (error) {
+                console.error('Error loading unread count:', error);
+            }
+        }
+
+        updateBadge(count) {
+            if (count > 0) {
+                this.notificationBadge.textContent = count > 99 ? '99+' : count;
+                this.notificationBadge.style.display = 'block';
+            } else {
+                this.notificationBadge.style.display = 'none';
+            }
+        }
+
+        renderNotifications(notifications) {
+            if (notifications.length === 0) {
+                this.notificationsList.innerHTML = `
+                    <div class="text-center p-3 text-muted">
+                        <i class="fas fa-bell-slash fa-2x mb-2"></i>
+                        <p class="mb-0">No notifications</p>
+                    </div>
+                `;
+                return;
+            }
+
+            this.notificationsList.innerHTML = notifications.map(notif => this.renderNotification(notif)).join('');
+            
+            // Add click handlers for marking as read
+            this.notificationsList.querySelectorAll('.notification-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const notifId = item.dataset.notificationId;
+                    if (!item.classList.contains('read')) {
+                        this.markAsRead(notifId, item);
+                    }
+                    
+                    // Navigate to application if applicable
+                    const appId = item.dataset.applicationId;
+                    if (appId && !e.target.closest('.mark-read-btn')) {
+                        window.location.href = `/security-assessment/${appId}`;
+                    }
+                });
+            });
+        }
+
+        renderNotification(notif) {
+            const isRead = notif.is_read;
+            const timeAgo = this.timeAgo(new Date(notif.created_at));
+            const typeIcon = this.getNotificationIcon(notif.type);
+            const typeColor = this.getNotificationColor(notif.type);
+
+            return `
+                <div class="notification-item dropdown-item ${isRead ? 'read' : ''}" 
+                     data-notification-id="${notif.id}" 
+                     data-application-id="${notif.application_id || ''}"
+                     style="cursor: pointer; border-left: 3px solid ${typeColor};">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0 me-2">
+                            <i class="fas ${typeIcon}" style="color: ${typeColor};"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1 ${isRead ? 'text-muted' : ''}">${notif.title}</h6>
+                            <p class="mb-1 small ${isRead ? 'text-muted' : ''}">${notif.message}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">${timeAgo}</small>
+                                ${!isRead ? '<span class="badge bg-primary rounded-pill">New</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        getNotificationIcon(type) {
+            const icons = {
+                'new_submission': 'fa-paper-plane',
+                'submission_confirmation': 'fa-check-circle',
+                'review_started': 'fa-play-circle',
+                'review_completed': 'fa-check-double',
+                'assessment_complete': 'fa-trophy',
+                'info': 'fa-info-circle'
+            };
+            return icons[type] || 'fa-bell';
+        }
+
+        getNotificationColor(type) {
+            const colors = {
+                'new_submission': '#007bff',
+                'submission_confirmation': '#28a745',
+                'review_started': '#ffc107',
+                'review_completed': '#17a2b8',
+                'assessment_complete': '#28a745',
+                'info': '#6c757d'
+            };
+            return colors[type] || '#6c757d';
+        }
+
+        async markAsRead(notificationId, element) {
+            try {
+                const response = await fetch(`/api/notifications/${notificationId}/read`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    element.classList.add('read');
+                    element.querySelector('.badge')?.remove();
+                    this.loadUnreadCount();
+                }
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+
+        async markAllAsRead() {
+            try {
+                const response = await fetch('/api/notifications/mark-all-read', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    this.loadNotifications();
+                    this.loadUnreadCount();
+                }
+            } catch (error) {
+                console.error('Error marking all as read:', error);
+            }
+        }
+
+        timeAgo(date) {
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+
+            if (minutes < 1) return 'Just now';
+            if (minutes < 60) return `${minutes}m ago`;
+            if (hours < 24) return `${hours}h ago`;
+            if (days < 7) return `${days}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        showError(message) {
+            this.notificationsList.innerHTML = `
+                <div class="text-center p-3 text-danger">
+                    <i class="fas fa-exclamation-triangle"></i> ${message}
+                </div>
+            `;
+        }
+    }
+
+    // Initialize notifications when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        new NotificationManager();
+    });
+    </script>
+
+    <style>
+    .notification-dropdown .dropdown-item {
+        white-space: normal;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    .notification-dropdown .dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .notification-dropdown .dropdown-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .notification-dropdown .dropdown-item.read {
+        opacity: 0.7;
+    }
+
+    .notification-dropdown .dropdown-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        font-weight: 600;
+    }
+
+    .notification-item {
+        transition: all 0.2s ease;
+    }
+
+    .notification-item:hover {
+        transform: translateX(2px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    #notificationBadge {
+        font-size: 0.7rem;
+        min-width: 1.2rem;
+        height: 1.2rem;
+        line-height: 1;
+    }
+    </style>
+    {% endif %}
     
     {% block extra_js %}{% endblock %}
 </body>

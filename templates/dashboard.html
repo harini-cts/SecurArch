@@ -44,7 +44,9 @@
     </div>
 
     <div class="row">
-        <!-- Quick Actions -->
+        
+          <!-- Quick Actions -->
+
         <div class="col-lg-4">
             <div class="card">
                 <div class="card-header">
@@ -132,15 +134,21 @@
                                     </td>
                                     <td>
                                         {% if app.status == 'draft' %}
-                                        <span class="badge bg-secondary">Draft</span>
+                                        <span class="badge bg-secondary"><i class="fas fa-edit"></i> Draft</span>
+                                        {% elif app.status == 'submitted' %}
+                                        <span class="badge bg-warning"><i class="fas fa-clock"></i> Awaiting Review</span>
                                         {% elif app.status == 'in_review' %}
-                                        <span class="badge bg-primary">In Review</span>
+                                        <span class="badge bg-primary"><i class="fas fa-search"></i> Under Review</span>
+                                        {% elif app.status == 'completed' %}
+                                        <span class="badge bg-success"><i class="fas fa-check-circle"></i> Completed</span>
+                                        {% elif app.status == 'rejected' %}
+                                        <span class="badge bg-danger"><i class="fas fa-times-circle"></i> Needs Revision</span>
                                         {% else %}
-                                        <span class="badge bg-success">{{ app.status }}</span>
+                                        <span class="badge bg-info"><i class="fas fa-question-circle"></i> {{ app.status|title }}</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="{{ url_for('web_questionnaire', app_id=app.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <a href="{{ url_for('web_security_assessment', app_id=app.id) }}" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-clipboard-check"></i> Review
                                         </a>
                                     </td>

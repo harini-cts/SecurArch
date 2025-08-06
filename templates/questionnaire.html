@@ -73,7 +73,8 @@
 
             <!-- Questionnaire Form -->
             <form method="POST" enctype="multipart/form-data" id="questionnaireForm" action="{{ url_for('submit_questionnaire', app_id=application.id) }}">
-                <!-- Hidden field for disabled categories -->
+                <!-- Hidden fields -->
+                <input type="hidden" name="field_type" value="{{ field }}">
                 <input type="hidden" name="disabled_categories" id="disabled_categories" value="">
                 
                 <div class="card shadow-sm">
@@ -127,14 +128,29 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const questionnaireData = JSON.parse(document.getElementById('questionnaire-data').textContent);
-    const existingResponses = JSON.parse(document.getElementById('existing-responses').textContent);
-    const existingComments = JSON.parse(document.getElementById('existing-comments').textContent);
-    const existingScreenshots = JSON.parse(document.getElementById('existing-screenshots').textContent);
-    const savedSection = JSON.parse(document.getElementById('saved-section').textContent);
+    try {
+        const questionnaireData = JSON.parse(document.getElementById('questionnaire-data').textContent);
+        const existingResponses = JSON.parse(document.getElementById('existing-responses').textContent);
+        const existingComments = JSON.parse(document.getElementById('existing-comments').textContent);
+        const existingScreenshots = JSON.parse(document.getElementById('existing-screenshots').textContent);
+        const savedSection = JSON.parse(document.getElementById('saved-section').textContent);
 
-    const sections = Object.keys(questionnaireData);
-    let currentSection = savedSection || 0; // Start from saved section or 0
+        const sections = Object.keys(questionnaireData);
+        
+        // DEBUG: Check if data is loaded correctly
+        console.log('✅ Questionnaire loaded. Sections:', sections.length);
+        
+        if (sections.length === 0) {
+            console.error('❌ No sections found in questionnaire data!', questionnaireData);
+            document.getElementById('section-container').innerHTML = '<div class="alert alert-danger">Error: No questionnaire sections found!</div>';
+            return;
+        }
+    // Ensure saved section is within bounds for current questionnaire
+    let currentSection = 0;
+    if (savedSection && savedSection < sections.length) {
+        currentSection = savedSection;
+    }
+    console.log(`📍 Starting from section ${currentSection} of ${sections.length}`);
     let autoSaveTimeout;
     
     // Auto-save function
@@ -243,6 +259,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    function populateAllSavedResponses() {
+        // Populate ALL saved responses across all sections for progress calculation
+        // This creates hidden form elements for responses not in the current section
+        Object.keys(existingResponses).forEach(questionId => {
+            const value = existingResponses[questionId];
+            // Check if the radio button exists in current DOM
+            let radioButton = document.getElementById(`${questionId}_${value}`);
+            
+            if (!radioButton) {
+                // If not in current section, create a hidden input to track the response
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = questionId;
+                hiddenInput.value = value;
+                hiddenInput.id = `${questionId}_${value}_hidden`;
+                document.body.appendChild(hiddenInput);
+            } else {
+                radioButton.checked = true;
+            }
+        });
+    }
+    
     function updateProgress() {
         const progress = Math.round(((currentSection + 1) / sections.length) * 100);
         progressBar.style.width = progress + '%';
@@ -254,6 +292,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderSection(sectionIndex) {
         const sectionKey = sections[sectionIndex];
         const section = questionnaireData[sectionKey];
+        
+
         
         // Check if category is enabled (default: true)
         const categoryEnabled = localStorage.getItem(`category_${sectionKey}`) !== 'false';
@@ -442,7 +482,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Populate saved responses for this section (with small delay to ensure DOM is ready)
             setTimeout(() => {
                 populateCurrentSection();
-            }, 50);
+                // Update progress after populating responses
+                updateProgressBasedOnAnswers();
+            }, 100);
         }, 100);
     }
     
@@ -475,8 +517,12 @@ document.addEventListener('DOMContentLoaded', function() {
              
              section.questions.forEach(question => {
                  totalQuestions++;
+                 // Check for answered questions across all sections, not just current one
                  const inputs = document.querySelectorAll(`input[name="${question.id}"]:checked`);
-                 if (inputs.length > 0) {
+                 const hiddenInputs = document.querySelectorAll(`input[name="${question.id}"][type="hidden"]`);
+                 
+                 // Count as answered if there's either a checked radio button or a saved response
+                 if (inputs.length > 0 || hiddenInputs.length > 0 || existingResponses[question.id]) {
                      answeredQuestions++;
                  }
              });
@@ -491,6 +537,9 @@ document.addEventListener('DOMContentLoaded', function() {
              const categoryText = disabledCategories > 0 ? ` (${disabledCategories} categories disabled)` : '';
              secondaryProgress.textContent = `${answeredQuestions}/${totalQuestions} questions answered (${completionProgress}%)${categoryText}`;
          }
+         
+         // Debug log to verify the calculation
+         console.log(`Progress Update: ${answeredQuestions}/${totalQuestions} questions (${completionProgress}%), ${disabledCategories} categories disabled`);
      }
     
     // Event Listeners
@@ -595,11 +644,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
                  // Initialize - start from saved section or 0
+    populateAllSavedResponses(); // Load all saved responses first
     renderSection(currentSection);
     updateProgress();
     updateButtons();
     updateProgressBasedOnAnswers();
     updateDisabledCategories();
+    
+    } catch (error) {
+        console.error('❌ JavaScript Error in questionnaire:', error);
+        document.getElementById('section-container').innerHTML = '<div class="alert alert-danger">Error loading questionnaire: ' + error.message + '</div>';
+    }
 });
 </script>
 

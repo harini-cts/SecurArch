@@ -22,6 +22,44 @@
             </div>
         </div>
 
+        <!-- Completed Reviews Overview -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-check-circle"></i> Completed Security Reviews</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            {% if 'application_review' in review_types %}
+                            <div class="col-md-6">
+                                <div class="alert alert-success">
+                                    <i class="fas fa-code fa-2x mb-2"></i>
+                                    <h6>Application Security Review</h6>
+                                    <p class="mb-0">14 security categories completed</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if 'cloud_review' in review_types %}
+                            <div class="col-md-6">
+                                <div class="alert alert-success">
+                                    <i class="fas fa-cloud fa-2x mb-2"></i>
+                                    <h6>Cloud Security Review</h6>
+                                    <p class="mb-0">AWS, Azure, GCP platforms completed</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if review_types|length == 2 %}
+                        <div class="text-center mt-3">
+                            <span class="badge bg-success fs-6">✅ Complete Security Assessment - Both categories reviewed</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Security Overview -->
         {% if findings %}
         <div class="row mb-4">
@@ -29,6 +67,7 @@
                 <div class="stats-card">
                     <h3>{{ findings|length }}</h3>
                     <p>Security Findings</p>
+                    <small class="text-muted">From all reviews</small>
                 </div>
             </div>
             <div class="col-md-3">

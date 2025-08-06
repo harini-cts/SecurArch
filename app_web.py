@@ -178,19 +178,37 @@ def init_db():
         CREATE TABLE IF NOT EXISTS security_reviews (
             id TEXT PRIMARY KEY,
             application_id TEXT,
+            field_type TEXT,
             questionnaire_responses TEXT,
+            additional_comments TEXT,
+            screenshots TEXT,
+            status TEXT DEFAULT 'draft',
             risk_score REAL,
-            security_level TEXT,
-            recommendations TEXT,
-            status TEXT DEFAULT 'in_progress',
+            author_id TEXT,
             analyst_id TEXT,
-            stride_analysis TEXT,
-            final_report TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            completed_at TIMESTAMP,
             analyst_reviewed_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (application_id) REFERENCES applications (id),
+            FOREIGN KEY (author_id) REFERENCES users (id),
             FOREIGN KEY (analyst_id) REFERENCES users (id)
+        )
+    ''')
+    
+    # Notifications table
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS notifications (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            type TEXT DEFAULT 'info',
+            application_id TEXT,
+            user_id TEXT,
+            target_role TEXT,
+            read_by TEXT DEFAULT '[]',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP,
+            FOREIGN KEY (application_id) REFERENCES applications (id),
+            FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
     
@@ -218,7 +236,7 @@ def init_db():
         conn.execute('''
             INSERT INTO users (id, email, password_hash, first_name, last_name, role, organization_name, onboarding_completed)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (demo_user_id, 'admin@demo.com', demo_password_hash, 'Demo', 'Admin', 'admin', 'SecureArch Corp', 1))
+        ''', (demo_user_id, 'admin@demo.com', demo_password_hash, 'Demo', 'User', 'user', 'SecureArch Corp', 1))
     
     # Create demo Security Analyst if not exists
     existing_analyst = conn.execute('SELECT id FROM users WHERE email = ?', ('analyst@demo.com',)).fetchone()
@@ -1214,7 +1232,7 @@ def web_create_application():
         conn.close()
         
         flash('Application created successfully!', 'success')
-        return redirect(url_for('web_dashboard'))
+        return redirect(url_for('web_security_assessment', app_id=app_id))
     
     return render_template('create_application.html')
 
@@ -1268,6 +1286,62 @@ def delete_application(app_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/security-assessment/<app_id>')
+@login_required
+def web_security_assessment(app_id):
+    """Security Assessment page with Application Review and Cloud Review categories"""
+    conn = get_db()
+    app = conn.execute('SELECT * FROM applications WHERE id = ? AND author_id = ?', 
+                      (app_id, session['user_id'])).fetchone()
+    
+    if not app:
+        conn.close()
+        return redirect(url_for('web_applications'))
+    
+    # Get user role to determine what they can see/do
+    user_role = session.get('user_role', 'user')
+    
+    # Check completion status for both categories
+    app_review_completed = False
+    cloud_review_completed = False
+    app_review_status = 'not_started'
+    cloud_review_status = 'not_started'
+    
+    # Check for existing reviews
+    existing_reviews = conn.execute('''
+        SELECT field_type, status FROM security_reviews 
+        WHERE application_id = ?
+        ORDER BY created_at DESC
+    ''', (app_id,)).fetchall()
+    
+    for review in existing_reviews:
+        if review['field_type'] == 'application_review':
+            if review['status'] == 'completed':
+            app_review_completed = True
+                app_review_status = 'completed'
+            elif review['status'] in ['submitted', 'in_review']:
+                app_review_status = 'pending_analyst'
+            elif review['status'] == 'draft':
+                app_review_status = 'draft'
+        elif review['field_type'] == 'cloud_review':
+            if review['status'] == 'completed':
+            cloud_review_completed = True
+                cloud_review_status = 'completed'
+            elif review['status'] in ['submitted', 'in_review']:
+                cloud_review_status = 'pending_analyst'
+            elif review['status'] == 'draft':
+                cloud_review_status = 'draft'
+    
+    conn.close()
+    
+    return render_template('security_assessment.html', 
+                         application=app,
+                         app_review_completed=app_review_completed,
+                         cloud_review_completed=cloud_review_completed,
+                         app_review_status=app_review_status,
+                         cloud_review_status=cloud_review_status,
+                         user_role=user_role)
+
 @app.route('/field-selection')
 @app.route('/field-selection/<app_id>')
 @login_required
@@ -1295,7 +1369,7 @@ def web_questionnaire(app_id):
     retake = request.args.get('retake', 'false').lower() == 'true'
     
     # Get field type from request parameter
-    field_type = request.args.get('field', 'comprehensive_application')
+    field_type = request.args.get('field', 'application_review')
     
     conn = get_db()
     app = conn.execute('SELECT * FROM applications WHERE id = ? AND author_id = ?', 
@@ -1313,25 +1387,39 @@ def web_questionnaire(app_id):
     saved_section = 0  # Initialize saved_section
     
     if not retake:
-        # Check for completed review first
+        # Check for completed review of the SAME field type
         completed_review = conn.execute('''
             SELECT * FROM security_reviews 
-            WHERE application_id = ? AND status IN ('submitted', 'completed') 
+            WHERE application_id = ? AND field_type = ? AND status IN ('submitted', 'completed') 
             ORDER BY created_at DESC LIMIT 1
-        ''', (app_id,)).fetchone()
+        ''', (app_id, field_type)).fetchone()
         
-        # If completed review exists, redirect to results
+        # If this specific field type review is completed, check if both are done
         if completed_review:
+            # Check if both review types are completed
+            all_reviews = conn.execute('''
+                SELECT field_type FROM security_reviews 
+                WHERE application_id = ? AND status IN ('submitted', 'completed')
+            ''', (app_id,)).fetchall()
+            
+            completed_types = {review['field_type'] for review in all_reviews}
+            both_completed = 'application_review' in completed_types and 'cloud_review' in completed_types
+            
             conn.close()
-            # flash('Security review already completed for this application. Showing results.', 'info')  # Removed flash message
-            return redirect(url_for('web_review_results', app_id=app_id))
+            
+            # Only redirect to results if BOTH types are completed
+            if both_completed:
+                return redirect(url_for('web_review_results', app_id=app_id))
+            else:
+                # Redirect back to security assessment to complete the other type
+                return redirect(url_for('web_security_assessment', app_id=app_id))
         
-        # Check for draft to load existing responses
+        # Check for draft to load existing responses for this specific field type
         draft_review = conn.execute('''
             SELECT questionnaire_responses FROM security_reviews 
-            WHERE application_id = ? AND status = 'draft' 
+            WHERE application_id = ? AND field_type = ? AND status = 'draft' 
             ORDER BY created_at DESC LIMIT 1
-        ''', (app_id,)).fetchone()
+        ''', (app_id, field_type)).fetchone()
         
         if draft_review and draft_review['questionnaire_responses']:
             try:
@@ -1351,12 +1439,14 @@ def web_questionnaire(app_id):
         questionnaire_data = SECURITY_QUESTIONNAIRES[field_type]['categories']
         field_name = SECURITY_QUESTIONNAIRES[field_type]['name']
         review_type = SECURITY_QUESTIONNAIRES[field_type]['review_type']
+
     else:
         # Application security questionnaire (comprehensive)
         questionnaire_data = SECURITY_QUESTIONNAIRE
         field_name = 'Comprehensive OWASP Security Review'
         review_type = 'application_review'
         field_type = 'comprehensive_application'  # Normalize field type
+
     
     return render_template('questionnaire.html', 
                          application=app, 
@@ -1451,16 +1541,57 @@ def analyst_dashboard():
                              'low_risk_count': low_risk_count
                          })
 
+@app.route('/analyst/security-assessment/<app_id>')
+@analyst_required
+def analyst_security_assessment(app_id):
+    """Analyst Security Assessment page with Application Review and Cloud Review categories"""
+    conn = get_db()
+    app = conn.execute('SELECT * FROM applications WHERE id = ?', (app_id,)).fetchone()
+    
+    if not app:
+        conn.close()
+        return redirect(url_for('analyst_dashboard'))
+    
+    # Check completion status for both categories
+    app_review_completed = False
+    cloud_review_completed = False
+    app_review_id = None
+    cloud_review_id = None
+    
+    # Check for existing reviews
+    existing_reviews = conn.execute('''
+        SELECT id, field_type, status FROM security_reviews 
+        WHERE application_id = ? AND status IN ('submitted', 'completed', 'in_review')
+        ORDER BY created_at DESC
+    ''', (app_id,)).fetchall()
+    
+    for review in existing_reviews:
+        if review['field_type'] == 'application_review' and review['status'] in ['submitted', 'completed', 'in_review']:
+            app_review_completed = True
+            app_review_id = review['id']
+        elif review['field_type'] == 'cloud_review' and review['status'] in ['submitted', 'completed', 'in_review']:
+            cloud_review_completed = True
+            cloud_review_id = review['id']
+    
+    conn.close()
+    
+    return render_template('analyst/security_assessment.html', 
+                         application=app,
+                         app_review_completed=app_review_completed,
+                         cloud_review_completed=cloud_review_completed,
+                         app_review_id=app_review_id,
+                         cloud_review_id=cloud_review_id)
+
 @app.route('/analyst/review/<review_id>')
 @analyst_required
 def analyst_review_detail(review_id):
     """View detailed review for analysis"""
     conn = get_db()
     
-    # Get review with application details
+    # Get review with application details and field_type
     review = conn.execute('''
         SELECT sr.id, sr.application_id, sr.questionnaire_responses, sr.security_level, 
-               sr.recommendations, sr.status, sr.analyst_reviewed_at, sr.created_at,
+               sr.recommendations, sr.status, sr.analyst_reviewed_at, sr.created_at, sr.field_type,
                a.name as app_name, a.description as app_description, 
                a.technology_stack, a.deployment_environment, a.business_criticality, a.data_classification,
                a.logical_architecture_file, a.physical_architecture_file, a.overview_document_file,
@@ -1474,6 +1605,35 @@ def analyst_review_detail(review_id):
     if not review:
         # flash('Review not found.', 'error')  # Removed flash message
         return redirect(url_for('analyst_dashboard'))
+    
+    # Update review status to 'in_review' if it's currently 'submitted'
+    if review[5] == 'submitted':  # status field
+        conn.execute('''
+            UPDATE security_reviews 
+            SET status = 'in_review', analyst_id = ?
+            WHERE id = ?
+        ''', (session['user_id'], review_id))
+        
+        # Update application status to 'in_review' 
+        update_application_status(review[1], 'in_review', conn)
+        
+        conn.commit()
+        
+        # Create notification for the user that their application is now being reviewed
+        app_name = review[9]  # app_name field
+        analyst_name = session.get('user_name', 'Security Analyst')
+        review_type_display = 'Application Review' if review[8] == 'application_review' else 'Cloud Review'
+        
+        # Get the application author
+        app_author = conn.execute('SELECT author_id FROM applications WHERE id = ?', (review[1],)).fetchone()
+        if app_author:
+            create_notification(
+                title=f"{review_type_display} Started",
+                message=f"{analyst_name} has started reviewing your {review_type_display.lower()} for '{app_name}'. You will be notified when the review is complete.",
+                notification_type='review_started',
+                application_id=review[1],
+                user_id=app_author['author_id']
+            )
     
     # Parse the questionnaire data (now contains responses, comments, screenshots)
     questionnaire_data = json.loads(review[2]) if review[2] else {}  # questionnaire_responses
@@ -1505,10 +1665,20 @@ def analyst_review_detail(review_id):
     
     conn.close()
     
+    # Determine which questionnaire to use based on field_type
+    field_type = review[8] if len(review) > 8 and review[8] else 'application_review'  # field_type column
+    
+    if field_type in SECURITY_QUESTIONNAIRES:
+        questionnaire = SECURITY_QUESTIONNAIRES[field_type]['categories']
+        questionnaire_name = SECURITY_QUESTIONNAIRES[field_type]['name']
+    else:
+        questionnaire = SECURITY_QUESTIONNAIRE  # Fallback to legacy
+        questionnaire_name = 'Comprehensive OWASP Security Review'
+    
     # Generate detailed analysis data - Show ALL questions (answered and unanswered)
     question_analysis = []
     
-    for category_key, category in SECURITY_QUESTIONNAIRE.items():
+    for category_key, category in questionnaire.items():
         for question in category['questions']:
             question_id = question['id']
             response = responses.get(question_id, 'Not answered')
@@ -1558,7 +1728,9 @@ def analyst_review_detail(review_id):
                          answered_questions=answered_questions,
                          total_questions=total_questions,
                          high_risk_count=high_risk_count,
-                         questionnaire=SECURITY_QUESTIONNAIRE,  # Show ALL questions
+                         questionnaire=questionnaire,  # Use field-specific questionnaire
+                         questionnaire_name=questionnaire_name,
+                         field_type=field_type,
                          stride_categories=STRIDE_CATEGORIES,
                          stride_analysis=stride_analysis,
                          identified_threats=identified_threats,
@@ -1663,11 +1835,82 @@ def finalize_review(review_id):
         WHERE id = ?
     ''', (json.dumps(final_report_data), session['user_id'], review_id))
     
+    # Get application_id and details for this review
+    review_info = conn.execute('''
+        SELECT sr.application_id, sr.field_type, a.name as app_name, a.author_id 
+        FROM security_reviews sr 
+        JOIN applications a ON sr.application_id = a.id 
+        WHERE sr.id = ?
+    ''', (review_id,)).fetchone()
+    
+    app_id = review_info['application_id']
+    review_type_display = 'Application Review' if review_info['field_type'] == 'application_review' else 'Cloud Review'
+    app_name = review_info['app_name']
+    app_author_id = review_info['author_id']
+    analyst_name = session.get('user_name', 'Security Analyst')
+    
+    # Create notification for the user that their review is completed
+    create_notification(
+        title=f"{review_type_display} Completed",
+        message=f"Your {review_type_display.lower()} for '{app_name}' has been completed by {analyst_name}. You can now view the detailed security report.",
+        notification_type='review_completed',
+        application_id=app_id,
+        user_id=app_author_id
+    )
+    
+    # Check if all reviews for this application are completed
+    all_reviews = conn.execute('''
+        SELECT status FROM security_reviews 
+        WHERE application_id = ? AND status IN ('submitted', 'completed', 'in_review')
+    ''', (app_id,)).fetchall()
+    
+    # If all reviews are completed, update application status
+    all_completed = all([review['status'] == 'completed' for review in all_reviews])
+    if all_completed and len(all_reviews) > 0:
+        update_application_status(app_id, 'completed', conn)
+        
+        # Create notification that entire security assessment is complete
+        create_notification(
+            title="Security Assessment Complete",
+            message=f"All security reviews for '{app_name}' have been completed. Your comprehensive security report is now available.",
+            notification_type='assessment_complete',
+            application_id=app_id,
+            user_id=app_author_id
+        )
+    
     conn.commit()
     conn.close()
     
     flash('Security review finalized successfully!', 'success')
     return redirect(url_for('analyst_dashboard'))
+
+def update_application_status(app_id, new_status, conn):
+    """Update application status with validation"""
+    valid_transitions = {
+        'draft': ['submitted'],
+        'submitted': ['in_review', 'rejected'],
+        'in_review': ['completed', 'rejected'],
+        'completed': ['rejected'],  # Allow reopening if issues found
+        'rejected': ['submitted']   # Allow resubmission
+    }
+    
+    # Get current status
+    current = conn.execute('SELECT status FROM applications WHERE id = ?', (app_id,)).fetchone()
+    if not current:
+        return False
+    
+    current_status = current['status']
+    
+    # Allow same status (no change)
+    if current_status == new_status:
+        return True
+    
+    # Check if transition is valid
+    if new_status in valid_transitions.get(current_status, []):
+        conn.execute('UPDATE applications SET status = ? WHERE id = ?', (new_status, app_id))
+        return True
+    
+    return False
 
 def analyze_stride_threats(responses):
     """Analyze questionnaire responses to identify STRIDE threats"""
@@ -1771,10 +2014,13 @@ def auto_save_questionnaire(app_id):
 @app.route('/submit-questionnaire/<app_id>', methods=['POST'])
 @login_required
 def submit_questionnaire(app_id):
-    """Submit comprehensive questionnaire responses with comments and screenshots"""
+    """Submit questionnaire responses with comments and screenshots for specific field type"""
     responses = {}
     comments = {}
     screenshots = {}
+    
+    # Get field type from form
+    field_type = request.form.get('field_type', 'application_review')
     
     # Get disabled categories from form
     disabled_categories_str = request.form.get('disabled_categories', '[]')
@@ -1787,8 +2033,11 @@ def submit_questionnaire(app_id):
     answered_questions = 0
     high_risk_answers = 0
     
-    # Use comprehensive questionnaire covering all 14 security topics
-    questionnaire = SECURITY_QUESTIONNAIRE
+    # Get appropriate questionnaire based on field type
+    if field_type in SECURITY_QUESTIONNAIRES:
+        questionnaire = SECURITY_QUESTIONNAIRES[field_type]['categories']
+    else:
+        questionnaire = SECURITY_QUESTIONNAIRE
     
     # Process all form responses
     for key, value in request.form.items():
@@ -1856,18 +2105,46 @@ def submit_questionnaire(app_id):
     conn.execute('DELETE FROM security_reviews WHERE application_id = ? AND status = "draft"', (app_id,))
     
     conn.execute('''
-        INSERT INTO security_reviews (id, application_id, questionnaire_responses, 
+        INSERT INTO security_reviews (id, application_id, author_id, field_type, questionnaire_responses, 
                                      security_level, recommendations, 
                                      status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (review_id, app_id, json.dumps(questionnaire_data), security_level, 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (review_id, app_id, session['user_id'], field_type, json.dumps(questionnaire_data), security_level, 
           json.dumps(recommendations), 'submitted', datetime.now().isoformat()))
     
+    # Update application status to 'submitted' when first questionnaire is submitted
+    update_application_status(app_id, 'submitted', conn)
+    
     conn.commit()
+    
+    # Check if both review types are completed to determine redirect
+    both_completed = False
+    existing_reviews = conn.execute('''
+        SELECT field_type, status FROM security_reviews 
+        WHERE application_id = ? AND author_id = ? AND status IN ('submitted', 'completed')
+    ''', (app_id, session['user_id'])).fetchall()
+    
+    # Check completion status
+    app_review_done = False
+    cloud_review_done = False
+    
+    for review in existing_reviews:
+        if review['field_type'] == 'application_review':
+            app_review_done = True
+        elif review['field_type'] == 'cloud_review':
+            cloud_review_done = True
+    
+    both_completed = app_review_done and cloud_review_done
     conn.close()
     
     flash('Security assessment submitted successfully!', 'success')
-    return redirect(url_for('web_review_results', app_id=app_id))
+    
+    # Redirect based on completion status
+    if both_completed:
+        return redirect(url_for('web_review_results', app_id=app_id))
+    else:
+        # Return to security assessment page to continue with the other category
+        return redirect(url_for('web_security_assessment', app_id=app_id))
 
 def generate_recommendations(responses, high_risk_percentage):
     """Generate security recommendations based on responses and risk percentage"""
@@ -1935,63 +2212,98 @@ def web_review_results(app_id):
     app = conn.execute('SELECT * FROM applications WHERE id = ? AND author_id = ?', 
                       (app_id, session['user_id'])).fetchone()
     
-    # Get the latest submitted review (the one with findings), not draft reviews
-    review = conn.execute('''SELECT * FROM security_reviews 
-                            WHERE application_id = ? AND status IN ('submitted', 'completed', 'in_review') 
-                            ORDER BY created_at DESC LIMIT 1''', 
-                         (app_id,)).fetchone()
+    # Get ALL submitted reviews for this application (both Application Review and Cloud Review)
+    all_reviews = conn.execute('''SELECT * FROM security_reviews 
+                                 WHERE application_id = ? AND status IN ('submitted', 'completed', 'in_review') 
+                                 ORDER BY field_type, created_at DESC''', 
+                             (app_id,)).fetchall()
     
-    # If no submitted review found, fall back to latest review
-    if not review:
-        review = conn.execute('SELECT * FROM security_reviews WHERE application_id = ? ORDER BY created_at DESC LIMIT 1', 
-                             (app_id,)).fetchone()
-    
-    if not app or not review:
+    if not app or not all_reviews:
         conn.close()
-        # Removed flash messages - silent redirect instead
-        # if not app:
-        #     flash('Application not found or you do not have permission to view it.', 'error')
-        # else:
-        #     flash('No security review found for this application. Please complete the security questionnaire first.', 'error')
         return redirect(url_for('web_applications'))
     
-    # Parse the questionnaire data (now contains responses, comments, screenshots)
-    questionnaire_data = json.loads(review['questionnaire_responses'])
+    # Combine data from all reviews
+    combined_responses = {}
+    combined_comments = {}
+    combined_screenshots = {}
+    combined_answered_questions = 0
+    combined_total_questions = 0
+    combined_high_risk_count = 0
+    combined_recommendations = []
     
-    # Extract components from the new data structure
-    if isinstance(questionnaire_data, dict) and 'responses' in questionnaire_data:
-        # New format with comments and screenshots
-        responses = questionnaire_data.get('responses', {})
-        comments = questionnaire_data.get('comments', {})
-        screenshots = questionnaire_data.get('screenshots', {})
-        answered_questions = questionnaire_data.get('answered_questions', 0)
-        total_questions = questionnaire_data.get('total_questions', 0)
-        high_risk_count = questionnaire_data.get('high_risk_count', 0)
-    else:
-        # Legacy format (just responses)
-        responses = questionnaire_data
-        comments = {}
-        screenshots = {}
-        answered_questions = len([r for r in responses.values() if r])
-        total_questions = sum(len(cat['questions']) for cat in SECURITY_QUESTIONNAIRE.values())
-        high_risk_count = len([r for r in responses.values() if r == 'no'])
+    # Track which review types we have
+    review_types = []
+    latest_review = all_reviews[0]  # For general review info
     
-    # Handle recommendations (might be None for older records)
-    try:
-        recommendations = json.loads(review['recommendations']) if review['recommendations'] else []
-    except (json.JSONDecodeError, TypeError):
-        recommendations = []
+    for review in all_reviews:
+        field_type = review['field_type'] or 'application_review'
+        review_types.append(field_type)
+        
+        # Parse questionnaire data
+        questionnaire_data = json.loads(review['questionnaire_responses']) if review['questionnaire_responses'] else {}
+        
+        # Extract components from the data structure
+        if isinstance(questionnaire_data, dict) and 'responses' in questionnaire_data:
+            # New format with comments and screenshots
+            review_responses = questionnaire_data.get('responses', {})
+            review_comments = questionnaire_data.get('comments', {})
+            review_screenshots = questionnaire_data.get('screenshots', {})
+            review_answered_questions = questionnaire_data.get('answered_questions', 0)
+            review_total_questions = questionnaire_data.get('total_questions', 0)
+            review_high_risk_count = questionnaire_data.get('high_risk_count', 0)
+        else:
+            # Legacy format (just responses)
+            review_responses = questionnaire_data
+            review_comments = {}
+            review_screenshots = {}
+            review_answered_questions = len([r for r in review_responses.values() if r])
+            if field_type in SECURITY_QUESTIONNAIRES:
+                questionnaire = SECURITY_QUESTIONNAIRES[field_type]['categories']
+                review_total_questions = sum(len(cat['questions']) for cat in questionnaire.values())
+            else:
+                review_total_questions = sum(len(cat['questions']) for cat in SECURITY_QUESTIONNAIRE.values())
+            review_high_risk_count = len([r for r in review_responses.values() if r == 'no'])
+        
+        # Combine the data
+        combined_responses.update(review_responses)
+        combined_comments.update(review_comments)
+        combined_screenshots.update(review_screenshots)
+        combined_answered_questions += review_answered_questions
+        combined_total_questions += review_total_questions
+        combined_high_risk_count += review_high_risk_count
+        
+        # Add recommendations
+        try:
+            review_recommendations = json.loads(review['recommendations']) if review['recommendations'] else []
+            combined_recommendations.extend(review_recommendations)
+        except (json.JSONDecodeError, TypeError):
+            pass
+    
+    # Use combined data
+    responses = combined_responses
+    comments = combined_comments
+    screenshots = combined_screenshots
+    answered_questions = combined_answered_questions
+    total_questions = combined_total_questions
+    high_risk_count = combined_high_risk_count
+    review = latest_review  # Use latest review for other metadata
+    
+    # Use combined recommendations
+    recommendations = combined_recommendations
     
     # Only show analyst findings - no automatic findings from questionnaire responses
     findings = []
     
-    # Get STRIDE findings created by analysts
-    stride_findings = conn.execute('''
-        SELECT threat_category, threat_description, risk_level, recommendations, question_id, created_at
-        FROM stride_analysis 
-        WHERE review_id = ?
-        ORDER BY created_at DESC
-    ''', (review['id'],)).fetchall()
+    # Get STRIDE findings created by analysts for ALL reviews
+    stride_findings = []
+    for review in all_reviews:
+        review_findings = conn.execute('''
+            SELECT threat_category, threat_description, risk_level, recommendations, question_id, created_at
+            FROM stride_analysis 
+            WHERE review_id = ?
+            ORDER BY created_at DESC
+        ''', (review['id'],)).fetchall()
+        stride_findings.extend(review_findings)
     
     for stride_finding in stride_findings:
         # Get question details if question_id exists
@@ -1999,12 +2311,16 @@ def web_review_results(app_id):
         question_category = stride_finding['threat_category'].replace('_', ' ').title()
         
         if stride_finding['question_id']:
-            for category_key, category in SECURITY_QUESTIONNAIRE.items():
-                for question in category['questions']:
-                    if question['id'] == stride_finding['question_id']:
-                        question_title = question['question']
-                        question_category = category['title']
-                        break
+            # Search in both application and cloud questionnaires
+            for questionnaire_type in ['application_review', 'cloud_review']:
+                if questionnaire_type in SECURITY_QUESTIONNAIRES:
+                    questionnaire = SECURITY_QUESTIONNAIRES[questionnaire_type]['categories']
+                    for category_key, category in questionnaire.items():
+                        for question in category['questions']:
+                            if question['id'] == stride_finding['question_id']:
+                                question_title = question['question']
+                                question_category = category['title']
+                                break
         
         findings.append({
             'title': f"STRIDE Analysis: {question_title}",
@@ -2029,6 +2345,7 @@ def web_review_results(app_id):
                          answered_questions=answered_questions,
                          total_questions=total_questions,
                          high_risk_count=high_risk_count,
+                         review_types=review_types,
                          questionnaire=SECURITY_QUESTIONNAIRE)
 
 @app.route('/logout')
@@ -2043,10 +2360,141 @@ def web_logout():
 def web_profile():
     """User profile page"""
     conn = get_db()
+    
+    # Get user information
+    user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    
+    if not user:
+        flash('User not found.', 'error')
+        return redirect(url_for('web_dashboard'))
+    
+    # Get user statistics
+    user_apps = conn.execute('SELECT COUNT(*) as count FROM applications WHERE author_id = ?', 
+                             (session['user_id'],)).fetchone()['count']
+    
+    user_reviews = conn.execute('SELECT COUNT(*) as count FROM security_reviews sr JOIN applications a ON sr.application_id = a.id WHERE a.author_id = ?', 
+                               (session['user_id'],)).fetchone()['count']
+    
+    # Get recent activity (last 5 applications)
+    recent_activity = conn.execute('''
+        SELECT name, created_at, status 
+        FROM applications 
+        WHERE author_id = ? 
+        ORDER BY created_at DESC 
+        LIMIT 5
+    ''', (session['user_id'],)).fetchall()
+    
+    conn.close()
+    
+    stats = {
+        'applications': user_apps,
+        'reviews': user_reviews
+    }
+    
+    return render_template('profile.html', user=user, stats=stats, recent_activity=recent_activity)
+
+@app.route('/profile/edit', methods=['GET', 'POST'])
+@login_required
+def web_edit_profile():
+    """Edit user profile"""
+    conn = get_db()
+    
+    if request.method == 'POST':
+        # Get form data
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        organization_name = request.form.get('organization_name', '').strip()
+        job_title = request.form.get('job_title', '').strip()
+        experience_level = request.form.get('experience_level', '').strip()
+        interests = request.form.get('interests', '').strip()
+        
+        # Validate required fields
+        if not first_name or not last_name:
+            flash('First name and last name are required.', 'error')
+            return redirect(url_for('web_edit_profile'))
+        
+        # Update user profile
+        try:
+            conn.execute('''
+                UPDATE users 
+                SET first_name = ?, last_name = ?, organization_name = ?, 
+                    job_title = ?, experience_level = ?, interests = ?
+                WHERE id = ?
+            ''', (first_name, last_name, organization_name, job_title, 
+                  experience_level, interests, session['user_id']))
+            
+            conn.commit()
+            flash('Profile updated successfully!', 'success')
+            return redirect(url_for('web_profile'))
+            
+        except Exception as e:
+            flash('Error updating profile. Please try again.', 'error')
+            return redirect(url_for('web_edit_profile'))
+        
+        finally:
+            conn.close()
+    
+    # GET request - show edit form
     user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
     conn.close()
     
-    return render_template('profile.html', user=user)
+    if not user:
+        flash('User not found.', 'error')
+        return redirect(url_for('web_dashboard'))
+    
+    return render_template('edit_profile.html', user=user)
+
+@app.route('/profile/change-password', methods=['GET', 'POST'])
+@login_required
+def web_change_password():
+    """Change user password"""
+    if request.method == 'POST':
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        
+        # Validate input
+        if not current_password or not new_password or not confirm_password:
+            flash('All password fields are required.', 'error')
+            return redirect(url_for('web_change_password'))
+        
+        if new_password != confirm_password:
+            flash('New passwords do not match.', 'error')
+            return redirect(url_for('web_change_password'))
+        
+        if len(new_password) < 8:
+            flash('New password must be at least 8 characters long.', 'error')
+            return redirect(url_for('web_change_password'))
+        
+        conn = get_db()
+        
+        # Verify current password
+        user = conn.execute('SELECT password_hash FROM users WHERE id = ?', 
+                           (session['user_id'],)).fetchone()
+        
+        if not user or not check_password_hash(user['password_hash'], current_password):
+            flash('Current password is incorrect.', 'error')
+            conn.close()
+            return redirect(url_for('web_change_password'))
+        
+        # Update password
+        try:
+            new_password_hash = generate_password_hash(new_password)
+            conn.execute('UPDATE users SET password_hash = ? WHERE id = ?', 
+                        (new_password_hash, session['user_id']))
+            conn.commit()
+            flash('Password changed successfully!', 'success')
+            return redirect(url_for('web_profile'))
+            
+        except Exception as e:
+            flash('Error changing password. Please try again.', 'error')
+            return redirect(url_for('web_change_password'))
+        
+        finally:
+            conn.close()
+    
+    # GET request - show change password form
+    return render_template('change_password.html')
 
 # Error handlers
 @app.errorhandler(404)
@@ -2100,6 +2548,251 @@ def secure_upload(file, file_type, user_id, app_id):
 def web_review_results_all():
     """Handle invalid /review-results/all URL - redirect silently to applications"""
     return redirect(url_for('web_applications'))
+
+# Add this route after the existing routes, before the analyst routes
+
+@app.route('/submit-for-review', methods=['POST'])
+@login_required
+def submit_for_review():
+    """Submit application for security review by analysts"""
+    try:
+        data = request.get_json()
+        app_id = data.get('app_id')
+        review_type = data.get('review_type')
+        
+        if not app_id or not review_type:
+            return jsonify({'success': False, 'error': 'Missing required parameters'}), 400
+        
+        conn = get_db()
+        
+        # Verify the application belongs to the current user
+        app = conn.execute('SELECT * FROM applications WHERE id = ? AND author_id = ?', 
+                          (app_id, session['user_id'])).fetchone()
+        
+        if not app:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Application not found'}), 404
+        
+        # Check if a review already exists for this type
+        existing_review = conn.execute('''
+            SELECT id FROM security_reviews 
+            WHERE application_id = ? AND field_type = ?
+        ''', (app_id, review_type)).fetchone()
+        
+        if existing_review:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Review already exists for this category'}), 400
+        
+        # Create a new review with 'submitted' status (waiting for analyst)
+        review_id = str(uuid.uuid4())
+        conn.execute('''
+            INSERT INTO security_reviews (
+                id, application_id, field_type, status, author_id, created_at
+            ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (review_id, app_id, review_type, 'submitted', session['user_id']))
+        
+        # Update application status to 'submitted' if it's currently 'draft'
+        update_application_status(app_id, 'submitted', conn)
+        
+        conn.commit()
+        conn.close()
+        
+        # Create notification for analysts
+        app_name = app['name']
+        user_name = session.get('user_name', 'A user')
+        review_type_display = 'Application Review' if review_type == 'application_review' else 'Cloud Review'
+        
+        create_notification(
+            title=f"New {review_type_display} Submitted",
+            message=f"{user_name} has submitted '{app_name}' for {review_type_display.lower()}. Review is now pending.",
+            notification_type='new_submission',
+            application_id=app_id,
+            target_role='security_analyst'
+        )
+        
+        # Create notification for the user
+        create_notification(
+            title=f"{review_type_display} Submitted",
+            message=f"Your {review_type_display.lower()} for '{app_name}' has been submitted and is pending review by our security analysts.",
+            notification_type='submission_confirmation',
+            application_id=app_id,
+            user_id=session['user_id']
+        )
+        
+        return jsonify({'success': True, 'message': 'Application submitted for review'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# === NOTIFICATION FUNCTIONS ===
+
+def create_notification(title, message, notification_type='info', application_id=None, user_id=None, target_role=None):
+    """Create a new notification"""
+    try:
+        conn = get_db()
+        notification_id = str(uuid.uuid4())
+        
+        # Set expiration to 30 days from now
+        expires_at = datetime.now() + timedelta(days=30)
+        
+        conn.execute('''
+            INSERT INTO notifications (id, title, message, type, application_id, user_id, target_role, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (notification_id, title, message, notification_type, application_id, user_id, target_role, expires_at))
+        
+        conn.commit()
+        conn.close()
+        return notification_id
+    except Exception as e:
+        print(f"Error creating notification: {e}")
+        return None
+
+def get_notifications_for_user(user_id, user_role, limit=10):
+    """Get notifications for a specific user based on their role"""
+    try:
+        conn = get_db()
+        
+        # Get notifications for the user and their role, excluding expired ones
+        notifications = conn.execute('''
+            SELECT n.*, a.name as app_name 
+            FROM notifications n
+            LEFT JOIN applications a ON n.application_id = a.id
+            WHERE (n.user_id = ? OR n.target_role = ? OR n.target_role IS NULL)
+            AND (n.expires_at IS NULL OR n.expires_at > CURRENT_TIMESTAMP)
+            ORDER BY n.created_at DESC
+            LIMIT ?
+        ''', (user_id, user_role, limit)).fetchall()
+        
+        conn.close()
+        return notifications
+    except Exception as e:
+        print(f"Error getting notifications: {e}")
+        return []
+
+def mark_notification_read(notification_id, user_id):
+    """Mark a notification as read by a user"""
+    try:
+        conn = get_db()
+        
+        # Get current read_by list
+        notification = conn.execute('SELECT read_by FROM notifications WHERE id = ?', (notification_id,)).fetchone()
+        if notification:
+            import json
+            read_by = json.loads(notification['read_by']) if notification['read_by'] else []
+            
+            if user_id not in read_by:
+                read_by.append(user_id)
+                conn.execute('UPDATE notifications SET read_by = ? WHERE id = ?', 
+                           (json.dumps(read_by), notification_id))
+                conn.commit()
+        
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error marking notification as read: {e}")
+        return False
+
+def get_unread_count(user_id, user_role):
+    """Get count of unread notifications for a user"""
+    try:
+        conn = get_db()
+        
+        notifications = conn.execute('''
+            SELECT id, read_by FROM notifications
+            WHERE (user_id = ? OR target_role = ? OR target_role IS NULL)
+            AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+        ''', (user_id, user_role)).fetchall()
+        
+        unread_count = 0
+        for notification in notifications:
+            import json
+            read_by = json.loads(notification['read_by']) if notification['read_by'] else []
+            if user_id not in read_by:
+                unread_count += 1
+        
+        conn.close()
+        return unread_count
+    except Exception as e:
+        print(f"Error getting unread count: {e}")
+        return 0
+
+# === NOTIFICATION API ROUTES ===
+
+@app.route('/api/notifications')
+@login_required
+def api_get_notifications():
+    """Get notifications for the current user"""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        notifications = get_notifications_for_user(
+            session['user_id'], 
+            session.get('user_role', 'user'), 
+            limit
+        )
+        
+        # Convert to JSON-serializable format
+        notifications_list = []
+        for notif in notifications:
+            notifications_list.append({
+                'id': notif['id'],
+                'title': notif['title'],
+                'message': notif['message'],
+                'type': notif['type'],
+                'application_id': notif['application_id'],
+                'app_name': notif['app_name'],
+                'created_at': notif['created_at'],
+                'read_by': json.loads(notif['read_by']) if notif['read_by'] else [],
+                'is_read': session['user_id'] in (json.loads(notif['read_by']) if notif['read_by'] else [])
+            })
+        
+        return jsonify({'success': True, 'notifications': notifications_list})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/notifications/<notification_id>/read', methods=['POST'])
+@login_required
+def api_mark_notification_read(notification_id):
+    """Mark a notification as read"""
+    try:
+        success = mark_notification_read(notification_id, session['user_id'])
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to mark as read'}), 400
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/notifications/unread-count')
+@login_required
+def api_unread_count():
+    """Get unread notification count for the current user"""
+    try:
+        count = get_unread_count(session['user_id'], session.get('user_role', 'user'))
+        return jsonify({'success': True, 'count': count})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/notifications/mark-all-read', methods=['POST'])
+@login_required
+def api_mark_all_read():
+    """Mark all notifications as read for the current user"""
+    try:
+        notifications = get_notifications_for_user(
+            session['user_id'], 
+            session.get('user_role', 'user'), 
+            100  # Get more notifications to mark them all
+        )
+        
+        for notif in notifications:
+            mark_notification_read(notif['id'], session['user_id'])
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     # Initialize database

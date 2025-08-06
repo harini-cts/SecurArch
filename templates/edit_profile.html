@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile - Cognizant SecArch Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="fas fa-user-edit"></i> Edit Profile</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <!-- Basic Information -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="first_name" class="form-label">First Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" 
+                                           value="{{ user.first_name }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" 
+                                           value="{{ user.last_name }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Email (Read-only) -->
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ user.email }}" readonly>
+                            <div class="form-text">Email cannot be changed. Contact support if needed.</div>
+                        </div>
+
+                        <!-- Organization and Job Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="organization_name" class="form-label">Organization</label>
+                                    <input type="text" class="form-control" id="organization_name" name="organization_name" 
+                                           value="{{ user.organization_name or '' }}" placeholder="Enter your organization name">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="job_title" class="form-label">Job Title</label>
+                                    <input type="text" class="form-control" id="job_title" name="job_title" 
+                                           value="{{ user.job_title or '' }}" placeholder="e.g., Security Engineer, Developer">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Experience Level -->
+                        <div class="mb-3">
+                            <label for="experience_level" class="form-label">Experience Level</label>
+                            <select class="form-select" id="experience_level" name="experience_level">
+                                <option value="">Select your experience level</option>
+                                <option value="beginner" {% if user.experience_level == 'beginner' %}selected{% endif %}>Beginner (0-1 years)</option>
+                                <option value="intermediate" {% if user.experience_level == 'intermediate' %}selected{% endif %}>Intermediate (2-5 years)</option>
+                                <option value="advanced" {% if user.experience_level == 'advanced' %}selected{% endif %}>Advanced (6-10 years)</option>
+                                <option value="expert" {% if user.experience_level == 'expert' %}selected{% endif %}>Expert (10+ years)</option>
+                            </select>
+                        </div>
+
+                        <!-- Interests -->
+                        <div class="mb-4">
+                            <label for="interests" class="form-label">Interests & Specializations</label>
+                            <textarea class="form-control" id="interests" name="interests" rows="3" 
+                                      placeholder="e.g., Web Security, Cloud Security, DevSecOps, Penetration Testing">{{ user.interests or '' }}</textarea>
+                            <div class="form-text">Tell us about your security interests and areas of expertise.</div>
+                        </div>
+
+                        <!-- Role Information (Read-only) -->
+                        <div class="mb-4">
+                            <label class="form-label">Account Role</label>
+                            <div class="p-3 bg-light rounded">
+                                {% if user.role == 'admin' %}
+                                <span class="badge bg-danger me-2">Administrator</span>
+                                <span class="text-muted">Full system access and management capabilities</span>
+                                {% elif user.role == 'analyst' %}
+                                <span class="badge bg-primary me-2">Security Analyst</span>
+                                <span class="text-muted">Can review and analyze security assessments</span>
+                                {% else %}
+                                <span class="badge bg-secondary me-2">User</span>
+                                <span class="text-muted">Can submit applications for security review</span>
+                                {% endif %}
+                            </div>
+                            <div class="form-text">Contact an administrator to change your role.</div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('web_profile') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Additional Actions -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card border-warning">
+                        <div class="card-body text-center">
+                            <i class="fas fa-key fa-2x text-warning mb-2"></i>
+                            <h6>Change Password</h6>
+                            <p class="text-muted small">Update your account password for security</p>
+                            <a href="{{ url_for('web_change_password') }}" class="btn btn-outline-warning btn-sm">
+                                Change Password
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-info">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                            <h6>View Dashboard</h6>
+                            <p class="text-muted small">Return to your main dashboard</p>
+                            <a href="{{ url_for('web_dashboard') }}" class="btn btn-outline-info btn-sm">
+                                Go to Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.btn {
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    border: none;
+}
+</style>
+{% endblock %} 

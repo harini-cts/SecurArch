@@ -8,7 +8,8 @@
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{{ url_for('analyst_dashboard') }}">Analyst Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Security Review</li>
+            <li class="breadcrumb-item"><a href="{{ url_for('analyst_security_assessment', app_id=review[1]) }}">{{ review[8] }} Assessment</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ questionnaire_name }}</li>
         </ol>
     </nav>
 
@@ -20,7 +21,7 @@
                     <div class="row align-items-center">
                         <div class="col">
                             <h4 class="card-title mb-0">
-                                <i class="fas fa-shield-alt"></i> Security Review Analysis
+                                <i class="fas fa-shield-alt"></i> {{ questionnaire_name }}
                             </h4>
                         </div>
                         <div class="col-auto">
