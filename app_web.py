@@ -320,819 +320,164 @@ OWASP_TO_STRIDE_MAPPING = {
 
 # Field-Specific OWASP Security Questionnaires
 SECURITY_QUESTIONNAIRES = {
-    "web_application": {
-        "name": "Web Application Security Review",
-        "description": "Comprehensive OWASP Top 10 based security assessment for web applications",
+    "cloud_aws": {
+        "name": "AWS Cloud Security Review",
+        "description": "Comprehensive OWASP Cloud Top 10 based security assessment for AWS infrastructure",
+        "review_type": "cloud_configuration",
         "categories": {
-            "input_validation": {
-                "title": "Input Validation & Injection Prevention",
-                "description": "OWASP A1 (Injection), A3 (Sensitive Data), A6 (Security Misconfiguration)",
+            "aws_iam_identity": {
+                "title": "AWS Identity & Access Management",
+                "description": "OWASP Cloud C1 (IAM Misconfigurations) - AWS IAM security controls",
                 "questions": [
                     {
-                        "id": "input_1",
-                        "question": "How does your application validate and sanitize user input?",
-                        "description": "Input validation prevents injection attacks (SQL, XSS, XXE, NoSQL, LDAP, etc.)",
+                        "id": "aws_iam_1",
+                        "question": "How is AWS root account access managed and protected?",
+                        "description": "Root account compromise can lead to complete AWS environment takeover",
                         "type": "radio",
                         "options": [
-                            "Server-side whitelist validation + input encoding + parameterized queries",
-                            "Server-side validation with both whitelist and blacklist",
-                            "Client-side validation with some server-side checks",
-                            "Basic input filtering only",
-                            "No formal input validation"
-                        ],
-                        "weights": [10, 8, 4, 2, 0]
-                    },
-                    {
-                        "id": "input_2",
-                        "question": "What protection do you have against SQL injection attacks?",
-                        "description": "SQL injection is one of the most dangerous vulnerabilities",
-                        "type": "radio",
-                        "options": [
-                            "Prepared statements + ORM + input validation + least privilege DB access",
-                            "Prepared statements or ORM with input validation",
-                            "Stored procedures with some validation",
-                            "Input sanitization only",
-                            "No specific SQL injection protection"
+                            "Root access disabled + MFA + hardware tokens + access logging + separate break-glass procedures",
+                            "Root access with MFA + strong password + access logging",
+                            "Root access with MFA and basic monitoring",
+                            "Root access with basic password protection",
+                            "Root access without proper protection"
                         ],
                         "weights": [10, 8, 5, 2, 0]
                     },
                     {
-                        "id": "input_3",
-                        "question": "How do you prevent Cross-Site Scripting (XSS) attacks?",
-                        "description": "XSS can lead to session hijacking and data theft",
+                        "id": "aws_iam_2",
+                        "question": "What IAM user and role management practices are implemented?",
+                        "description": "Proper IAM practices prevent privilege escalation and unauthorized access",
                         "type": "radio",
                         "options": [
-                            "CSP headers + output encoding + input validation + HttpOnly cookies",
-                            "Output encoding and input validation",
-                            "Basic input filtering for scripts",
-                            "Some XSS protection measures",
-                            "No specific XSS protection"
-                        ],
-                        "weights": [10, 7, 4, 2, 0]
-                    },
-                    {
-                        "id": "input_4",
-                        "question": "What file upload security measures are implemented?",
-                        "description": "File uploads can be vectors for malware and code execution",
-                        "type": "radio",
-                        "options": [
-                            "File type validation + virus scanning + size limits + sandbox execution",
-                            "File type validation + size limits + content scanning",
-                            "Basic file type and size validation",
-                            "File type validation only",
-                            "No file upload restrictions"
-                        ],
-                        "weights": [10, 8, 5, 3, 0]
-                    }
-                ]
-            },
-            "authentication": {
-                "title": "Authentication & Identity Management",
-                "description": "OWASP A2 (Broken Authentication) - Securing user identity and authentication",
-                "questions": [
-                    {
-                        "id": "auth_1",
-                        "question": "What authentication methods does your application support?",
-                        "description": "Strong authentication prevents unauthorized access",
-                        "type": "radio",
-                        "options": [
-                            "Multi-factor authentication (MFA) required for all users",
-                            "MFA required for admin users, optional for others",
-                            "Strong password policy with optional MFA",
-                            "Basic password authentication only",
-                            "Weak or no authentication requirements"
+                            "Least privilege + automated access reviews + temporary credentials + policy validation",
+                            "Least privilege with regular access reviews and role-based access",
+                            "Role-based access with some periodic reviews",
+                            "Basic user/group separation with manual reviews",
+                            "Shared accounts or overprivileged access"
                         ],
                         "weights": [10, 8, 6, 3, 0]
                     },
                     {
-                        "id": "auth_2",
-                        "question": "How are user passwords stored and protected?",
-                        "description": "Proper password storage prevents credential theft",
+                        "id": "aws_iam_3",
+                        "question": "How are AWS Access Keys and secrets managed?",
+                        "description": "Poor secrets management is a leading cause of cloud breaches",
                         "type": "radio",
                         "options": [
-                            "Argon2, scrypt, or bcrypt with salt + pepper + key stretching",
-                            "bcrypt or PBKDF2 with salt",
-                            "SHA-256 with salt",
-                            "MD5 or SHA-1 with salt",
-                            "Plain text or weak hashing"
-                        ],
-                        "weights": [10, 8, 4, 2, 0]
-                    },
-                    {
-                        "id": "auth_3",
-                        "question": "What password policy is enforced?",
-                        "description": "Strong password policies reduce brute force attacks",
-                        "type": "radio",
-                        "options": [
-                            "12+ chars, complexity, no common passwords, breach checking",
-                            "8+ chars with complexity requirements",
-                            "Minimum length requirements only",
-                            "Basic password requirements",
-                            "No password policy"
-                        ],
-                        "weights": [10, 7, 4, 2, 0]
-                    },
-                    {
-                        "id": "auth_4",
-                        "question": "How do you handle account lockout and brute force protection?",
-                        "description": "Account lockout prevents brute force attacks",
-                        "type": "radio",
-                        "options": [
-                            "Progressive delays + CAPTCHA + IP blocking + monitoring",
-                            "Account lockout with progressive delays",
-                            "Basic account lockout after failed attempts",
-                            "Rate limiting only",
-                            "No brute force protection"
-                        ],
-                        "weights": [10, 8, 5, 3, 0]
-                    }
-                ]
-            },
-            "authorization": {
-                "title": "Authorization & Access Control",
-                "description": "OWASP A5 (Broken Access Control) - Ensuring proper authorization and permissions",
-                "questions": [
-                    {
-                        "id": "authz_1",
-                        "question": "What access control model does your application implement?",
-                        "description": "Proper access control prevents unauthorized actions",
-                        "type": "radio",
-                        "options": [
-                            "Role-based access control (RBAC) with least privilege principle",
-                            "Attribute-based access control (ABAC)",
-                            "Simple role-based access control",
-                            "Basic user/admin separation",
-                            "No formal access control"
-                        ],
-                        "weights": [10, 9, 6, 3, 0]
-                    },
-                    {
-                        "id": "authz_2",
-                        "question": "How do you prevent privilege escalation attacks?",
-                        "description": "Privilege escalation can lead to unauthorized access",
-                        "type": "radio",
-                        "options": [
-                            "Least privilege + regular access reviews + separation of duties",
-                            "Least privilege principle enforced",
-                            "Regular access reviews conducted",
-                            "Basic role separation",
-                            "No specific privilege escalation protection"
-                        ],
-                        "weights": [10, 8, 5, 3, 0]
-                    },
-                    {
-                        "id": "authz_3",
-                        "question": "How are administrative functions protected?",
-                        "description": "Admin functions require extra protection",
-                        "type": "radio",
-                        "options": [
-                            "Separate admin interface + MFA + IP restrictions + logging",
-                            "MFA required for admin functions",
-                            "Separate admin interface",
-                            "Admin functions mixed with user functions",
-                            "No special admin protection"
-                        ],
-                        "weights": [10, 7, 4, 2, 0]
-                    }
-                ]
-            },
-            "configuration_management": {
-                "title": "Security Configuration Management",
-                "description": "OWASP A6 (Security Misconfiguration) - Secure configuration and hardening",
-                "questions": [
-                    {
-                        "id": "config_1",
-                        "question": "How is your application server configured for security?",
-                        "description": "Secure server configuration prevents many attack vectors",
-                        "type": "radio",
-                        "options": [
-                            "Hardened configuration + security headers + minimal services + regular updates",
-                            "Security headers implemented with basic hardening",
-                            "Some security configurations applied",
-                            "Default configuration with minimal changes",
-                            "Default server configuration used"
-                        ],
-                        "weights": [10, 7, 4, 2, 0]
-                    },
-                    {
-                        "id": "config_2",
-                        "question": "What security headers does your application implement?",
-                        "description": "Security headers provide important browser-side protection",
-                        "type": "radio",
-                        "options": [
-                            "CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy",
-                            "HSTS, X-Frame-Options, X-Content-Type-Options",
-                            "Basic security headers (X-Frame-Options, etc.)",
-                            "Some security headers implemented",
-                            "No security headers"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "config_3",
-                        "question": "How do you manage application secrets and environment variables?",
-                        "description": "Proper secrets management prevents credential exposure",
-                        "type": "radio",
-                        "options": [
-                            "Dedicated secrets management system (HashiCorp Vault, AWS Secrets Manager)",
-                            "Environment variables with proper access controls",
-                            "Encrypted configuration files",
+                            "AWS Secrets Manager + automatic rotation + temporary credentials + no hardcoded keys",
+                            "AWS Secrets Manager with regular rotation",
+                            "Environment variables with manual rotation",
                             "Configuration files with basic protection",
-                            "Secrets stored in code or plain text"
-                        ],
-                        "weights": [10, 7, 5, 2, 0]
-                    }
-                ]
-            },
-            "sensitive_data": {
-                "title": "Sensitive Data Protection",
-                "description": "OWASP A3 (Sensitive Data Exposure) - Protecting sensitive information",
-                "questions": [
-                    {
-                        "id": "data_1",
-                        "question": "How is sensitive data identified and classified?",
-                        "description": "Data classification is the first step in protection",
-                        "type": "radio",
-                        "options": [
-                            "Comprehensive data classification with automated discovery",
-                            "Manual data classification with documentation",
-                            "Basic identification of sensitive data types",
-                            "Informal sensitive data identification",
-                            "No formal data classification"
+                            "Hardcoded keys in application code"
                         ],
                         "weights": [10, 8, 5, 2, 0]
                     },
                     {
-                        "id": "data_2",
-                        "question": "How is sensitive data encrypted at rest?",
-                        "description": "Encryption at rest protects data if storage is compromised",
+                        "id": "aws_iam_4",
+                        "question": "What MFA enforcement policies are in place?",
+                        "description": "MFA significantly reduces account compromise risk",
                         "type": "radio",
                         "options": [
-                            "AES-256 encryption with proper key management and HSM",
-                            "AES-256 encryption with key rotation",
-                            "AES-128/256 encryption with basic key management",
-                            "Basic encryption without key management",
-                            "No encryption at rest"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "data_3",
-                        "question": "How is sensitive data protected in transit?",
-                        "description": "Encryption in transit prevents data interception",
-                        "type": "radio",
-                        "options": [
-                            "TLS 1.3 with perfect forward secrecy + certificate pinning",
-                            "TLS 1.2/1.3 with strong cipher suites",
-                            "TLS 1.2 with default configuration",
-                            "TLS 1.1 or mixed HTTP/HTTPS",
-                            "HTTP without encryption"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "data_4",
-                        "question": "How do you handle data retention and disposal?",
-                        "description": "Proper data lifecycle management reduces exposure risk",
-                        "type": "radio",
-                        "options": [
-                            "Automated retention policies + secure deletion + audit trails",
-                            "Documented retention policies with manual cleanup",
-                            "Basic data retention guidelines",
-                            "Informal data cleanup processes",
-                            "No data retention policy"
-                        ],
-                        "weights": [10, 7, 4, 2, 0]
-                    }
-                ]
-            },
-            "session_management": {
-                "title": "Session Management",
-                "description": "OWASP A5 (Security Misconfiguration) - Secure session handling",
-                "questions": [
-                    {
-                        "id": "session_1",
-                        "question": "How are session tokens generated and managed?",
-                        "description": "Strong session management prevents session hijacking",
-                        "type": "radio",
-                        "options": [
-                            "Cryptographically secure random tokens + HttpOnly + Secure + SameSite",
-                            "Secure random tokens with proper cookie flags",
-                            "Random tokens with basic security",
-                            "Predictable or weak session tokens",
-                            "No secure session management"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "session_2",
-                        "question": "What session timeout policies are implemented?",
-                        "description": "Appropriate timeouts reduce session hijacking risk",
-                        "type": "radio",
-                        "options": [
-                            "Adaptive timeouts based on risk + absolute timeout + idle timeout",
-                            "Both idle timeout (15-30 min) and absolute timeout (4-8 hours)",
-                            "Idle timeout only (30 min - 2 hours)",
-                            "Long session timeouts (8+ hours)",
-                            "No session timeout"
-                        ],
-                        "weights": [10, 8, 6, 2, 0]
-                    },
-                    {
-                        "id": "session_3",
-                        "question": "How do you handle session invalidation?",
-                        "description": "Proper session invalidation prevents unauthorized access",
-                        "type": "radio",
-                        "options": [
-                            "Server-side invalidation + logout all devices + session rotation",
-                            "Server-side session invalidation on logout",
-                            "Client-side session clearing",
-                            "Basic logout functionality",
-                            "No proper session invalidation"
-                        ],
-                        "weights": [10, 8, 4, 2, 0]
-                    }
-                ]
-            },
-            "database_security": {
-                "title": "Database Security",
-                "description": "Protecting database systems and data integrity",
-                "questions": [
-                    {
-                        "id": "db_1",
-                        "question": "How is database access controlled and monitored?",
-                        "description": "Database access control prevents unauthorized data access",
-                        "type": "radio",
-                        "options": [
-                            "Least privilege access + connection pooling + query monitoring + encryption",
-                            "Role-based database access with monitoring",
-                            "Basic database user permissions",
-                            "Shared database credentials",
-                            "No database access controls"
-                        ],
-                        "weights": [10, 8, 4, 2, 0]
-                    },
-                    {
-                        "id": "db_2",
-                        "question": "How is database backup and recovery secured?",
-                        "description": "Secure backups prevent data loss and unauthorized access",
-                        "type": "radio",
-                        "options": [
-                            "Encrypted backups + offsite storage + regular restore testing + access controls",
-                            "Encrypted backups with access controls",
-                            "Regular backups with basic security",
-                            "Unencrypted backups",
-                            "No backup strategy"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "db_3",
-                        "question": "What database hardening measures are implemented?",
-                        "description": "Database hardening reduces attack surface",
-                        "type": "radio",
-                        "options": [
-                            "Disabled unnecessary features + network restrictions + patch management + auditing",
-                            "Basic hardening with network restrictions",
-                            "Some unnecessary features disabled",
-                            "Default database configuration",
-                            "No database hardening"
-                        ],
-                        "weights": [10, 7, 4, 2, 0]
-                    }
-                ]
-            },
-            "file_management": {
-                "title": "File Management Security",
-                "description": "Secure handling of file operations and storage",
-                "questions": [
-                    {
-                        "id": "file_1",
-                        "question": "How do you secure file uploads and downloads?",
-                        "description": "File operations can be vectors for attacks",
-                        "type": "radio",
-                        "options": [
-                            "Sandboxed execution + virus scanning + type validation + size limits + access controls",
-                            "File type validation + virus scanning + size limits",
-                            "Basic file type and size validation",
-                            "File type validation only",
-                            "No file upload security"
-                        ],
-                        "weights": [10, 8, 5, 3, 0]
-                    },
-                    {
-                        "id": "file_2",
-                        "question": "How are file permissions and access controlled?",
-                        "description": "Proper file permissions prevent unauthorized access",
-                        "type": "radio",
-                        "options": [
-                            "Least privilege file permissions + access logging + regular audits",
-                            "Role-based file access controls",
-                            "Basic file permissions set",
-                            "Default file permissions",
-                            "No file access controls"
-                        ],
-                        "weights": [10, 7, 4, 2, 0]
-                    },
-                    {
-                        "id": "file_3",
-                        "question": "How do you prevent directory traversal attacks?",
-                        "description": "Directory traversal can expose sensitive files",
-                        "type": "radio",
-                        "options": [
-                            "Input validation + path canonicalization + chroot jail + access controls",
-                            "Input validation and path restrictions",
-                            "Basic path validation",
-                            "Some path restrictions",
-                            "No directory traversal protection"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    }
-                ]
-            },
-            "exception_management": {
-                "title": "Exception & Error Management",
-                "description": "OWASP A3 (Sensitive Data Exposure) - Secure error handling",
-                "questions": [
-                    {
-                        "id": "error_1",
-                        "question": "How does your application handle errors and exceptions?",
-                        "description": "Poor error handling can expose sensitive information",
-                        "type": "radio",
-                        "options": [
-                            "Generic error pages + detailed logging + monitoring + no stack traces to users",
-                            "Generic error messages with proper logging",
-                            "Basic error handling with some logging",
-                            "Default error pages with stack traces",
-                            "No proper error handling"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "error_2",
-                        "question": "What information is included in error messages to users?",
-                        "description": "Error messages should not reveal sensitive information",
-                        "type": "radio",
-                        "options": [
-                            "Generic error messages only + reference IDs for support",
-                            "Generic error messages without technical details",
-                            "Limited technical information in errors",
-                            "Detailed error messages including some technical info",
-                            "Full stack traces and technical details exposed"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "error_3",
-                        "question": "How are application failures and exceptions logged?",
-                        "description": "Proper exception logging aids in security monitoring",
-                        "type": "radio",
-                        "options": [
-                            "Comprehensive logging + correlation IDs + security event detection + alerting",
-                            "Detailed logging with error correlation",
-                            "Basic exception logging",
-                            "Minimal error logging",
-                            "No exception logging"
-                        ],
-                        "weights": [10, 7, 4, 2, 0]
-                    }
-                ]
-            },
-            "cryptography": {
-                "title": "Cryptography Implementation",
-                "description": "OWASP A3 (Sensitive Data Exposure) - Proper cryptographic controls",
-                "questions": [
-                    {
-                        "id": "crypto_1",
-                        "question": "What cryptographic algorithms and key lengths are used?",
-                        "description": "Strong cryptography is essential for data protection",
-                        "type": "radio",
-                        "options": [
-                            "AES-256, RSA-4096/ECC-384, SHA-256/SHA-3 with proper implementation",
-                            "AES-256, RSA-2048, SHA-256 with standard libraries",
-                            "AES-128/256 with basic implementation",
-                            "Mixed strong and weak algorithms",
-                            "Weak or custom cryptographic algorithms"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "crypto_2",
-                        "question": "How is cryptographic key management handled?",
-                        "description": "Poor key management undermines strong cryptography",
-                        "type": "radio",
-                        "options": [
-                            "Hardware Security Module (HSM) + key rotation + escrow + lifecycle management",
-                            "Dedicated key management service with rotation",
-                            "Encrypted key storage with basic rotation",
-                            "Basic key storage without rotation",
-                            "Keys stored in code or configuration files"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "crypto_3",
-                        "question": "How do you ensure cryptographic implementation security?",
-                        "description": "Cryptographic implementation flaws are common",
-                        "type": "radio",
-                        "options": [
-                            "Certified cryptographic libraries + security review + penetration testing",
-                            "Well-established cryptographic libraries only",
-                            "Standard libraries with some review",
-                            "Mix of standard and custom crypto code",
-                            "Custom cryptographic implementations"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    }
-                ]
-            },
-            "auditing_logging": {
-                "title": "Security Auditing & Logging",
-                "description": "OWASP A10 (Insufficient Logging & Monitoring) - Security event detection",
-                "questions": [
-                    {
-                        "id": "audit_1",
-                        "question": "What security events are logged and monitored?",
-                        "description": "Comprehensive logging enables security incident detection",
-                        "type": "radio",
-                        "options": [
-                            "Authentication, authorization, input validation, admin actions, data access + real-time monitoring",
-                            "Authentication, authorization, and admin actions with monitoring",
-                            "Basic authentication and error logging",
-                            "Minimal application logging",
-                            "No security event logging"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "audit_2",
-                        "question": "How are logs protected and integrity maintained?",
-                        "description": "Log integrity is crucial for forensic analysis",
-                        "type": "radio",
-                        "options": [
-                            "Encrypted logs + digital signatures + tamper detection + offsite storage",
-                            "Encrypted logs with access controls",
-                            "Access-controlled log files",
-                            "Basic log file protection",
-                            "No log protection"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "audit_3",
-                        "question": "What log analysis and alerting capabilities exist?",
-                        "description": "Real-time analysis enables rapid incident response",
-                        "type": "radio",
-                        "options": [
-                            "SIEM integration + automated alerting + correlation + threat intelligence",
-                            "Automated log analysis with alerting",
-                            "Basic log monitoring and alerts",
-                            "Manual log review processes",
-                            "No log analysis or alerting"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    }
-                ]
-            },
-            "data_protection": {
-                "title": "Data Protection & Privacy",
-                "description": "OWASP A6 (Security Misconfiguration) - Privacy and data protection compliance",
-                "questions": [
-                    {
-                        "id": "privacy_1",
-                        "question": "How do you handle personal data and privacy compliance?",
-                        "description": "Privacy compliance (GDPR, CCPA) is legally required",
-                        "type": "radio",
-                        "options": [
-                            "Full GDPR/CCPA compliance + privacy by design + data minimization + consent management",
-                            "Privacy compliance with consent management",
-                            "Basic privacy policy and data handling",
-                            "Minimal privacy considerations",
-                            "No privacy compliance measures"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "privacy_2",
-                        "question": "What data loss prevention (DLP) measures are implemented?",
-                        "description": "DLP prevents unauthorized data exfiltration",
-                        "type": "radio",
-                        "options": [
-                            "Comprehensive DLP + data classification + monitoring + policy enforcement",
-                            "Basic DLP with monitoring",
-                            "Some data protection measures",
-                            "Minimal data protection",
-                            "No data loss prevention"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "privacy_3",
-                        "question": "How do you handle data subject rights (access, deletion, portability)?",
-                        "description": "Data subject rights are core privacy requirements",
-                        "type": "radio",
-                        "options": [
-                            "Automated data subject request handling + verification + audit trails",
-                            "Manual process for data subject requests",
-                            "Basic data access/deletion capabilities",
-                            "Limited data subject rights support",
-                            "No data subject rights implementation"
-                        ],
-                        "weights": [10, 7, 4, 2, 0]
-                    }
-                ]
-            },
-            "api_security": {
-                "title": "API Security",
-                "description": "OWASP API Security Top 10 - Securing application programming interfaces",
-                "questions": [
-                    {
-                        "id": "api_1",
-                        "question": "How are APIs authenticated and authorized?",
-                        "description": "API security prevents unauthorized access to backend services",
-                        "type": "radio",
-                        "options": [
-                            "OAuth 2.0/OIDC + JWT validation + rate limiting + scope-based access",
-                            "API keys with proper rotation and scoping",
-                            "Basic API authentication (API keys)",
-                            "Session-based API authentication",
-                            "No API authentication"
-                        ],
-                        "weights": [10, 7, 4, 2, 0]
-                    },
-                    {
-                        "id": "api_2",
-                        "question": "What API input validation and rate limiting is implemented?",
-                        "description": "API validation prevents injection and abuse",
-                        "type": "radio",
-                        "options": [
-                            "Schema validation + rate limiting + quotas + input sanitization + output encoding",
-                            "Input validation with rate limiting",
-                            "Basic input validation",
-                            "Minimal API validation",
-                            "No API input validation"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "api_3",
-                        "question": "How is API documentation and security testing handled?",
-                        "description": "Proper API documentation and testing improves security",
-                        "type": "radio",
-                        "options": [
-                            "OpenAPI specs + automated security testing + penetration testing + documentation review",
-                            "API documentation with some security testing",
-                            "Basic API documentation",
-                            "Minimal API documentation",
-                            "No API documentation or testing"
-                        ],
-                        "weights": [10, 7, 4, 2, 0]
-                    }
-                ]
-            },
-            "ai_security": {
-                "title": "AI/ML Security",
-                "description": "Emerging security considerations for AI and machine learning components",
-                "questions": [
-                    {
-                        "id": "ai_1",
-                        "question": "If your application uses AI/ML, how do you secure model inputs and outputs?",
-                        "description": "AI systems require special security considerations",
-                        "type": "radio",
-                        "options": [
-                            "Input validation + output sanitization + adversarial attack protection + model monitoring",
-                            "Input validation and output filtering",
-                            "Basic input/output handling",
-                            "Minimal AI security measures",
-                            "No AI components or No AI security measures"
-                        ],
-                        "weights": [10, 7, 4, 2, 0]
-                    },
-                    {
-                        "id": "ai_2",
-                        "question": "How do you protect against AI model attacks (adversarial, poisoning, inference)?",
-                        "description": "AI models face unique attack vectors",
-                        "type": "radio",
-                        "options": [
-                            "Adversarial training + model validation + data poisoning detection + inference protection",
-                            "Basic model validation and monitoring",
-                            "Some AI security awareness",
-                            "Minimal AI attack protection",
-                            "No AI components or No AI attack protection"
-                        ],
-                        "weights": [10, 7, 4, 2, 0]
-                    },
-                    {
-                        "id": "ai_3",
-                        "question": "How do you ensure AI/ML model privacy and bias prevention?",
-                        "description": "AI systems must protect privacy and prevent discrimination",
-                        "type": "radio",
-                        "options": [
-                            "Differential privacy + bias testing + fairness metrics + explainable AI",
-                            "Basic bias testing and privacy measures",
-                            "Some privacy and fairness considerations",
-                            "Minimal AI ethics implementation",
-                            "No AI components or No AI ethics measures"
-                        ],
-                        "weights": [10, 7, 4, 2, 0]
-                    }
-                ]
-            }
-        }
-    },
-    "mobile_application": {
-        "name": "Mobile Application Security Review",
-        "description": "OWASP Mobile Top 10 based security assessment for mobile applications",
-        "categories": {
-            "platform_security": {
-                "title": "Platform Security Features",
-                "description": "Proper use of mobile platform security features",
-                "questions": [
-                    {
-                        "id": "mobile_platform_1",
-                        "question": "How does your mobile app store sensitive data?",
-                        "description": "Mobile data storage requires platform-specific security",
-                        "type": "radio",
-                        "options": [
-                            "Keychain/Keystore with hardware backing + encryption + access controls",
-                            "Keychain/Keystore with software protection",
-                            "Encrypted local storage",
-                            "Standard local storage",
-                            "Plain text storage"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    },
-                    {
-                        "id": "mobile_platform_2",
-                        "question": "What mobile authentication methods are implemented?",
-                        "description": "Mobile apps should leverage platform authentication features",
-                        "type": "radio",
-                        "options": [
-                            "Biometrics + device PIN + MFA + hardware-backed authentication",
-                            "Biometrics with PIN/password fallback",
-                            "PIN/password authentication only",
-                            "Basic authentication",
-                            "No mobile-specific authentication"
-                        ],
-                        "weights": [10, 8, 5, 2, 0]
-                    }
-                ]
-            },
-            "communication_security": {
-                "title": "Mobile Communication Security",
-                "description": "Secure communication for mobile applications",
-                "questions": [
-                    {
-                        "id": "mobile_comm_1",
-                        "question": "How does your mobile app secure network communications?",
-                        "description": "Mobile communication faces additional threats",
-                        "type": "radio",
-                        "options": [
-                            "TLS 1.3 + certificate pinning + HPKP + network security config",
-                            "TLS 1.2/1.3 with certificate pinning",
-                            "TLS with certificate validation",
-                            "Basic TLS without pinning",
-                            "HTTP or weak encryption"
+                            "MFA required for all users + hardware tokens for privileged access + MFA compliance monitoring",
+                            "MFA required for all users with software authenticators",
+                            "MFA required for privileged users only",
+                            "MFA optional but encouraged",
+                            "No MFA enforcement"
                         ],
                         "weights": [10, 8, 6, 3, 0]
                     }
                 ]
-            }
-        }
-    },
-    "api_service": {
-        "name": "API & Microservices Security Review",
-        "description": "OWASP API Security Top 10 comprehensive assessment",
-        "categories": {
-            "api_authentication": {
-                "title": "API Authentication & Authorization",
-                "description": "Secure API access control and identity management",
+            },
+            "aws_network_security": {
+                "title": "AWS Network Security & Configuration",
+                "description": "OWASP Cloud C2 (Insecure Default Configurations) - AWS network security controls",
                 "questions": [
                     {
-                        "id": "api_auth_1",
-                        "question": "How do you implement API authentication?",
-                        "description": "APIs require robust authentication mechanisms",
+                        "id": "aws_net_1",
+                        "question": "How are AWS Security Groups and NACLs configured?",
+                        "description": "Network access controls are the first line of defense",
                         "type": "radio",
                         "options": [
-                            "OAuth 2.0 + OpenID Connect + JWT validation + refresh tokens",
-                            "OAuth 2.0 with proper scope management",
-                            "API keys with rotation and scoping",
-                            "Basic API key authentication",
-                            "No API authentication"
+                            "Least privilege + default deny + regular audits + automated compliance checks",
+                            "Least privilege with regular manual reviews",
+                            "Basic segmentation with some restrictions",
+                            "Default configurations with minimal changes",
+                            "Open security groups or default configurations"
                         ],
                         "weights": [10, 8, 5, 2, 0]
                     },
                     {
-                        "id": "api_auth_2",
-                        "question": "How do you implement API rate limiting and abuse prevention?",
-                        "description": "Rate limiting prevents API abuse and DoS attacks",
+                        "id": "aws_net_2",
+                        "question": "What VPC security and segmentation is implemented?",
+                        "description": "Proper VPC design limits blast radius of security incidents",
                         "type": "radio",
                         "options": [
-                            "Dynamic rate limiting + quotas + spike arrest + anomaly detection",
-                            "Rate limiting with quotas and bursting",
-                            "Basic rate limiting per endpoint",
-                            "Simple throttling",
-                            "No rate limiting"
+                            "Multi-tier VPC + private subnets + NAT gateways + VPC Flow Logs + network monitoring",
+                            "Multi-tier VPC with private subnets and basic monitoring",
+                            "Basic VPC segmentation with public and private subnets",
+                            "Single VPC with minimal segmentation",
+                            "Default VPC or single public subnet"
+                        ],
+                        "weights": [10, 8, 6, 3, 0]
+                    },
+                    {
+                        "id": "aws_net_3",
+                        "question": "How is AWS CloudFront and CDN security configured?",
+                        "description": "CDN misconfigurations can expose sensitive data",
+                        "type": "radio",
+                        "options": [
+                            "WAF integration + HTTPS redirect + origin access identity + geo-blocking + custom headers",
+                            "HTTPS enforcement with basic WAF rules",
+                            "HTTPS redirect with basic security headers",
+                            "Basic CloudFront with HTTPS support",
+                            "HTTP traffic or no CDN security"
+                        ],
+                        "weights": [10, 8, 5, 3, 0]
+                    }
+                ]
+            },
+            "aws_data_encryption": {
+                "title": "AWS Data Protection & Encryption",
+                "description": "OWASP Cloud C3 (Insecure Data Storage) - AWS encryption and data protection",
+                "questions": [
+                    {
+                        "id": "aws_data_1",
+                        "question": "How is data encrypted in AWS S3 buckets?",
+                        "description": "S3 bucket misconfigurations are a common cause of data breaches",
+                        "type": "radio",
+                        "options": [
+                            "Server-side encryption + KMS + bucket policies + versioning + access logging + public access blocked",
+                            "Server-side encryption with KMS and proper bucket policies",
+                            "Default encryption with basic access controls",
+                            "Some encryption with manual configuration",
+                            "No encryption or public bucket access"
+                        ],
+                        "weights": [10, 8, 5, 2, 0]
+                    },
+                    {
+                        "id": "aws_data_2",
+                        "question": "What AWS KMS key management practices are followed?",
+                        "description": "Poor key management can render encryption ineffective",
+                        "type": "radio",
+                        "options": [
+                            "Customer managed keys + key rotation + least privilege access + key policies + HSM integration",
+                            "Customer managed keys with automatic rotation",
+                            "AWS managed keys with basic access controls",
+                            "Default encryption keys with manual management",
+                            "No key management or shared keys"
+                        ],
+                        "weights": [10, 8, 6, 3, 0]
+                    },
+                    {
+                        "id": "aws_data_3",
+                        "question": "How is RDS/Database encryption configured?",
+                        "description": "Database encryption protects data at rest and in transit",
+                        "type": "radio",
+                        "options": [
+                            "Encryption at rest + TLS in transit + encrypted backups + parameter store for secrets",
+                            "Encryption at rest and in transit with proper certificates",
+                            "Basic encryption at rest with some transit protection",
+                            "Partial encryption or default settings",
+                            "No database encryption"
                         ],
                         "weights": [10, 8, 5, 2, 0]
                     }
@@ -1140,25 +485,150 @@ SECURITY_QUESTIONNAIRES = {
             }
         }
     },
-    "cloud_infrastructure": {
-        "name": "Cloud Infrastructure Security Review",
-        "description": "Cloud security best practices and configuration assessment",
+    "cloud_azure": {
+        "name": "Microsoft Azure Cloud Security Review",
+        "description": "Comprehensive OWASP Cloud Top 10 based security assessment for Azure infrastructure",
+        "review_type": "cloud_configuration",
         "categories": {
-            "cloud_iam": {
-                "title": "Cloud Identity & Access Management",
-                "description": "IAM and access control in cloud environments",
+            "azure_identity_access": {
+                "title": "Azure Identity & Access Management",
+                "description": "OWASP Cloud C1 (IAM Misconfigurations) - Azure AD and access controls",
                 "questions": [
                     {
-                        "id": "cloud_iam_1",
-                        "question": "How is cloud Identity and Access Management (IAM) implemented?",
-                        "description": "Proper cloud IAM is fundamental to security",
+                        "id": "azure_iam_1",
+                        "question": "How is Azure Active Directory configured for security?",
+                        "description": "Azure AD is the foundation of Azure security",
                         "type": "radio",
                         "options": [
-                            "Least privilege + MFA + regular access reviews + automated provisioning",
-                            "Least privilege with MFA enforcement",
-                            "Basic IAM with some MFA",
-                            "Basic IAM without MFA",
-                            "Shared root/admin access"
+                            "Conditional Access + MFA + PIM + Identity Protection + risk-based policies + monitoring",
+                            "Conditional Access with MFA and basic monitoring",
+                            "MFA enforcement with basic conditional access",
+                            "Basic Azure AD with some MFA",
+                            "Default Azure AD configuration"
+                        ],
+                        "weights": [10, 8, 6, 3, 0]
+                    },
+                    {
+                        "id": "azure_iam_2",
+                        "question": "What Azure RBAC (Role-Based Access Control) practices are implemented?",
+                        "description": "Proper RBAC prevents privilege escalation and unauthorized access",
+                        "type": "radio",
+                        "options": [
+                            "Least privilege + custom roles + PIM + access reviews + just-in-time access",
+                            "Least privilege with regular access reviews",
+                            "Built-in roles with periodic reviews",
+                            "Basic role assignment with manual reviews",
+                            "Broad permissions or shared accounts"
+                        ],
+                        "weights": [10, 8, 6, 3, 0]
+                    },
+                    {
+                        "id": "azure_iam_3",
+                        "question": "How are Azure service principals and managed identities used?",
+                        "description": "Proper identity management eliminates need for stored credentials",
+                        "type": "radio",
+                        "options": [
+                            "Managed identities + service principals with certificates + automated rotation + minimal permissions",
+                            "Managed identities with proper scoping",
+                            "Service principals with certificate authentication",
+                            "Service principals with password authentication",
+                            "Hardcoded credentials or connection strings"
+                        ],
+                        "weights": [10, 8, 6, 3, 0]
+                    }
+                ]
+            },
+            "azure_network_security": {
+                "title": "Azure Network Security & Configuration",
+                "description": "OWASP Cloud C2 (Insecure Default Configurations) - Azure network security",
+                "questions": [
+                    {
+                        "id": "azure_net_1",
+                        "question": "How are Azure Network Security Groups (NSGs) configured?",
+                        "description": "NSGs provide subnet and VM-level network access control",
+                        "type": "radio",
+                        "options": [
+                            "Least privilege + default deny + application security groups + flow logs + monitoring",
+                            "Least privilege with regular audit and monitoring",
+                            "Basic segmentation with some monitoring",
+                            "Default rules with minimal customization",
+                            "Open NSGs or default configurations"
+                        ],
+                        "weights": [10, 8, 5, 2, 0]
+                    },
+                    {
+                        "id": "azure_net_2",
+                        "question": "What Azure Virtual Network security is implemented?",
+                        "description": "VNet design and security affects entire Azure infrastructure",
+                        "type": "radio",
+                        "options": [
+                            "Hub-spoke topology + private endpoints + Azure Firewall + DDoS Protection + network monitoring",
+                            "VNet segmentation with Azure Firewall and basic monitoring",
+                            "Basic VNet segmentation with some security controls",
+                            "Single VNet with minimal segmentation",
+                            "Default VNet or flat network design"
+                        ],
+                        "weights": [10, 8, 6, 3, 0]
+                    },
+                    {
+                        "id": "azure_net_3",
+                        "question": "How is Azure Application Gateway and Front Door security configured?",
+                        "description": "Application delivery security protects web applications",
+                        "type": "radio",
+                        "options": [
+                            "WAF enabled + SSL/TLS termination + custom rules + geo-filtering + rate limiting",
+                            "WAF with basic rule sets and HTTPS",
+                            "Basic application gateway with HTTPS",
+                            "Load balancing with minimal security features",
+                            "No application gateway or WAF protection"
+                        ],
+                        "weights": [10, 8, 5, 2, 0]
+                    }
+                ]
+            },
+            "azure_data_security": {
+                "title": "Azure Data Protection & Encryption",
+                "description": "OWASP Cloud C3 (Insecure Data Storage) - Azure data protection mechanisms",
+                "questions": [
+                    {
+                        "id": "azure_data_1",
+                        "question": "How is Azure Storage Account security configured?",
+                        "description": "Storage account misconfigurations can expose sensitive data",
+                        "type": "radio",
+                        "options": [
+                            "Private endpoints + customer-managed keys + soft delete + access policies + audit logging",
+                            "Encryption with customer-managed keys and access controls",
+                            "Default encryption with basic access controls",
+                            "Some encryption with minimal access controls",
+                            "No encryption or public access allowed"
+                        ],
+                        "weights": [10, 8, 5, 2, 0]
+                    },
+                    {
+                        "id": "azure_data_2",
+                        "question": "What Azure Key Vault practices are implemented?",
+                        "description": "Key Vault securely manages keys, secrets, and certificates",
+                        "type": "radio",
+                        "options": [
+                            "Hardware HSM + access policies + RBAC + audit logging + key rotation + network isolation",
+                            "Key Vault with RBAC and audit logging",
+                            "Basic Key Vault with access policies",
+                            "Key Vault with default configuration",
+                            "No Key Vault or hardcoded secrets"
+                        ],
+                        "weights": [10, 8, 6, 3, 0]
+                    },
+                    {
+                        "id": "azure_data_3",
+                        "question": "How is Azure SQL Database security configured?",
+                        "description": "Database security protects critical application data",
+                        "type": "radio",
+                        "options": [
+                            "TDE + Always Encrypted + firewall rules + threat detection + audit logging + private endpoints",
+                            "Transparent Data Encryption with firewall and monitoring",
+                            "Basic encryption with some access controls",
+                            "Default SQL Database security settings",
+                            "No database encryption or protection"
                         ],
                         "weights": [10, 8, 5, 2, 0]
                     }
@@ -1166,51 +636,150 @@ SECURITY_QUESTIONNAIRES = {
             }
         }
     },
-    "iot_embedded": {
-        "name": "IoT & Embedded Systems Security Review",
-        "description": "Security assessment for IoT devices and embedded systems",
+    "cloud_gcp": {
+        "name": "Google Cloud Platform (GCP) Security Review",
+        "description": "Comprehensive OWASP Cloud Top 10 based security assessment for GCP infrastructure",
+        "review_type": "cloud_configuration",
         "categories": {
-            "device_security": {
-                "title": "Device Hardware & Firmware Security",
-                "description": "Hardware and firmware security measures",
+            "gcp_identity_access": {
+                "title": "GCP Identity & Access Management",
+                "description": "OWASP Cloud C1 (IAM Misconfigurations) - GCP IAM and access controls",
                 "questions": [
                     {
-                        "id": "iot_device_1",
-                        "question": "How is firmware updated on your IoT devices?",
-                        "description": "Secure firmware updates are critical for IoT security",
+                        "id": "gcp_iam_1",
+                        "question": "How is GCP IAM configured for security?",
+                        "description": "GCP IAM controls access to all GCP resources",
                         "type": "radio",
                         "options": [
-                            "Signed OTA updates + rollback capability + secure boot + update verification",
-                            "Signed OTA updates with verification",
-                            "Basic OTA updates",
-                            "Manual updates only",
-                            "No update mechanism"
+                            "Least privilege + custom roles + conditions + audit logs + automated reviews + resource hierarchy",
+                            "Least privilege with custom roles and audit logging",
+                            "Predefined roles with some custom policies",
+                            "Basic role assignment with minimal customization",
+                            "Broad permissions or primitive roles"
                         ],
-                        "weights": [10, 8, 4, 2, 0]
+                        "weights": [10, 8, 6, 3, 0]
+                    },
+                    {
+                        "id": "gcp_iam_2",
+                        "question": "What GCP service account management practices are followed?",
+                        "description": "Service accounts are critical for application authentication",
+                        "type": "radio",
+                        "options": [
+                            "Short-lived tokens + workload identity + key rotation + minimal permissions + monitoring",
+                            "Workload identity with proper scoping",
+                            "Service account keys with regular rotation",
+                            "Service account keys with manual management",
+                            "Long-lived keys or embedded credentials"
+                        ],
+                        "weights": [10, 8, 6, 3, 0]
+                    },
+                    {
+                        "id": "gcp_iam_3",
+                        "question": "How is GCP Organization and folder-level security implemented?",
+                        "description": "Organizational controls provide security foundations",
+                        "type": "radio",
+                        "options": [
+                            "Organization policies + folder hierarchy + inherited permissions + centralized billing + audit controls",
+                            "Organization policies with proper hierarchy",
+                            "Basic folder structure with some policies",
+                            "Minimal organizational structure",
+                            "No organizational policies or flat structure"
+                        ],
+                        "weights": [10, 8, 6, 3, 0]
                     }
                 ]
-            }
-        }
-    },
-    "blockchain_defi": {
-        "name": "Blockchain & DeFi Security Review",
-        "description": "Smart contract and blockchain security assessment",
-        "categories": {
-            "smart_contracts": {
-                "title": "Smart Contract Security",
-                "description": "Security of smart contracts and DeFi protocols",
+            },
+            "gcp_network_security": {
+                "title": "GCP Network Security & Configuration",
+                "description": "OWASP Cloud C2 (Insecure Default Configurations) - GCP network security",
                 "questions": [
                     {
-                        "id": "blockchain_sc_1",
-                        "question": "How are your smart contracts audited and tested?",
-                        "description": "Smart contract auditing is essential for DeFi security",
+                        "id": "gcp_net_1",
+                        "question": "How are GCP VPC and firewall rules configured?",
+                        "description": "VPC security controls network access to GCP resources",
                         "type": "radio",
                         "options": [
-                            "Multiple independent audits + formal verification + fuzzing + economic analysis",
-                            "Professional audit with formal verification",
-                            "Professional audit only",
-                            "Internal review only",
-                            "No formal audit"
+                            "Custom VPC + hierarchical firewall rules + least privilege + VPC Flow Logs + network monitoring",
+                            "Custom VPC with proper firewall rules and monitoring",
+                            "Custom VPC with basic firewall configuration",
+                            "Default VPC with some custom rules",
+                            "Default VPC with minimal security"
+                        ],
+                        "weights": [10, 8, 6, 3, 0]
+                    },
+                    {
+                        "id": "gcp_net_2",
+                        "question": "What GCP load balancing and CDN security is implemented?",
+                        "description": "Load balancer security protects application endpoints",
+                        "type": "radio",
+                        "options": [
+                            "Cloud Armor + SSL certificates + backend security + rate limiting + geo-blocking",
+                            "Cloud Armor with basic WAF rules and HTTPS",
+                            "Load balancing with HTTPS termination",
+                            "Basic load balancing with minimal security",
+                            "No load balancer security or HTTP traffic"
+                        ],
+                        "weights": [10, 8, 5, 2, 0]
+                    },
+                    {
+                        "id": "gcp_net_3",
+                        "question": "How is GCP Private Google Access and service networking configured?",
+                        "description": "Private access reduces exposure to public internet",
+                        "type": "radio",
+                        "options": [
+                            "Private Google Access + VPC Service Controls + private service networking + endpoint policies",
+                            "Private Google Access with service controls",
+                            "Basic private access configuration",
+                            "Mixed private and public access",
+                            "All services accessible via public internet"
+                        ],
+                        "weights": [10, 8, 5, 2, 0]
+                    }
+                ]
+            },
+            "gcp_data_security": {
+                "title": "GCP Data Protection & Encryption",
+                "description": "OWASP Cloud C3 (Insecure Data Storage) - GCP data protection mechanisms",
+                "questions": [
+                    {
+                        "id": "gcp_data_1",
+                        "question": "How is Google Cloud Storage security configured?",
+                        "description": "Cloud Storage security prevents data exposure",
+                        "type": "radio",
+                        "options": [
+                            "Customer-managed encryption + IAM + bucket policies + uniform access + audit logs + retention policies",
+                            "Customer-managed encryption with proper access controls",
+                            "Google-managed encryption with IAM controls",
+                            "Default encryption with basic access controls",
+                            "No encryption or public bucket access"
+                        ],
+                        "weights": [10, 8, 6, 3, 0]
+                    },
+                    {
+                        "id": "gcp_data_2",
+                        "question": "What Google Cloud KMS practices are implemented?",
+                        "description": "KMS manages encryption keys for GCP services",
+                        "type": "radio",
+                        "options": [
+                            "Customer-managed keys + Cloud HSM + key rotation + IAM controls + audit logging",
+                            "Customer-managed keys with automatic rotation",
+                            "Google-managed keys with some controls",
+                            "Default encryption key management",
+                            "No key management or hardcoded keys"
+                        ],
+                        "weights": [10, 8, 6, 3, 0]
+                    },
+                    {
+                        "id": "gcp_data_3",
+                        "question": "How is Cloud SQL and database security configured?",
+                        "description": "Database security protects application data",
+                        "type": "radio",
+                        "options": [
+                            "Encryption at rest + SSL certificates + private IP + authorized networks + audit logs + backup encryption",
+                            "Encryption with SSL and private IP configuration",
+                            "Basic encryption with network controls",
+                            "Default database security settings",
+                            "No database encryption or public access"
                         ],
                         "weights": [10, 8, 5, 2, 0]
                     }
@@ -1220,11 +789,12 @@ SECURITY_QUESTIONNAIRES = {
     }
 }
 
-# Comprehensive OWASP Security Questionnaire (All Application Types)
+# Comprehensive OWASP Security Questionnaire (Application Review - 14 Categories)
 SECURITY_QUESTIONNAIRE = {
     "input_validation": {
         "title": "Input Validation & Injection Prevention",
-        "description": "OWASP A1 (Injection), A3 (Sensitive Data), A6 (Security Misconfiguration)",
+        "description": "OWASP Top 10 A03 (Injection) - Preventing injection attacks through proper input validation",
+        "review_type": "application_review",
         "questions": [
             {
                 "id": "input_1",
@@ -1232,8 +802,8 @@ SECURITY_QUESTIONNAIRE = {
                 "description": "Input validation prevents injection attacks (SQL, XSS, XXE, NoSQL, LDAP, etc.)",
                 "type": "radio",
                 "options": [
-                    "Server-side whitelist validation + input encoding + parameterized queries",
-                    "Server-side validation with both whitelist and blacklist",
+                    "Server-side whitelist validation + input encoding + parameterized queries + CSP",
+                    "Server-side validation with both whitelist and blacklist filtering",
                     "Client-side validation with some server-side checks",
                     "Basic input filtering only",
                     "No formal input validation"
@@ -1246,7 +816,7 @@ SECURITY_QUESTIONNAIRE = {
                 "description": "SQL injection is one of the most dangerous vulnerabilities",
                 "type": "radio",
                 "options": [
-                    "Prepared statements + ORM + input validation + least privilege DB access",
+                    "Prepared statements + ORM + input validation + least privilege DB access + WAF",
                     "Prepared statements or ORM with input validation",
                     "Stored procedures with some validation",
                     "Input sanitization only",
@@ -1260,33 +830,34 @@ SECURITY_QUESTIONNAIRE = {
                 "description": "XSS can lead to session hijacking and data theft",
                 "type": "radio",
                 "options": [
-                    "CSP headers + output encoding + input validation + HttpOnly cookies",
-                    "Output encoding and input validation",
+                    "CSP headers + output encoding + input validation + HttpOnly cookies + SameSite",
+                    "Output encoding and input validation with CSP",
                     "Basic input filtering for scripts",
                     "Some XSS protection measures",
                     "No specific XSS protection"
                 ],
-                "weights": [10, 7, 4, 2, 0]
+                "weights": [10, 8, 4, 2, 0]
             },
             {
                 "id": "input_4",
-                "question": "What file upload security measures are implemented?",
-                "description": "File uploads can be vectors for malware and code execution",
+                "question": "What protection against XML External Entity (XXE) attacks is implemented?",
+                "description": "XXE attacks can expose sensitive files and enable SSRF",
                 "type": "radio",
                 "options": [
-                    "File type validation + virus scanning + size limits + sandbox execution",
-                    "File type validation + size limits + content scanning",
-                    "Basic file type and size validation",
-                    "File type validation only",
-                    "No file upload restrictions"
+                    "XML parsing disabled or secure parser + entity resolution disabled + input validation",
+                    "Secure XML parser configuration with disabled external entities",
+                    "Basic XML input validation",
+                    "Default XML parser settings",
+                    "No XXE protection or XML processing"
                 ],
-                "weights": [10, 8, 5, 3, 0]
+                "weights": [10, 8, 5, 2, 0]
             }
         ]
     },
     "authentication": {
         "title": "Authentication & Identity Management",
-        "description": "OWASP A2 (Broken Authentication) - Securing user identity and authentication",
+        "description": "OWASP Top 10 A07 (Identification and Authentication Failures) - Securing user identity",
+        "review_type": "application_review",
         "questions": [
             {
                 "id": "auth_1",
@@ -1294,7 +865,7 @@ SECURITY_QUESTIONNAIRE = {
                 "description": "Strong authentication prevents unauthorized access",
                 "type": "radio",
                 "options": [
-                    "Multi-factor authentication (MFA) required for all users",
+                    "Multi-factor authentication (MFA) required + SSO + passwordless options",
                     "MFA required for admin users, optional for others",
                     "Strong password policy with optional MFA",
                     "Basic password authentication only",
@@ -1308,8 +879,8 @@ SECURITY_QUESTIONNAIRE = {
                 "description": "Proper password storage prevents credential theft",
                 "type": "radio",
                 "options": [
-                    "Argon2, scrypt, or bcrypt with salt + pepper + key stretching",
-                    "bcrypt or PBKDF2 with salt",
+                    "Argon2, scrypt, or bcrypt with salt + pepper + key stretching + breach monitoring",
+                    "bcrypt or PBKDF2 with salt and proper configuration",
                     "SHA-256 with salt",
                     "MD5 or SHA-1 with salt",
                     "Plain text or weak hashing"
@@ -1318,37 +889,38 @@ SECURITY_QUESTIONNAIRE = {
             },
             {
                 "id": "auth_3",
-                "question": "What password policy is enforced?",
+                "question": "What password policy and account security is enforced?",
                 "description": "Strong password policies reduce brute force attacks",
                 "type": "radio",
                 "options": [
-                    "12+ chars, complexity, no common passwords, breach checking",
-                    "8+ chars with complexity requirements",
-                    "Minimum length requirements only",
+                    "12+ chars + complexity + breach checking + account lockout + CAPTCHA",
+                    "8+ chars with complexity requirements and account lockout",
+                    "Minimum length requirements with basic lockout",
                     "Basic password requirements",
-                    "No password policy"
+                    "No password policy or account protection"
                 ],
-                "weights": [10, 7, 4, 2, 0]
+                "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "auth_4",
-                "question": "How do you handle account lockout and brute force protection?",
-                "description": "Account lockout prevents brute force attacks",
+                "question": "How do you handle session management and re-authentication?",
+                "description": "Proper session management prevents unauthorized access",
                 "type": "radio",
                 "options": [
-                    "Progressive delays + CAPTCHA + IP blocking + monitoring",
-                    "Account lockout with progressive delays",
-                    "Basic account lockout after failed attempts",
-                    "Rate limiting only",
-                    "No brute force protection"
+                    "Secure session tokens + timeout + re-auth for sensitive operations + logout all devices",
+                    "Secure session management with appropriate timeouts",
+                    "Basic session handling with some security",
+                    "Minimal session security",
+                    "No secure session management"
                 ],
-                "weights": [10, 8, 5, 3, 0]
+                "weights": [10, 8, 5, 2, 0]
             }
         ]
     },
     "authorization": {
         "title": "Authorization & Access Control",
-        "description": "OWASP A5 (Broken Access Control) - Ensuring proper authorization and permissions",
+        "description": "OWASP Top 10 A01 (Broken Access Control) - Ensuring proper authorization and permissions",
+        "review_type": "application_review",
         "questions": [
             {
                 "id": "authz_1",
@@ -1356,55 +928,56 @@ SECURITY_QUESTIONNAIRE = {
                 "description": "Proper access control prevents unauthorized actions",
                 "type": "radio",
                 "options": [
+                    "RBAC with least privilege + ABAC + policy enforcement + regular reviews",
                     "Role-based access control (RBAC) with least privilege principle",
                     "Attribute-based access control (ABAC)",
                     "Simple role-based access control",
-                    "Basic user/admin separation",
                     "No formal access control"
                 ],
-                "weights": [10, 9, 6, 3, 0]
+                "weights": [10, 9, 8, 3, 0]
             },
             {
                 "id": "authz_2",
-                "question": "How do you prevent privilege escalation attacks?",
-                "description": "Privilege escalation can lead to unauthorized access",
+                "question": "How do you prevent privilege escalation and IDOR attacks?",
+                "description": "Privilege escalation and IDOR can lead to unauthorized access",
                 "type": "radio",
                 "options": [
-                    "Least privilege + regular access reviews + separation of duties",
-                    "Least privilege principle enforced",
-                    "Regular access reviews conducted",
-                    "Basic role separation",
-                    "No specific privilege escalation protection"
+                    "Least privilege + access controls + object-level authorization + monitoring",
+                    "Least privilege principle with object-level checks",
+                    "Basic role separation with some object validation",
+                    "Minimal access control validation",
+                    "No privilege escalation or IDOR protection"
                 ],
-                "weights": [10, 8, 5, 3, 0]
+                "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "authz_3",
-                "question": "How are administrative functions protected?",
-                "description": "Admin functions require extra protection",
+                "question": "How are administrative and sensitive functions protected?",
+                "description": "Admin functions require extra protection due to high privilege",
                 "type": "radio",
                 "options": [
-                    "Separate admin interface + MFA + IP restrictions + logging",
-                    "MFA required for admin functions",
-                    "Separate admin interface",
+                    "Separate admin interface + MFA + IP restrictions + approval workflows + logging",
+                    "MFA required for admin functions with IP restrictions",
+                    "Separate admin interface with MFA",
                     "Admin functions mixed with user functions",
                     "No special admin protection"
                 ],
-                "weights": [10, 7, 4, 2, 0]
+                "weights": [10, 8, 6, 2, 0]
             }
         ]
     },
     "configuration_management": {
         "title": "Security Configuration Management",
-        "description": "OWASP A6 (Security Misconfiguration) - Secure configuration and hardening",
+        "description": "OWASP Top 10 A05 (Security Misconfiguration) - Secure configuration and hardening",
+        "review_type": "application_review",
         "questions": [
             {
                 "id": "config_1",
-                "question": "How is your application server configured for security?",
+                "question": "How is your application server and framework configured for security?",
                 "description": "Secure server configuration prevents many attack vectors",
                 "type": "radio",
                 "options": [
-                    "Hardened configuration + security headers + minimal services + regular updates",
+                    "Hardened configuration + security headers + minimal services + auto-updates + scanning",
                     "Security headers implemented with basic hardening",
                     "Some security configurations applied",
                     "Default configuration with minimal changes",
@@ -1414,12 +987,12 @@ SECURITY_QUESTIONNAIRE = {
             },
             {
                 "id": "config_2",
-                "question": "What security headers does your application implement?",
+                "question": "What security headers and browser protections are implemented?",
                 "description": "Security headers provide important browser-side protection",
                 "type": "radio",
                 "options": [
-                    "CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy",
-                    "HSTS, X-Frame-Options, X-Content-Type-Options",
+                    "CSP + HSTS + X-Frame-Options + X-Content-Type-Options + Referrer-Policy + Permissions-Policy",
+                    "HSTS, X-Frame-Options, X-Content-Type-Options, and CSP",
                     "Basic security headers (X-Frame-Options, etc.)",
                     "Some security headers implemented",
                     "No security headers"
@@ -1428,31 +1001,32 @@ SECURITY_QUESTIONNAIRE = {
             },
             {
                 "id": "config_3",
-                "question": "How do you manage application secrets and environment variables?",
+                "question": "How do you manage application secrets and configuration?",
                 "description": "Proper secrets management prevents credential exposure",
                 "type": "radio",
                 "options": [
-                    "Dedicated secrets management system (HashiCorp Vault, AWS Secrets Manager)",
-                    "Environment variables with proper access controls",
+                    "Dedicated secrets management + vault + rotation + encryption + access controls",
+                    "Environment variables with proper access controls and rotation",
                     "Encrypted configuration files",
                     "Configuration files with basic protection",
                     "Secrets stored in code or plain text"
                 ],
-                "weights": [10, 7, 5, 2, 0]
+                "weights": [10, 8, 5, 2, 0]
             }
         ]
     },
     "sensitive_data": {
         "title": "Sensitive Data Protection",
-        "description": "OWASP A3 (Sensitive Data Exposure) - Protecting sensitive information",
+        "description": "OWASP Top 10 A02 (Cryptographic Failures) - Protecting sensitive information",
+        "review_type": "application_review",
         "questions": [
             {
                 "id": "data_1",
-                "question": "How is sensitive data identified and classified?",
-                "description": "Data classification is the first step in protection",
+                "question": "How is sensitive data identified, classified, and inventoried?",
+                "description": "Data classification is the foundation of data protection",
                 "type": "radio",
                 "options": [
-                    "Comprehensive data classification with automated discovery",
+                    "Comprehensive data classification + automated discovery + labeling + inventory",
                     "Manual data classification with documentation",
                     "Basic identification of sensitive data types",
                     "Informal sensitive data identification",
@@ -1462,61 +1036,48 @@ SECURITY_QUESTIONNAIRE = {
             },
             {
                 "id": "data_2",
-                "question": "How is sensitive data encrypted at rest?",
-                "description": "Encryption at rest protects data if storage is compromised",
+                "question": "How is sensitive data encrypted at rest and in transit?",
+                "description": "Encryption protects data if storage or transmission is compromised",
                 "type": "radio",
                 "options": [
-                    "AES-256 encryption with proper key management and HSM",
-                    "AES-256 encryption with key rotation",
+                    "AES-256 at rest + TLS 1.3 in transit + key management + HSM + perfect forward secrecy",
+                    "AES-256 encryption with proper key management and TLS 1.2/1.3",
                     "AES-128/256 encryption with basic key management",
-                    "Basic encryption without key management",
-                    "No encryption at rest"
+                    "Basic encryption without proper key management",
+                    "No encryption at rest or in transit"
                 ],
                 "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "data_3",
-                "question": "How is sensitive data protected in transit?",
-                "description": "Encryption in transit prevents data interception",
+                "question": "How do you handle data retention, disposal, and privacy compliance?",
+                "description": "Proper data lifecycle management reduces exposure and ensures compliance",
                 "type": "radio",
                 "options": [
-                    "TLS 1.3 with perfect forward secrecy + certificate pinning",
-                    "TLS 1.2/1.3 with strong cipher suites",
-                    "TLS 1.2 with default configuration",
-                    "TLS 1.1 or mixed HTTP/HTTPS",
-                    "HTTP without encryption"
-                ],
-                "weights": [10, 8, 5, 2, 0]
-            },
-            {
-                "id": "data_4",
-                "question": "How do you handle data retention and disposal?",
-                "description": "Proper data lifecycle management reduces exposure risk",
-                "type": "radio",
-                "options": [
-                    "Automated retention policies + secure deletion + audit trails",
-                    "Documented retention policies with manual cleanup",
+                    "Automated retention + secure deletion + GDPR/CCPA compliance + audit trails + data minimization",
+                    "Documented retention policies with manual cleanup and privacy compliance",
                     "Basic data retention guidelines",
                     "Informal data cleanup processes",
-                    "No data retention policy"
+                    "No data retention policy or privacy compliance"
                 ],
-                "weights": [10, 7, 4, 2, 0]
+                "weights": [10, 8, 4, 2, 0]
             }
         ]
     },
     "session_management": {
-        "title": "Session Management",
-        "description": "OWASP A5 (Security Misconfiguration) - Secure session handling",
+        "title": "Session Management & State Handling",
+        "description": "OWASP Top 10 A07 (Identification and Authentication Failures) - Secure session handling",
+        "review_type": "application_review",
         "questions": [
             {
                 "id": "session_1",
-                "question": "How are session tokens generated and managed?",
+                "question": "How are session tokens generated, transmitted, and stored?",
                 "description": "Strong session management prevents session hijacking",
                 "type": "radio",
                 "options": [
-                    "Cryptographically secure random tokens + HttpOnly + Secure + SameSite",
+                    "Cryptographically secure tokens + HttpOnly + Secure + SameSite + domain binding",
                     "Secure random tokens with proper cookie flags",
-                    "Random tokens with basic security",
+                    "Random tokens with basic security flags",
                     "Predictable or weak session tokens",
                     "No secure session management"
                 ],
@@ -1524,94 +1085,96 @@ SECURITY_QUESTIONNAIRE = {
             },
             {
                 "id": "session_2",
-                "question": "What session timeout policies are implemented?",
+                "question": "What session timeout and lifecycle policies are implemented?",
                 "description": "Appropriate timeouts reduce session hijacking risk",
                 "type": "radio",
                 "options": [
-                    "Adaptive timeouts based on risk + absolute timeout + idle timeout",
+                    "Adaptive timeouts + absolute timeout + idle timeout + risk-based + session rotation",
                     "Both idle timeout (15-30 min) and absolute timeout (4-8 hours)",
                     "Idle timeout only (30 min - 2 hours)",
                     "Long session timeouts (8+ hours)",
-                    "No session timeout"
+                    "No session timeout or lifecycle management"
                 ],
                 "weights": [10, 8, 6, 2, 0]
             },
             {
                 "id": "session_3",
-                "question": "How do you handle session invalidation?",
+                "question": "How do you handle session invalidation and concurrent sessions?",
                 "description": "Proper session invalidation prevents unauthorized access",
                 "type": "radio",
                 "options": [
-                    "Server-side invalidation + logout all devices + session rotation",
-                    "Server-side session invalidation on logout",
-                    "Client-side session clearing",
-                    "Basic logout functionality",
+                    "Server-side invalidation + logout all devices + session tracking + concurrent limits",
+                    "Server-side session invalidation with concurrent session management",
+                    "Basic logout functionality with some session tracking",
+                    "Client-side session clearing only",
                     "No proper session invalidation"
                 ],
-                "weights": [10, 8, 4, 2, 0]
+                "weights": [10, 8, 5, 2, 0]
             }
         ]
     },
     "database_security": {
-        "title": "Database Security",
-        "description": "Protecting database systems and data integrity",
+        "title": "Database Security & Data Access",
+        "description": "Protecting database systems and ensuring secure data access",
+        "review_type": "application_review",
         "questions": [
             {
                 "id": "db_1",
-                "question": "How is database access controlled and monitored?",
+                "question": "How is database access controlled and authenticated?",
                 "description": "Database access control prevents unauthorized data access",
                 "type": "radio",
                 "options": [
-                    "Least privilege access + connection pooling + query monitoring + encryption",
-                    "Role-based database access with monitoring",
-                    "Basic database user permissions",
+                    "Least privilege + connection pooling + query monitoring + encryption + database firewall",
+                    "Role-based database access with monitoring and encryption",
+                    "Basic database user permissions with some monitoring",
                     "Shared database credentials",
                     "No database access controls"
                 ],
-                "weights": [10, 8, 4, 2, 0]
+                "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "db_2",
-                "question": "How is database backup and recovery secured?",
-                "description": "Secure backups prevent data loss and unauthorized access",
+                "question": "How are database backups and recovery secured?",
+                "description": "Secure backups prevent data loss and unauthorized access to backup data",
                 "type": "radio",
                 "options": [
-                    "Encrypted backups + offsite storage + regular restore testing + access controls",
-                    "Encrypted backups with access controls",
+                    "Encrypted backups + offsite storage + access controls + restore testing + versioning",
+                    "Encrypted backups with proper access controls",
                     "Regular backups with basic security",
-                    "Unencrypted backups",
-                    "No backup strategy"
+                    "Unencrypted backups with minimal protection",
+                    "No backup strategy or security"
                 ],
                 "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "db_3",
-                "question": "What database hardening measures are implemented?",
-                "description": "Database hardening reduces attack surface",
+                "question": "What database hardening and monitoring measures are implemented?",
+                "description": "Database hardening reduces attack surface and improves security posture",
                 "type": "radio",
                 "options": [
-                    "Disabled unnecessary features + network restrictions + patch management + auditing",
-                    "Basic hardening with network restrictions",
-                    "Some unnecessary features disabled",
-                    "Default database configuration",
-                    "No database hardening"
+                    "Complete hardening + network restrictions + patch management + activity monitoring + anomaly detection",
+                    "Basic hardening with network restrictions and monitoring",
+                    "Some unnecessary features disabled with basic monitoring",
+                    "Default database configuration with minimal changes",
+                    "No database hardening or monitoring"
                 ],
-                "weights": [10, 7, 4, 2, 0]
+                "weights": [10, 8, 5, 2, 0]
             }
         ]
     },
     "file_management": {
-        "title": "File Management Security",
-        "description": "Secure handling of file operations and storage",
+        "title": "File Management & Upload Security",
+        "description": "Secure handling of file operations, uploads, and storage",
+        "review_type": "application_review",
         "questions": [
             {
                 "id": "file_1",
-                "question": "How do you secure file uploads and downloads?",
-                "description": "File operations can be vectors for attacks",
+                "question": "How do you secure file uploads and prevent malicious file execution?",
+                "description": "File uploads are common attack vectors for malware and code execution",
                 "type": "radio",
                 "options": [
-                    "Sandboxed execution + virus scanning + type validation + size limits + access controls",
-                    "File type validation + virus scanning + size limits",
+                    "Sandboxed execution + virus scanning + content validation + size limits + CDN + quarantine",
+                    "File type validation + virus scanning + size limits + content inspection",
                     "Basic file type and size validation",
                     "File type validation only",
                     "No file upload security"
@@ -1620,28 +1183,28 @@ SECURITY_QUESTIONNAIRE = {
             },
             {
                 "id": "file_2",
-                "question": "How are file permissions and access controlled?",
-                "description": "Proper file permissions prevent unauthorized access",
+                "question": "How are file permissions, access controls, and storage secured?",
+                "description": "Proper file permissions prevent unauthorized access and data exposure",
                 "type": "radio",
                 "options": [
-                    "Least privilege file permissions + access logging + regular audits",
-                    "Role-based file access controls",
-                    "Basic file permissions set",
+                    "Least privilege + access logging + encryption + secure storage + regular audits",
+                    "Role-based file access controls with logging",
+                    "Basic file permissions with some access controls",
                     "Default file permissions",
-                    "No file access controls"
+                    "No file access controls or security"
                 ],
-                "weights": [10, 7, 4, 2, 0]
+                "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "file_3",
-                "question": "How do you prevent directory traversal attacks?",
-                "description": "Directory traversal can expose sensitive files",
+                "question": "How do you prevent directory traversal and path manipulation attacks?",
+                "description": "Directory traversal can expose sensitive files outside intended directories",
                 "type": "radio",
                 "options": [
-                    "Input validation + path canonicalization + chroot jail + access controls",
-                    "Input validation and path restrictions",
-                    "Basic path validation",
-                    "Some path restrictions",
+                    "Input validation + path canonicalization + chroot jail + access controls + monitoring",
+                    "Input validation and path restrictions with basic monitoring",
+                    "Basic path validation and restrictions",
+                    "Some path restrictions without validation",
                     "No directory traversal protection"
                 ],
                 "weights": [10, 8, 5, 2, 0]
@@ -1649,94 +1212,96 @@ SECURITY_QUESTIONNAIRE = {
         ]
     },
     "exception_management": {
-        "title": "Exception & Error Management",
-        "description": "OWASP A3 (Sensitive Data Exposure) - Secure error handling",
+        "title": "Exception & Error Handling",
+        "description": "OWASP Top 10 A09 (Security Logging and Monitoring Failures) - Secure error handling",
+        "review_type": "application_review",
         "questions": [
             {
                 "id": "error_1",
-                "question": "How does your application handle errors and exceptions?",
-                "description": "Poor error handling can expose sensitive information",
+                "question": "How does your application handle errors and exceptions securely?",
+                "description": "Poor error handling can expose sensitive information and attack vectors",
                 "type": "radio",
                 "options": [
-                    "Generic error pages + detailed logging + monitoring + no stack traces to users",
-                    "Generic error messages with proper logging",
+                    "Generic error pages + detailed logging + monitoring + correlation IDs + no stack traces",
+                    "Generic error messages with proper logging and monitoring",
                     "Basic error handling with some logging",
-                    "Default error pages with stack traces",
-                    "No proper error handling"
+                    "Default error pages with stack traces visible",
+                    "No proper error handling or logging"
                 ],
                 "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "error_2",
-                "question": "What information is included in error messages to users?",
-                "description": "Error messages should not reveal sensitive information",
+                "question": "What information is exposed in error messages to users vs. logs?",
+                "description": "Error messages should not reveal sensitive system information to attackers",
                 "type": "radio",
                 "options": [
-                    "Generic error messages only + reference IDs for support",
-                    "Generic error messages without technical details",
-                    "Limited technical information in errors",
+                    "Generic user messages + reference IDs + detailed internal logs + monitoring",
+                    "Generic error messages without technical details + proper logging",
+                    "Limited technical information in user-facing errors",
                     "Detailed error messages including some technical info",
-                    "Full stack traces and technical details exposed"
+                    "Full stack traces and technical details exposed to users"
                 ],
                 "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "error_3",
-                "question": "How are application failures and exceptions logged?",
-                "description": "Proper exception logging aids in security monitoring",
+                "question": "How are application failures, exceptions, and security events monitored?",
+                "description": "Proper exception monitoring enables rapid incident detection and response",
                 "type": "radio",
                 "options": [
-                    "Comprehensive logging + correlation IDs + security event detection + alerting",
-                    "Detailed logging with error correlation",
-                    "Basic exception logging",
-                    "Minimal error logging",
-                    "No exception logging"
+                    "Comprehensive monitoring + alerting + correlation + threat intelligence + automated response",
+                    "Detailed logging with error correlation and alerting",
+                    "Basic exception logging with some monitoring",
+                    "Minimal error logging without alerting",
+                    "No exception monitoring or alerting"
                 ],
-                "weights": [10, 7, 4, 2, 0]
+                "weights": [10, 8, 5, 2, 0]
             }
         ]
     },
     "cryptography": {
-        "title": "Cryptography Implementation",
-        "description": "OWASP A3 (Sensitive Data Exposure) - Proper cryptographic controls",
+        "title": "Cryptography & Key Management",
+        "description": "OWASP Top 10 A02 (Cryptographic Failures) - Proper cryptographic implementation",
+        "review_type": "application_review",
         "questions": [
             {
                 "id": "crypto_1",
-                "question": "What cryptographic algorithms and key lengths are used?",
-                "description": "Strong cryptography is essential for data protection",
+                "question": "What cryptographic algorithms, key lengths, and protocols are used?",
+                "description": "Strong, modern cryptography is essential for data protection",
                 "type": "radio",
                 "options": [
-                    "AES-256, RSA-4096/ECC-384, SHA-256/SHA-3 with proper implementation",
-                    "AES-256, RSA-2048, SHA-256 with standard libraries",
+                    "AES-256 + RSA-4096/ECC-384 + SHA-256/SHA-3 + TLS 1.3 + approved algorithms only",
+                    "AES-256, RSA-2048/ECC-256, SHA-256 with standard libraries",
                     "AES-128/256 with basic implementation",
                     "Mixed strong and weak algorithms",
-                    "Weak or custom cryptographic algorithms"
+                    "Weak, deprecated, or custom cryptographic algorithms"
                 ],
                 "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "crypto_2",
-                "question": "How is cryptographic key management handled?",
-                "description": "Poor key management undermines strong cryptography",
+                "question": "How is cryptographic key management and lifecycle handled?",
+                "description": "Poor key management can render strong cryptography ineffective",
                 "type": "radio",
                 "options": [
-                    "Hardware Security Module (HSM) + key rotation + escrow + lifecycle management",
-                    "Dedicated key management service with rotation",
+                    "HSM + automated rotation + escrow + lifecycle management + access controls + auditing",
+                    "Dedicated key management service with automated rotation",
                     "Encrypted key storage with basic rotation",
                     "Basic key storage without rotation",
-                    "Keys stored in code or configuration files"
+                    "Keys stored in code, configuration files, or databases"
                 ],
                 "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "crypto_3",
-                "question": "How do you ensure cryptographic implementation security?",
-                "description": "Cryptographic implementation flaws are common",
+                "question": "How do you ensure cryptographic implementation security and compliance?",
+                "description": "Cryptographic implementation flaws are common and dangerous",
                 "type": "radio",
                 "options": [
-                    "Certified cryptographic libraries + security review + penetration testing",
-                    "Well-established cryptographic libraries only",
-                    "Standard libraries with some review",
+                    "FIPS 140-2 + certified libraries + security review + penetration testing + compliance validation",
+                    "Well-established cryptographic libraries with security review",
+                    "Standard libraries with some review and testing",
                     "Mix of standard and custom crypto code",
                     "Custom cryptographic implementations"
                 ],
@@ -1745,66 +1310,68 @@ SECURITY_QUESTIONNAIRE = {
         ]
     },
     "auditing_logging": {
-        "title": "Security Auditing & Logging",
-        "description": "OWASP A10 (Insufficient Logging & Monitoring) - Security event detection",
+        "title": "Security Auditing & Monitoring",
+        "description": "OWASP Top 10 A09 (Security Logging and Monitoring Failures) - Security event detection",
+        "review_type": "application_review",
         "questions": [
             {
                 "id": "audit_1",
-                "question": "What security events are logged and monitored?",
-                "description": "Comprehensive logging enables security incident detection",
+                "question": "What security events are logged, monitored, and alerted on?",
+                "description": "Comprehensive logging enables security incident detection and response",
                 "type": "radio",
                 "options": [
-                    "Authentication, authorization, input validation, admin actions, data access + real-time monitoring",
-                    "Authentication, authorization, and admin actions with monitoring",
-                    "Basic authentication and error logging",
+                    "All security events + real-time monitoring + automated alerting + correlation + threat intelligence",
+                    "Authentication, authorization, admin actions, data access with monitoring",
+                    "Basic authentication and error logging with some monitoring",
                     "Minimal application logging",
-                    "No security event logging"
+                    "No security event logging or monitoring"
                 ],
                 "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "audit_2",
-                "question": "How are logs protected and integrity maintained?",
-                "description": "Log integrity is crucial for forensic analysis",
+                "question": "How are logs protected, stored, and integrity maintained?",
+                "description": "Log integrity and protection are crucial for forensic analysis",
                 "type": "radio",
                 "options": [
-                    "Encrypted logs + digital signatures + tamper detection + offsite storage",
-                    "Encrypted logs with access controls",
-                    "Access-controlled log files",
+                    "Encrypted logs + digital signatures + tamper detection + offsite storage + retention policies",
+                    "Encrypted logs with access controls and offsite backup",
+                    "Access-controlled log files with basic protection",
                     "Basic log file protection",
-                    "No log protection"
+                    "No log protection or integrity measures"
                 ],
                 "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "audit_3",
-                "question": "What log analysis and alerting capabilities exist?",
-                "description": "Real-time analysis enables rapid incident response",
+                "question": "What log analysis, correlation, and incident response capabilities exist?",
+                "description": "Real-time analysis and correlation enable rapid incident response",
                 "type": "radio",
                 "options": [
-                    "SIEM integration + automated alerting + correlation + threat intelligence",
-                    "Automated log analysis with alerting",
-                    "Basic log monitoring and alerts",
+                    "SIEM + automated analysis + correlation + threat intelligence + incident response automation",
+                    "Automated log analysis with alerting and correlation",
+                    "Basic log monitoring and manual analysis",
                     "Manual log review processes",
-                    "No log analysis or alerting"
+                    "No log analysis, correlation, or incident response"
                 ],
                 "weights": [10, 8, 5, 2, 0]
             }
         ]
     },
     "data_protection": {
-        "title": "Data Protection & Privacy",
-        "description": "OWASP A6 (Security Misconfiguration) - Privacy and data protection compliance",
+        "title": "Data Protection & Privacy Compliance",
+        "description": "OWASP Top 10 A02 (Cryptographic Failures) - Privacy and data protection compliance",
+        "review_type": "application_review",
         "questions": [
             {
                 "id": "privacy_1",
-                "question": "How do you handle personal data and privacy compliance?",
-                "description": "Privacy compliance (GDPR, CCPA) is legally required",
+                "question": "How do you handle personal data and privacy regulation compliance?",
+                "description": "Privacy compliance (GDPR, CCPA, etc.) is legally required and critical for trust",
                 "type": "radio",
                 "options": [
-                    "Full GDPR/CCPA compliance + privacy by design + data minimization + consent management",
-                    "Privacy compliance with consent management",
-                    "Basic privacy policy and data handling",
+                    "Full compliance + privacy by design + data minimization + consent management + DPO",
+                    "Privacy compliance with consent management and data protection measures",
+                    "Basic privacy policy and data handling procedures",
                     "Minimal privacy considerations",
                     "No privacy compliance measures"
                 ],
@@ -1812,127 +1379,129 @@ SECURITY_QUESTIONNAIRE = {
             },
             {
                 "id": "privacy_2",
-                "question": "What data loss prevention (DLP) measures are implemented?",
-                "description": "DLP prevents unauthorized data exfiltration",
+                "question": "What data loss prevention (DLP) and data governance measures are implemented?",
+                "description": "DLP prevents unauthorized data exfiltration and ensures data governance",
                 "type": "radio",
                 "options": [
-                    "Comprehensive DLP + data classification + monitoring + policy enforcement",
-                    "Basic DLP with monitoring",
-                    "Some data protection measures",
+                    "Comprehensive DLP + data classification + monitoring + policy enforcement + governance",
+                    "Basic DLP with data classification and monitoring",
+                    "Some data protection and governance measures",
                     "Minimal data protection",
-                    "No data loss prevention"
+                    "No data loss prevention or governance"
                 ],
                 "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "privacy_3",
-                "question": "How do you handle data subject rights (access, deletion, portability)?",
-                "description": "Data subject rights are core privacy requirements",
+                "question": "How do you handle data subject rights and privacy requests?",
+                "description": "Data subject rights (access, deletion, portability) are core privacy requirements",
                 "type": "radio",
                 "options": [
-                    "Automated data subject request handling + verification + audit trails",
-                    "Manual process for data subject requests",
+                    "Automated request handling + identity verification + audit trails + compliance tracking",
+                    "Manual process for data subject requests with proper verification",
                     "Basic data access/deletion capabilities",
                     "Limited data subject rights support",
                     "No data subject rights implementation"
                 ],
-                "weights": [10, 7, 4, 2, 0]
+                "weights": [10, 8, 4, 2, 0]
             }
         ]
     },
     "api_security": {
-        "title": "API Security",
+        "title": "API Security & Integration",
         "description": "OWASP API Security Top 10 - Securing application programming interfaces",
+        "review_type": "application_review",
         "questions": [
             {
                 "id": "api_1",
-                "question": "How are APIs authenticated and authorized?",
-                "description": "API security prevents unauthorized access to backend services",
+                "question": "How are APIs authenticated, authorized, and access-controlled?",
+                "description": "API security prevents unauthorized access to backend services and data",
                 "type": "radio",
                 "options": [
-                    "OAuth 2.0/OIDC + JWT validation + rate limiting + scope-based access",
+                    "OAuth 2.0/OIDC + JWT validation + rate limiting + scope-based access + API gateway",
+                    "OAuth 2.0 with proper JWT validation and rate limiting",
                     "API keys with proper rotation and scoping",
-                    "Basic API authentication (API keys)",
-                    "Session-based API authentication",
-                    "No API authentication"
+                    "Basic API authentication (API keys or basic auth)",
+                    "No API authentication or weak authentication"
                 ],
-                "weights": [10, 7, 4, 2, 0]
+                "weights": [10, 8, 6, 3, 0]
             },
             {
                 "id": "api_2",
-                "question": "What API input validation and rate limiting is implemented?",
-                "description": "API validation prevents injection and abuse",
+                "question": "What API input validation, rate limiting, and abuse prevention is implemented?",
+                "description": "API validation prevents injection attacks and service abuse",
                 "type": "radio",
                 "options": [
-                    "Schema validation + rate limiting + quotas + input sanitization + output encoding",
-                    "Input validation with rate limiting",
-                    "Basic input validation",
+                    "Schema validation + rate limiting + quotas + input sanitization + output filtering + monitoring",
+                    "Input validation with rate limiting and monitoring",
+                    "Basic input validation with some rate limiting",
                     "Minimal API validation",
-                    "No API input validation"
+                    "No API input validation or rate limiting"
                 ],
                 "weights": [10, 8, 5, 2, 0]
             },
             {
                 "id": "api_3",
-                "question": "How is API documentation and security testing handled?",
-                "description": "Proper API documentation and testing improves security",
+                "question": "How are API documentation, versioning, and security testing handled?",
+                "description": "Proper API management and testing improves security and maintainability",
                 "type": "radio",
                 "options": [
-                    "OpenAPI specs + automated security testing + penetration testing + documentation review",
-                    "API documentation with some security testing",
-                    "Basic API documentation",
+                    "OpenAPI specs + automated security testing + versioning + documentation + penetration testing",
+                    "API documentation with automated testing and versioning",
+                    "Basic API documentation with some testing",
                     "Minimal API documentation",
-                    "No API documentation or testing"
+                    "No API documentation, versioning, or security testing"
                 ],
-                "weights": [10, 7, 4, 2, 0]
+                "weights": [10, 8, 5, 2, 0]
             }
         ]
     },
-    "ai_security": {
-        "title": "AI/ML Security",
-        "description": "Emerging security considerations for AI and machine learning components",
+    "supply_chain": {
+        "title": "Software Supply Chain Security",
+        "description": "OWASP Top 10 A06 (Vulnerable and Outdated Components) - Third-party security",
+        "review_type": "application_review",
         "questions": [
             {
-                "id": "ai_1",
-                "question": "If your application uses AI/ML, how do you secure model inputs and outputs?",
-                "description": "AI systems require special security considerations",
+                "id": "supply_1",
+                "question": "How do you manage and secure third-party dependencies and components?",
+                "description": "Vulnerable dependencies are a major source of application security issues",
                 "type": "radio",
                 "options": [
-                    "Input validation + output sanitization + adversarial attack protection + model monitoring",
-                    "Input validation and output filtering",
-                    "Basic input/output handling",
-                    "Minimal AI security measures",
-                    "No AI components or No AI security measures"
+                    "Automated scanning + SCA + SBOM + vulnerability management + legal review + trusted sources",
+                    "Regular dependency scanning with vulnerability management",
+                    "Periodic dependency updates with some scanning",
+                    "Manual dependency management",
+                    "No dependency security management"
                 ],
-                "weights": [10, 7, 4, 2, 0]
+                "weights": [10, 8, 5, 2, 0]
             },
             {
-                "id": "ai_2",
-                "question": "How do you protect against AI model attacks (adversarial, poisoning, inference)?",
-                "description": "AI models face unique attack vectors",
+                "id": "supply_2",
+                "question": "What secure development and build pipeline practices are implemented?",
+                "description": "Secure CI/CD pipelines prevent supply chain attacks",
                 "type": "radio",
                 "options": [
-                    "Adversarial training + model validation + data poisoning detection + inference protection",
-                    "Basic model validation and monitoring",
-                    "Some AI security awareness",
-                    "Minimal AI attack protection",
-                    "No AI components or No AI attack protection"
+                    "Secure CI/CD + signed commits + artifact signing + security scanning + access controls",
+                    "CI/CD with security scanning and access controls",
+                    "Basic CI/CD with some security measures",
+                    "Manual build processes with minimal security",
+                    "No secure build pipeline or practices"
                 ],
-                "weights": [10, 7, 4, 2, 0]
+                "weights": [10, 8, 5, 2, 0]
             },
             {
-                "id": "ai_3",
-                "question": "How do you ensure AI/ML model privacy and bias prevention?",
-                "description": "AI systems must protect privacy and prevent discrimination",
+                "id": "supply_3",
+                "question": "How do you validate and monitor third-party services and integrations?",
+                "description": "Third-party services can introduce security risks and dependencies",
                 "type": "radio",
                 "options": [
-                    "Differential privacy + bias testing + fairness metrics + explainable AI",
-                    "Basic bias testing and privacy measures",
-                    "Some privacy and fairness considerations",
-                    "Minimal AI ethics implementation",
-                    "No AI components or No AI ethics measures"
+                    "Security assessment + monitoring + contracts + incident response + data protection agreements",
+                    "Basic security assessment with monitoring",
+                    "Some validation of third-party services",
+                    "Minimal third-party validation",
+                    "No third-party service security validation"
                 ],
-                "weights": [10, 7, 4, 2, 0]
+                "weights": [10, 8, 5, 2, 0]
             }
         ]
     }
@@ -2302,9 +1871,12 @@ def web_field_selection(app_id=None):
 @app.route('/questionnaire/<app_id>')
 @login_required
 def web_questionnaire(app_id):
-    """Comprehensive security questionnaire for application"""
+    """Security questionnaire for application - handles both cloud and application reviews"""
     # Check if this is a retake request
     retake = request.args.get('retake', 'false').lower() == 'true'
+    
+    # Get field type from request parameter
+    field_type = request.args.get('field', 'comprehensive_application')
     
     conn = get_db()
     app = conn.execute('SELECT * FROM applications WHERE id = ? AND author_id = ?', 
@@ -2319,7 +1891,6 @@ def web_questionnaire(app_id):
     existing_responses = {}
     existing_comments = {}
     existing_screenshots = {}
-    saved_section = 0
     
     if not retake:
         # Check for completed review first
@@ -2354,16 +1925,28 @@ def web_questionnaire(app_id):
     
     conn.close()
     
-    # Use comprehensive questionnaire covering all 14 security topics
+    # Determine questionnaire and field name based on field type
+    if field_type in SECURITY_QUESTIONNAIRES:
+        # Cloud security questionnaire (AWS, Azure, GCP)
+        questionnaire_data = SECURITY_QUESTIONNAIRES[field_type]['categories']
+        field_name = SECURITY_QUESTIONNAIRES[field_type]['name']
+        review_type = SECURITY_QUESTIONNAIRES[field_type]['review_type']
+    else:
+        # Application security questionnaire (comprehensive)
+        questionnaire_data = SECURITY_QUESTIONNAIRE
+        field_name = 'Comprehensive OWASP Security Review'
+        review_type = 'application_review'
+        field_type = 'comprehensive_application'  # Normalize field type
+    
     return render_template('questionnaire.html', 
-                                     application=app, 
-            questionnaire=SECURITY_QUESTIONNAIRE,
-            field='comprehensive',
-            field_name='Comprehensive OWASP Security Review',
-            existing_responses=existing_responses,
-            existing_comments=existing_comments,
-            existing_screenshots=existing_screenshots,
-            saved_section=saved_section)
+                         application=app, 
+                         questionnaire=questionnaire_data,
+                         field=field_type,
+                         field_name=field_name,
+                         review_type=review_type,
+                         existing_responses=existing_responses,
+                         existing_comments=existing_comments,
+                         existing_screenshots=existing_screenshots)
 
 # === SECURITY ANALYST ROUTES ===
 

@@ -20,9 +20,125 @@
 
         <!-- Security Fields Grid -->
         <div class="row">
-            <!-- Web Application Security -->
+            <!-- Comprehensive Application Security Review -->
             <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 field-card" onclick="selectField('web_application')">
+                <div class="card h-100 field-card" onclick="selectField('comprehensive_application')">
+                    <div class="card-body text-center">
+                        <div class="field-icon mb-3">
+                            <i class="fas fa-shield-alt fa-4x text-primary"></i>
+                        </div>
+                        <h5>Application Security Review</h5>
+                        <p class="text-muted">Comprehensive OWASP-based security assessment covering 14 security categories</p>
+                        
+                        <div class="field-details">
+                            <h6>Covers 14 Categories:</h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="fas fa-check text-success"></i> Input Validation & Injection Prevention</li>
+                                <li><i class="fas fa-check text-success"></i> Authentication & Identity Management</li>
+                                <li><i class="fas fa-check text-success"></i> Authorization & Access Control</li>
+                                <li><i class="fas fa-check text-success"></i> Cryptography & Key Management</li>
+                                <li><i class="fas fa-plus text-info"></i> +10 More Security Categories...</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-outline-primary w-100">
+                            <i class="fas fa-arrow-right"></i> Start Application Review
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AWS Cloud Security -->
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 field-card" onclick="selectField('cloud_aws')">
+                    <div class="card-body text-center">
+                        <div class="field-icon mb-3">
+                            <i class="fab fa-aws fa-4x text-warning"></i>
+                        </div>
+                        <h5>AWS Cloud Security</h5>
+                        <p class="text-muted">OWASP Cloud Top 10 based security assessment for AWS infrastructure</p>
+                        
+                        <div class="field-details">
+                            <h6>Covers:</h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="fas fa-check text-success"></i> AWS IAM & Access Management</li>
+                                <li><i class="fas fa-check text-success"></i> Network Security & VPC</li>
+                                <li><i class="fas fa-check text-success"></i> Data Encryption & KMS</li>
+                                <li><i class="fas fa-check text-success"></i> S3 & RDS Security</li>
+                                <li><i class="fas fa-check text-success"></i> CloudFront & WAF Protection</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-outline-warning w-100">
+                            <i class="fas fa-arrow-right"></i> Start AWS Review
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Azure Cloud Security -->
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 field-card" onclick="selectField('cloud_azure')">
+                    <div class="card-body text-center">
+                        <div class="field-icon mb-3">
+                            <i class="fab fa-microsoft fa-4x text-info"></i>
+                        </div>
+                        <h5>Azure Cloud Security</h5>
+                        <p class="text-muted">OWASP Cloud Top 10 based security assessment for Microsoft Azure infrastructure</p>
+                        
+                        <div class="field-details">
+                            <h6>Covers:</h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="fas fa-check text-success"></i> Azure AD & RBAC</li>
+                                <li><i class="fas fa-check text-success"></i> Network Security Groups & VNets</li>
+                                <li><i class="fas fa-check text-success"></i> Key Vault & Data Protection</li>
+                                <li><i class="fas fa-check text-success"></i> Storage Account Security</li>
+                                <li><i class="fas fa-check text-success"></i> Application Gateway & WAF</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-outline-info w-100">
+                            <i class="fas fa-arrow-right"></i> Start Azure Review
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GCP Cloud Security -->
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 field-card" onclick="selectField('cloud_gcp')">
+                    <div class="card-body text-center">
+                        <div class="field-icon mb-3">
+                            <i class="fab fa-google fa-4x text-danger"></i>
+                        </div>
+                        <h5>GCP Cloud Security</h5>
+                        <p class="text-muted">OWASP Cloud Top 10 based security assessment for Google Cloud Platform infrastructure</p>
+                        
+                        <div class="field-details">
+                            <h6>Covers:</h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="fas fa-check text-success"></i> GCP IAM & Organization Policies</li>
+                                <li><i class="fas fa-check text-success"></i> VPC & Firewall Rules</li>
+                                <li><i class="fas fa-check text-success"></i> Cloud KMS & Data Security</li>
+                                <li><i class="fas fa-check text-success"></i> Cloud Storage & SQL Security</li>
+                                <li><i class="fas fa-check text-success"></i> Load Balancing & Cloud Armor</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-outline-danger w-100">
+                            <i class="fas fa-arrow-right"></i> Start GCP Review
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Web Application Security (Legacy - Redirects to Comprehensive) -->
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 field-card" onclick="selectField('comprehensive_application')">
                     <div class="card-body text-center">
                         <div class="field-icon mb-3">
                             <i class="fas fa-globe fa-4x text-primary"></i>
@@ -51,7 +167,7 @@
 
             <!-- Mobile Application Security -->
             <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 field-card" onclick="selectField('mobile_application')">
+                <div class="card h-100 field-card" onclick="selectField('comprehensive_application')">
                     <div class="card-body text-center">
                         <div class="field-icon mb-3">
                             <i class="fas fa-mobile-alt fa-4x text-success"></i>
@@ -77,119 +193,22 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- API Security -->
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 field-card" onclick="selectField('api_service')">
-                    <div class="card-body text-center">
-                        <div class="field-icon mb-3">
-                            <i class="fas fa-cogs fa-4x text-warning"></i>
+        <!-- Info Section -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> Review Types</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Application Reviews (14 Categories):</strong>
+                            <p class="mb-0 small">Comprehensive security assessment covering all OWASP application security categories including authentication, authorization, cryptography, data protection, API security, and more.</p>
                         </div>
-                        <h5>API & Microservices</h5>
-                        <p class="text-muted">REST APIs, GraphQL, microservices, and service-oriented architectures</p>
-                        
-                        <div class="field-details">
-                            <h6>Covers:</h6>
-                            <ul class="list-unstyled small">
-                                <li><i class="fas fa-check text-success"></i> OWASP API Security Top 10</li>
-                                <li><i class="fas fa-check text-success"></i> OAuth & JWT Security</li>
-                                <li><i class="fas fa-check text-success"></i> Rate Limiting & Throttling</li>
-                                <li><i class="fas fa-check text-success"></i> API Versioning & Documentation</li>
-                                <li><i class="fas fa-check text-success"></i> Service Mesh Security</li>
-                            </ul>
+                        <div class="col-md-6">
+                            <strong>Cloud Configuration Reviews (3 Platforms):</strong>
+                            <p class="mb-0 small">OWASP Cloud Top 10 based assessments focusing on cloud-specific security controls, IAM configurations, network security, and data protection for AWS, Azure, or GCP.</p>
                         </div>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn btn-outline-warning w-100">
-                            <i class="fas fa-arrow-right"></i> Start API Review
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Cloud Infrastructure -->
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 field-card" onclick="selectField('cloud_infrastructure')">
-                    <div class="card-body text-center">
-                        <div class="field-icon mb-3">
-                            <i class="fas fa-cloud fa-4x text-info"></i>
-                        </div>
-                        <h5>Cloud Infrastructure</h5>
-                        <p class="text-muted">AWS, Azure, GCP, containerized applications, and serverless architectures</p>
-                        
-                        <div class="field-details">
-                            <h6>Covers:</h6>
-                            <ul class="list-unstyled small">
-                                <li><i class="fas fa-check text-success"></i> Cloud Security Posture</li>
-                                <li><i class="fas fa-check text-success"></i> Identity & Access Management</li>
-                                <li><i class="fas fa-check text-success"></i> Container Security</li>
-                                <li><i class="fas fa-check text-success"></i> Serverless Security</li>
-                                <li><i class="fas fa-check text-success"></i> Network Security</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn btn-outline-info w-100">
-                            <i class="fas fa-arrow-right"></i> Start Cloud Review
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- IoT & Embedded Systems -->
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 field-card" onclick="selectField('iot_embedded')">
-                    <div class="card-body text-center">
-                        <div class="field-icon mb-3">
-                            <i class="fas fa-microchip fa-4x text-danger"></i>
-                        </div>
-                        <h5>IoT & Embedded</h5>
-                        <p class="text-muted">Internet of Things devices, embedded systems, and firmware security</p>
-                        
-                        <div class="field-details">
-                            <h6>Covers:</h6>
-                            <ul class="list-unstyled small">
-                                <li><i class="fas fa-check text-success"></i> Hardware Security</li>
-                                <li><i class="fas fa-check text-success"></i> Firmware Protection</li>
-                                <li><i class="fas fa-check text-success"></i> Device Authentication</li>
-                                <li><i class="fas fa-check text-success"></i> Over-the-Air Updates</li>
-                                <li><i class="fas fa-check text-success"></i> Communication Protocols</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn btn-outline-danger w-100">
-                            <i class="fas fa-arrow-right"></i> Start IoT Review
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Blockchain & DeFi -->
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 field-card" onclick="selectField('blockchain_defi')">
-                    <div class="card-body text-center">
-                        <div class="field-icon mb-3">
-                            <i class="fas fa-link fa-4x text-purple"></i>
-                        </div>
-                        <h5>Blockchain & DeFi</h5>
-                        <p class="text-muted">Smart contracts, DeFi protocols, NFTs, and blockchain applications</p>
-                        
-                        <div class="field-details">
-                            <h6>Covers:</h6>
-                            <ul class="list-unstyled small">
-                                <li><i class="fas fa-check text-success"></i> Smart Contract Security</li>
-                                <li><i class="fas fa-check text-success"></i> Consensus Mechanism</li>
-                                <li><i class="fas fa-check text-success"></i> Cryptographic Implementation</li>
-                                <li><i class="fas fa-check text-success"></i> DeFi Protocol Security</li>
-                                <li><i class="fas fa-check text-success"></i> Wallet Integration</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn btn-outline-dark w-100">
-                            <i class="fas fa-arrow-right"></i> Start Blockchain Review
-                        </button>
                     </div>
                 </div>
             </div>
@@ -315,12 +334,12 @@ function proceedToQuestionnaire() {
 
 function getFieldDisplayName(field) {
     const names = {
+        'comprehensive_application': 'Application Security Review',
+        'cloud_aws': 'AWS Cloud Security',
+        'cloud_azure': 'Azure Cloud Security',
+        'cloud_gcp': 'GCP Cloud Security',
         'web_application': 'Web Application',
-        'mobile_application': 'Mobile Application', 
-        'api_service': 'API & Microservices',
-        'cloud_infrastructure': 'Cloud Infrastructure',
-        'iot_embedded': 'IoT & Embedded',
-        'blockchain_defi': 'Blockchain & DeFi'
+        'mobile_application': 'Mobile Application'
     };
     return names[field] || field;
 }
