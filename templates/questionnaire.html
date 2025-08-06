@@ -52,6 +52,7 @@
                 <p class="mb-0">
                     Navigate freely between sections and answer questions at your own pace. 
                     You can skip questions and return to them later - no question is mandatory to proceed.
+                    <strong>Toggle off entire categories</strong> that don't apply to your application using the category switches.
                 </p>
             </div>
 
@@ -72,6 +73,9 @@
 
             <!-- Questionnaire Form -->
             <form method="POST" enctype="multipart/form-data" id="questionnaireForm" action="{{ url_for('submit_questionnaire', app_id=application.id) }}">
+                <!-- Hidden field for disabled categories -->
+                <input type="hidden" name="disabled_categories" id="disabled_categories" value="">
+                
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <!-- Section Container -->
@@ -140,9 +144,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const responses = {};
             const comments = {};
             
-            // Collect all radio button responses across all sections
+            // Collect all radio button responses across all sections (only from enabled categories)
             sections.forEach(sectionKey => {
                 const section = questionnaireData[sectionKey];
+                const categoryEnabled = localStorage.getItem(`category_${sectionKey}`) !== 'false';
+                
+                if (!categoryEnabled) return; // Skip disabled categories
+                
                 section.questions.forEach(question => {
                     // Check for radio button responses
                     const radioButtons = document.querySelectorAll(`input[name="${question.id}"]:checked`);
@@ -247,6 +255,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const sectionKey = sections[sectionIndex];
         const section = questionnaireData[sectionKey];
         
+        // Check if category is enabled (default: true)
+        const categoryEnabled = localStorage.getItem(`category_${sectionKey}`) !== 'false';
+        
         let html = `
             <div class="section-header mb-4">
                 <div class="row align-items-center">
@@ -256,15 +267,31 @@ document.addEventListener('DOMContentLoaded', function() {
                         </h3>
                         <p class="text-muted mb-0">${section.description}</p>
                     </div>
-                    <div class="col-auto">
-                        <span class="badge bg-light text-dark border">
+                    <div class="col-auto d-flex align-items-center">
+                        <span class="badge bg-light text-dark border me-3">
                             ${section.questions.length} questions
                         </span>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input category-toggle" type="checkbox" 
+                                   id="toggle_${sectionKey}" 
+                                   ${categoryEnabled ? 'checked' : ''}>
+                            <label class="form-check-label fw-bold text-${categoryEnabled ? 'success' : 'muted'}" 
+                                   for="toggle_${sectionKey}" id="label_${sectionKey}">
+                                ${categoryEnabled ? 'Enabled' : 'Disabled'}
+                            </label>
+                        </div>
                     </div>
                 </div>
+                
+                ${!categoryEnabled ? `
+                <div class="alert alert-warning mb-3">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Category Disabled:</strong> This category is not applicable to your application and will be skipped during assessment.
+                </div>
+                ` : ''}
             </div>
             
-            <div class="questions-container">
+            <div class="questions-container ${categoryEnabled ? '' : 'category-disabled'}" style="${categoryEnabled ? '' : 'opacity: 0.5; pointer-events: none;'}">
         `;
         
         section.questions.forEach((question, qIndex) => {
@@ -295,10 +322,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" 
                                                name="${question.id}" 
-                                               id="${question.id}_partial" 
-                                               value="partial">
-                                        <label class="form-check-label" for="${question.id}_partial">
-                                            <i class="fas fa-exclamation-triangle text-warning"></i> <strong>Partial</strong>
+                                               id="${question.id}_na" 
+                                               value="na">
+                                        <label class="form-check-label" for="${question.id}_na">
+                                            <i class="fas fa-minus-circle text-secondary"></i> <strong>N/A</strong>
                                         </label>
                                     </div>
                                 </div>
@@ -367,6 +394,48 @@ document.addEventListener('DOMContentLoaded', function() {
                 textarea.addEventListener('blur', autoSave);
             });
             
+            // Handle category toggle
+            const categoryToggle = document.querySelector('.category-toggle');
+            if (categoryToggle) {
+                categoryToggle.addEventListener('change', function() {
+                    const sectionKey = sections[currentSection];
+                    const isEnabled = this.checked;
+                    const label = document.getElementById(`label_${sectionKey}`);
+                    const questionsContainer = document.querySelector('.questions-container');
+                    
+                    // Save category state
+                    localStorage.setItem(`category_${sectionKey}`, isEnabled);
+                    
+                    // Update UI
+                    label.textContent = isEnabled ? 'Enabled' : 'Disabled';
+                    label.className = `form-check-label fw-bold text-${isEnabled ? 'success' : 'muted'}`;
+                    
+                    if (isEnabled) {
+                        questionsContainer.style.opacity = '1';
+                        questionsContainer.style.pointerEvents = 'auto';
+                        questionsContainer.classList.remove('category-disabled');
+                    } else {
+                        questionsContainer.style.opacity = '0.5';
+                        questionsContainer.style.pointerEvents = 'none';
+                        questionsContainer.classList.add('category-disabled');
+                        
+                        // Clear any answers in this category
+                        questionsContainer.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
+                            radio.checked = false;
+                        });
+                        questionsContainer.querySelectorAll('textarea').forEach(textarea => {
+                            textarea.value = '';
+                        });
+                    }
+                    
+                    // Re-render to show/hide warning
+                    renderSection(currentSection);
+                    
+                    // Update completion progress
+                    updateProgressBasedOnAnswers();
+                });
+            }
+            
             // Update progress for any already selected answers
             updateProgressBasedOnAnswers();
             
@@ -392,10 +461,18 @@ document.addEventListener('DOMContentLoaded', function() {
          function updateProgressBasedOnAnswers() {
          let totalQuestions = 0;
          let answeredQuestions = 0;
+         let disabledCategories = 0;
          
          // Count all questions and answered questions across all sections
          sections.forEach(sectionKey => {
              const section = questionnaireData[sectionKey];
+             const categoryEnabled = localStorage.getItem(`category_${sectionKey}`) !== 'false';
+             
+             if (!categoryEnabled) {
+                 disabledCategories++;
+                 return; // Skip disabled categories
+             }
+             
              section.questions.forEach(question => {
                  totalQuestions++;
                  const inputs = document.querySelectorAll(`input[name="${question.id}"]:checked`);
@@ -411,7 +488,8 @@ document.addEventListener('DOMContentLoaded', function() {
          // Update the secondary progress indicator
          const secondaryProgress = document.getElementById('completion-progress');
          if (secondaryProgress) {
-             secondaryProgress.textContent = `${answeredQuestions}/${totalQuestions} questions answered (${completionProgress}%)`;
+             const categoryText = disabledCategories > 0 ? ` (${disabledCategories} categories disabled)` : '';
+             secondaryProgress.textContent = `${answeredQuestions}/${totalQuestions} questions answered (${completionProgress}%)${categoryText}`;
          }
      }
     
@@ -499,11 +577,29 @@ document.addEventListener('DOMContentLoaded', function() {
         form.submit();
     });
     
+    // Function to update disabled categories hidden field
+    function updateDisabledCategories() {
+        const disabledCategories = [];
+        sections.forEach(sectionKey => {
+            const categoryEnabled = localStorage.getItem(`category_${sectionKey}`) !== 'false';
+            if (!categoryEnabled) {
+                disabledCategories.push(sectionKey);
+            }
+        });
+        document.getElementById('disabled_categories').value = JSON.stringify(disabledCategories);
+    }
+    
+    // Update disabled categories before form submission
+    document.getElementById('questionnaireForm').addEventListener('submit', function() {
+        updateDisabledCategories();
+    });
+    
                  // Initialize - start from saved section or 0
     renderSection(currentSection);
     updateProgress();
     updateButtons();
     updateProgressBasedOnAnswers();
+    updateDisabledCategories();
 });
 </script>
 
@@ -568,6 +664,25 @@ document.addEventListener('DOMContentLoaded', function() {
 .btn-success {
     background: linear-gradient(45deg, #28a745, #1e7e34);
     border: none;
+}
+
+.category-disabled {
+    transition: all 0.3s ease;
+}
+
+.category-toggle {
+    width: 3rem;
+    height: 1.5rem;
+}
+
+.category-toggle:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.form-switch .form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
 }
 </style>
 {% endblock %} 

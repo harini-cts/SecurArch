@@ -8,11 +8,11 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import Text, String
-from sqlalchemy import Index
+from sqlalchemy import Text, String, Index, JSON
+from sqlalchemy.dialects.postgresql import UUID
 
-# Will be initialized by app
-db = None
+# Create SQLAlchemy instance here
+db = SQLAlchemy()
 bcrypt = Bcrypt()
 
 class BaseModel(db.Model):
@@ -150,18 +150,18 @@ class Application(BaseModel):
     
     # Architecture
     architecture_type = db.Column(db.String(50))  # web, mobile, api, microservices, etc.
-    technology_stack = db.Column(JSONB, default=[])
+    technology_stack = db.Column(JSON, default=[])
     deployment_model = db.Column(db.String(50))  # cloud, on-premise, hybrid
     cloud_provider = db.Column(db.String(50))   # aws, azure, gcp, etc.
     
     # Compliance Requirements
-    compliance_frameworks = db.Column(JSONB, default=[])  # PCI-DSS, HIPAA, SOX, etc.
-    regulatory_requirements = db.Column(JSONB, default=[])
+    compliance_frameworks = db.Column(JSON, default=[])  # PCI-DSS, HIPAA, SOX, etc.
+    regulatory_requirements = db.Column(JSON, default=[])
     
     # Documents & Assets
-    architecture_documents = db.Column(JSONB, default=[])  # file paths/URLs
-    threat_model = db.Column(JSONB, default={})
-    data_flow_diagrams = db.Column(JSONB, default=[])
+    architecture_documents = db.Column(JSON, default=[])  # file paths/URLs
+    threat_model = db.Column(JSON, default={})
+    data_flow_diagrams = db.Column(JSON, default=[])
     
     # Review Status
     status = db.Column(db.String(20), nullable=False, default='draft')  # draft, submitted, in_review, approved, rejected
@@ -174,7 +174,7 @@ class Application(BaseModel):
     reviews = db.relationship('Review', backref='application', lazy='dynamic', cascade='all, delete-orphan')
     
     # Metadata
-    metadata = db.Column(JSONB, default={})
+    app_metadata = db.Column(JSON, default={})
     
     def to_dict(self, include_relations=False):
         """Convert application to dictionary"""
@@ -222,13 +222,13 @@ class Review(BaseModel):
     
     # OWASP Assessment
     owasp_asvs_level = db.Column(db.Integer)  # 1, 2, or 3
-    owasp_top10_assessment = db.Column(JSONB, default={})
-    proactive_controls_assessment = db.Column(JSONB, default={})
+    owasp_top10_assessment = db.Column(JSON, default={})
+    proactive_controls_assessment = db.Column(JSON, default={})
     
     # Review Details
     scope = db.Column(db.Text)
     methodology = db.Column(db.Text)
-    tools_used = db.Column(JSONB, default=[])
+    tools_used = db.Column(JSON, default=[])
     
     # Status & Timeline
     status = db.Column(db.String(20), nullable=False, default='pending')  # pending, in_progress, completed, cancelled
@@ -253,7 +253,7 @@ class Review(BaseModel):
     
     # Review Data
     findings = db.relationship('Finding', backref='review', lazy='dynamic', cascade='all, delete-orphan')
-    recommendations = db.Column(JSONB, default=[])
+    recommendations = db.Column(JSON, default=[])
     executive_summary = db.Column(db.Text)
     
     def to_dict(self, include_relations=False):
@@ -305,9 +305,9 @@ class Finding(BaseModel):
     risk_score = db.Column(db.Float)      # calculated risk score
     
     # OWASP Mapping
-    owasp_top10_mapping = db.Column(JSONB, default=[])  # A01, A02, etc.
-    asvs_mapping = db.Column(JSONB, default=[])         # ASVS requirement IDs
-    cwe_mapping = db.Column(JSONB, default=[])          # CWE IDs
+    owasp_top10_mapping = db.Column(JSON, default=[])  # A01, A02, etc.
+    asvs_mapping = db.Column(JSON, default=[])         # ASVS requirement IDs
+    cwe_mapping = db.Column(JSON, default=[])          # CWE IDs
     
     # Details
     location = db.Column(db.String(500))  # file, component, or system location

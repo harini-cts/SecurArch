@@ -8,7 +8,7 @@ import os
 import json
 import uuid
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_from_directory
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
@@ -238,7 +238,6 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            flash('Please log in to access this page.', 'warning')
             return redirect(url_for('web_login'))
         return f(*args, **kwargs)
     return decorated_function
@@ -248,7 +247,6 @@ def analyst_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            flash('Please log in to access this page.', 'warning')
             return redirect(url_for('web_login'))
         
         # Check if user has analyst role
@@ -257,7 +255,6 @@ def analyst_required(f):
         conn.close()
         
         if not user or user[0] not in ['security_analyst', 'admin']:
-            flash('Access denied. Security Analyst role required.', 'error')
             return redirect(url_for('web_dashboard'))
         
         return f(*args, **kwargs)
@@ -1963,6 +1960,45 @@ def health_check():
         'service': 'SecureArch Portal'
     }
 
+@app.route('/download/<path:filename>')
+@login_required
+def download_file(filename):
+    """Download uploaded files (architecture diagrams, documents)"""
+    try:
+        # Security check: only allow downloading files from uploads directory
+        uploads_base = os.path.join(app.root_path, 'uploads')
+        
+        # Handle both full paths and just filenames
+        if filename.startswith('uploads'):
+            # Full path stored in database (e.g., uploads\architecture\file.png)
+            relative_path = filename.replace('uploads\\', '').replace('uploads/', '')
+            file_path = os.path.join(uploads_base, relative_path)
+            directory = os.path.dirname(file_path)
+            just_filename = os.path.basename(file_path)
+        else:
+            # Just filename
+            file_path = os.path.join(uploads_base, secure_filename(filename))
+            directory = uploads_base
+            just_filename = secure_filename(filename)
+        
+        # Verify file exists
+        if not os.path.exists(file_path):
+            flash('File not found.', 'error')
+            return redirect(request.referrer or url_for('web_dashboard'))
+        
+        # Additional security: verify the file is within uploads directory (prevent path traversal)
+        real_uploads = os.path.realpath(uploads_base)
+        real_file = os.path.realpath(file_path)
+        if not real_file.startswith(real_uploads):
+            flash('Access denied.', 'error')
+            return redirect(request.referrer or url_for('web_dashboard'))
+        
+        return send_from_directory(directory, just_filename, as_attachment=True)
+    
+    except Exception as e:
+        flash(f'Error downloading file: {str(e)}', 'error')
+        return redirect(request.referrer or url_for('web_dashboard'))
+
 @app.route('/login', methods=['GET', 'POST'])
 def web_login():
     """Login page"""
@@ -2190,7 +2226,7 @@ def web_create_application():
         conn.close()
         
         flash('Application created successfully!', 'success')
-        return redirect(url_for('web_questionnaire', app_id=app_id))
+        return redirect(url_for('web_dashboard'))
     
     return render_template('create_application.html')
 
@@ -2276,7 +2312,7 @@ def web_questionnaire(app_id):
     
     if not app:
         conn.close()
-        flash('Application not found.', 'error')
+        # flash('Application not found.', 'error')  # Removed flash message
         return redirect(url_for('web_applications'))
     
     # Check for existing reviews and drafts
@@ -2296,7 +2332,7 @@ def web_questionnaire(app_id):
         # If completed review exists, redirect to results
         if completed_review:
             conn.close()
-            flash('Security review already completed for this application. Showing results.', 'info')
+            # flash('Security review already completed for this application. Showing results.', 'info')  # Removed flash message
             return redirect(url_for('web_review_results', app_id=app_id))
         
         # Check for draft to load existing responses
@@ -2375,7 +2411,28 @@ def analyst_dashboard():
     # Get statistics
     total_pending = len(pending_reviews)
     total_completed = len(completed_reviews)
-    high_risk_count = len([r for r in pending_reviews if r[4] and r[4] < 50])  # risk_score < 50
+    
+    # Get severity counts from STRIDE analysis for all reviews
+    severity_counts = conn.execute('''
+        SELECT risk_level, COUNT(*) as count
+        FROM stride_analysis sa
+        JOIN security_reviews sr ON sa.review_id = sr.id
+        GROUP BY risk_level
+    ''').fetchall()
+    
+    # Initialize counts
+    high_risk_count = 0
+    medium_risk_count = 0
+    low_risk_count = 0
+    
+    # Parse severity counts
+    for severity_count in severity_counts:
+        if severity_count['risk_level'] == 'High':
+            high_risk_count = severity_count['count']
+        elif severity_count['risk_level'] == 'Medium':
+            medium_risk_count = severity_count['count']
+        elif severity_count['risk_level'] == 'Low':
+            low_risk_count = severity_count['count']
     
     conn.close()
     
@@ -2385,7 +2442,9 @@ def analyst_dashboard():
                          stats={
                              'total_pending': total_pending,
                              'total_completed': total_completed,
-                             'high_risk_count': high_risk_count
+                             'high_risk_count': high_risk_count,
+                             'medium_risk_count': medium_risk_count,
+                             'low_risk_count': low_risk_count
                          })
 
 @app.route('/analyst/review/<review_id>')
@@ -2409,7 +2468,7 @@ def analyst_review_detail(review_id):
     ''', (review_id,)).fetchone()
     
     if not review:
-        flash('Review not found.', 'error')
+        # flash('Review not found.', 'error')  # Removed flash message
         return redirect(url_for('analyst_dashboard'))
     
     # Parse the questionnaire data (now contains responses, comments, screenshots)
@@ -2456,9 +2515,9 @@ def analyst_review_detail(review_id):
             if response == 'no':
                 risk_level = 'High'
                 risk_class = 'danger'
-            elif response == 'partial':
-                risk_level = 'Medium' 
-                risk_class = 'warning'
+            elif response == 'na' or response == 'partial':  # Backward compatibility
+                risk_level = 'N/A' 
+                risk_class = 'secondary'
             elif response == 'yes':
                 risk_level = 'Low'
                 risk_class = 'success'
@@ -2621,10 +2680,13 @@ def analyze_stride_threats(responses):
                 # Handle both old numeric format and new string format
                 high_risk = False
                 if isinstance(response_value, str):
-                    # New format: 'yes', 'no', 'partial'
-                    if response_value in ['no', 'partial']:
+                        # New format: 'yes', 'no', 'na'
+                    if response_value == 'no':
                         high_risk = True
-                        risk_level = 'High' if response_value == 'no' else 'Medium'
+                        risk_level = 'High'
+                    elif response_value == 'na' or response_value == 'partial':  # Backward compatibility
+                        high_risk = False  # N/A doesn't count as high risk
+                        risk_level = 'N/A'
                 else:
                     # Legacy numeric format (for backward compatibility)
                     try:
@@ -2710,6 +2772,13 @@ def submit_questionnaire(app_id):
     comments = {}
     screenshots = {}
     
+    # Get disabled categories from form
+    disabled_categories_str = request.form.get('disabled_categories', '[]')
+    try:
+        disabled_categories = json.loads(disabled_categories_str)
+    except:
+        disabled_categories = []
+    
     # Count answered questions for completion tracking
     answered_questions = 0
     high_risk_answers = 0
@@ -2724,7 +2793,7 @@ def submit_questionnaire(app_id):
             question_id = key.replace('_comment', '')
             if value.strip():  # Only store non-empty comments
                 comments[question_id] = value.strip()
-        elif not key.startswith(('field', 'security_confidence', 'primary_concern', 'additional_comments')):
+        elif not key.startswith(('field', 'security_confidence', 'primary_concern', 'additional_comments', 'disabled_categories')):
             # Handle regular question responses
             if value:  # If question has an answer
                 responses[key] = value
@@ -2758,14 +2827,21 @@ def submit_questionnaire(app_id):
     # Generate recommendations (updated to not use risk_score)
     recommendations = generate_recommendations(responses, high_risk_percentage)
     
+    # Calculate total questions excluding disabled categories
+    total_questions = 0
+    for category_key, category in questionnaire.items():
+        if category_key not in disabled_categories:
+            total_questions += len(category['questions'])
+    
     # Compile all data for storage
     questionnaire_data = {
         'responses': responses,
         'comments': comments,
         'screenshots': screenshots,
         'answered_questions': answered_questions,
-        'total_questions': sum(len(cat['questions']) for cat in questionnaire.values()),
-        'high_risk_count': high_risk_answers
+        'total_questions': total_questions,
+        'high_risk_count': high_risk_answers,
+        'disabled_categories': disabled_categories
     }
     
     # Save to database
@@ -2831,7 +2907,7 @@ def generate_recommendations(responses, high_risk_percentage):
         recommendations.append({
             'category': 'General',
             'title': 'Address Identified Risk Areas',
-            'description': 'Focus on improving security controls in areas marked as "No" or "Partial".',
+            'description': 'Focus on improving security controls in areas marked as "No".',
             'priority': 'Medium'
         })
     
@@ -2855,12 +2931,24 @@ def web_review_results(app_id):
     app = conn.execute('SELECT * FROM applications WHERE id = ? AND author_id = ?', 
                       (app_id, session['user_id'])).fetchone()
     
-    review = conn.execute('SELECT * FROM security_reviews WHERE application_id = ? ORDER BY created_at DESC LIMIT 1', 
+    # Get the latest submitted review (the one with findings), not draft reviews
+    review = conn.execute('''SELECT * FROM security_reviews 
+                            WHERE application_id = ? AND status IN ('submitted', 'completed', 'in_review') 
+                            ORDER BY created_at DESC LIMIT 1''', 
                          (app_id,)).fetchone()
+    
+    # If no submitted review found, fall back to latest review
+    if not review:
+        review = conn.execute('SELECT * FROM security_reviews WHERE application_id = ? ORDER BY created_at DESC LIMIT 1', 
+                             (app_id,)).fetchone()
     
     if not app or not review:
         conn.close()
-        flash('Review not found.', 'error')
+        # Removed flash messages - silent redirect instead
+        # if not app:
+        #     flash('Application not found or you do not have permission to view it.', 'error')
+        # else:
+        #     flash('No security review found for this application. Please complete the security questionnaire first.', 'error')
         return redirect(url_for('web_applications'))
     
     # Parse the questionnaire data (now contains responses, comments, screenshots)
@@ -3002,6 +3090,12 @@ def secure_upload(file, file_type, user_id, app_id):
     except Exception as e:
         print(f"File upload error: {e}")
         return None
+
+@app.route('/review-results/all')
+@login_required
+def web_review_results_all():
+    """Handle invalid /review-results/all URL - redirect silently to applications"""
+    return redirect(url_for('web_applications'))
 
 if __name__ == '__main__':
     # Initialize database

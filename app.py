@@ -5,8 +5,8 @@ Enterprise-grade Security Architecture Review Platform
 """
 
 import os
-from datetime import datetime, timedelta
-from flask import Flask, jsonify, request
+from datetime import datetime, timedelta, timezone
+from flask import Flask, jsonify, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
@@ -60,16 +60,19 @@ class Config:
 
 app.config.from_object(Config)
 
+# Import db from models and initialize with app
+from models import db
+db.init_app(app)
+
 # Initialize Extensions
-db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 cors = CORS(app, origins=Config.CORS_ORIGINS)
 jwt = JWTManager(app)
 limiter = Limiter(
-    app,
     key_func=get_remote_address,
     default_limits=["100 per hour", "20 per minute"]
 )
+limiter.init_app(app)
 
 # Configure Logging
 structlog.configure(
@@ -92,11 +95,7 @@ structlog.configure(
 
 logger = structlog.get_logger(__name__)
 
-# Initialize models with db instance
-import models
-models.db = db
-
-# Import models and routes after app initialization
+# Import models after app initialization
 from models import User, Organization, Application, Review, Finding
 from routes.auth import auth_bp
 from routes.applications import applications_bp
@@ -109,13 +108,86 @@ app.register_blueprint(applications_bp, url_prefix='/api/v1/applications')
 app.register_blueprint(reviews_bp, url_prefix='/api/v1/reviews')
 app.register_blueprint(dashboard_bp, url_prefix='/api/v1/dashboard')
 
+# Home Route
+@app.route('/')
+def home():
+    """Home page with API information"""
+    # Check if request wants JSON (API client)
+    if request.headers.get('Accept') == 'application/json' or request.args.get('format') == 'json':
+        return jsonify({
+            'message': 'Welcome to SecureArch Portal',
+            'description': 'Enterprise-grade Security Architecture Review Platform',
+            'version': '1.0.0',
+            'status': 'running',
+            'api_endpoints': {
+                'authentication': '/api/v1/auth',
+                'applications': '/api/v1/applications',
+                'reviews': '/api/v1/reviews',
+                'dashboard': '/api/v1/dashboard',
+                'health': '/health'
+            },
+            'documentation': {
+                'swagger': '/api/docs',
+                'redoc': '/api/redoc'
+            }
+        })
+    
+    # Render HTML template for browser users
+    try:
+        return render_template('home.html')
+    except:
+        # Fallback if template not found
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>SecureArch Portal</title>
+            <style>
+                body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+                .header { text-align: center; color: #2c3e50; }
+                .api-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+                .endpoint { background: #e9ecef; padding: 10px; margin: 5px 0; border-radius: 4px; }
+                .status { color: #28a745; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🔐 SecureArch Portal</h1>
+                <p>Enterprise-grade Security Architecture Review Platform</p>
+                <p class="status">✅ Status: Running</p>
+            </div>
+            
+            <div class="api-info">
+                <h2>API Endpoints</h2>
+                <div class="endpoint"><strong>Authentication:</strong> /api/v1/auth</div>
+                <div class="endpoint"><strong>Applications:</strong> /api/v1/applications</div>
+                <div class="endpoint"><strong>Reviews:</strong> /api/v1/reviews</div>
+                <div class="endpoint"><strong>Dashboard:</strong> /api/v1/dashboard</div>
+                <div class="endpoint"><strong>Health Check:</strong> /health</div>
+            </div>
+            
+            <div class="api-info">
+                <h2>Documentation</h2>
+                <div class="endpoint"><strong>Swagger UI:</strong> /api/docs</div>
+                <div class="endpoint"><strong>ReDoc:</strong> /api/redoc</div>
+            </div>
+            
+            <p style="text-align: center; color: #6c757d; margin-top: 40px;">
+                Version 1.0.0 | 
+                <a href="?format=json">View as JSON</a>
+            </p>
+        </body>
+        </html>
+        """
+
 # Health Check Endpoint
 @app.route('/health')
 def health_check():
     """Application health check endpoint"""
     try:
         # Test database connection
-        db.session.execute('SELECT 1')
+        from sqlalchemy import text
+        db.session.execute(text('SELECT 1'))
         db_status = 'healthy'
     except Exception as e:
         db_status = f'unhealthy: {str(e)}'
@@ -123,7 +195,7 @@ def health_check():
     
     health_data = {
         'status': 'healthy' if db_status == 'healthy' else 'unhealthy',
-        'timestamp': datetime.utcnow().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'version': '1.0.0',
         'environment': os.environ.get('FLASK_ENV', 'development'),
         'database': {
@@ -273,9 +345,8 @@ def log_response_info(response):
     return response
 
 # Database Creation
-@app.before_first_request
-def create_tables():
-    """Create database tables on first request"""
+with app.app_context():
+    """Create database tables"""
     try:
         db.create_all()
         logger.info("Database tables created successfully")

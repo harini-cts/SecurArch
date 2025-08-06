@@ -56,9 +56,9 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                High Risk Applications
+                                High Risk Issues
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.high_risk_count }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.high_risk_count or 0 }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
@@ -80,6 +80,45 @@
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-sitemap fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Second row for Medium and Low Risk -->
+    <div class="row">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-left-warning h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Medium Risk Issues
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.medium_risk_count or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-left-success h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Low Risk Issues
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.low_risk_count or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
                         </div>
                     </div>
                 </div>

@@ -35,22 +35,87 @@
                         <div class="col-md-8">
                             <h5 class="text-primary">Application Details</h5>
                             <p class="mb-1"><strong>Name:</strong> {{ review[8] }}</p>
-                            <p class="mb-1"><strong>Type:</strong> {{ review[9] }}</p>
-                            <p class="mb-1"><strong>Environment:</strong> {{ review[10] }}</p>
-                            <p class="mb-0"><strong>Description:</strong> {{ review[11] or 'No description provided' }}</p>
+                            <p class="mb-1"><strong>Description:</strong> {{ review[9] or 'No description provided' }}</p>
+                            <p class="mb-1"><strong>Technology Stack:</strong> {{ review[10] or 'Not specified' }}</p>
+                            <p class="mb-1"><strong>Environment:</strong> {{ review[11] or 'Not specified' }}</p>
+                            <p class="mb-1"><strong>Business Criticality:</strong> {{ review[12] or 'Not specified' }}</p>
+                            <p class="mb-0"><strong>Data Classification:</strong> {{ review[13] or 'Not specified' }}</p>
                         </div>
                         <div class="col-md-4">
                             <h5 class="text-secondary">Assessment Progress</h5>
                             <div class="mb-2">
                                 <span class="badge bg-info me-1">{{ answered_questions }}</span> Answered
                                 <span class="badge bg-secondary me-1">{{ total_questions }}</span> Total
-                                <span class="badge bg-warning">{{ high_risk_count }}</span> High Risk
+                            </div>
+                            <div class="mb-2">
+                                <span class="badge bg-danger me-1">{{ findings|selectattr('severity', 'equalto', 'High')|list|length }}</span> High Risk
+                                <span class="badge bg-warning me-1">{{ findings|selectattr('severity', 'equalto', 'Medium')|list|length }}</span> Medium Risk
+                                <span class="badge bg-success">{{ findings|selectattr('severity', 'equalto', 'Low')|list|length }}</span> Low Risk
                             </div>
                             <div class="progress" style="height: 8px;">
                                 <div class="progress-bar bg-info" style="width: {{ (answered_questions/total_questions*100)|round(1) }}%"></div>
                             </div>
                             <small class="text-muted">{{ ((answered_questions/total_questions*100)|round(1)) }}% Complete</small>
                         </div>
+                    </div>
+                    
+                    <!-- Uploaded Documents Section -->
+                    {% if review[14] or review[15] or review[16] %}
+                    <hr class="my-4">
+                    <div class="row">
+                        <div class="col-12">
+                            <h5 class="text-primary">
+                                <i class="fas fa-file-alt"></i> Uploaded Documents
+                            </h5>
+                            <div class="row">
+                                {% if review[14] %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card border-info">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-sitemap fa-2x text-info mb-2"></i>
+                                            <h6 class="card-title">Logical Architecture</h6>
+                                            <a href="{{ url_for('download_file', filename=review[14]) }}" 
+                                               class="btn btn-outline-info btn-sm">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if review[15] %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card border-success">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-server fa-2x text-success mb-2"></i>
+                                            <h6 class="card-title">Physical Architecture</h6>
+                                            <a href="{{ url_for('download_file', filename=review[15]) }}" 
+                                               class="btn btn-outline-success btn-sm">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if review[16] %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card border-warning">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-file-alt fa-2x text-warning mb-2"></i>
+                                            <h6 class="card-title">Overview Document</h6>
+                                            <a href="{{ url_for('download_file', filename=review[16]) }}" 
+                                               class="btn btn-outline-warning btn-sm">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                     </div>
                 </div>
             </div>
@@ -350,7 +415,7 @@ function createQuestionHTML(question, questionNumber) {
                         <div class="mb-3">
                             <small class="text-muted"><strong>Risk Assessment:</strong></small>
                             <div class="mt-1">
-                                ${getRiskAssessment(response)}
+                                ${getRiskAssessment(response, question.id)}
                             </div>
                         </div>
                         
@@ -388,7 +453,17 @@ function getResponseBadge(response) {
     return badges[response] || '<span class="badge bg-secondary ms-2"><i class="fas fa-question-circle"></i> Not Answered</span>';
 }
 
-function getRiskAssessment(response) {
+function getRiskAssessment(response, questionId) {
+    // Check if analyst has marked a finding for this question
+    if (window.findingsByQuestionId && window.findingsByQuestionId[questionId]) {
+        const analystFinding = window.findingsByQuestionId[questionId];
+        // Use analyst's risk assessment
+        const riskClass = analystFinding.risk_level === 'High' ? 'danger' : 
+                         analystFinding.risk_level === 'Medium' ? 'warning' : 'success';
+        return `<span class="badge bg-${riskClass}">🔍 ${analystFinding.risk_level} Risk (Analyst)</span><small class="d-block text-${riskClass} mt-1"><i class="fas fa-user-shield"></i> Marked by security analyst</small>`;
+    }
+    
+    // Fall back to automatic assessment based on questionnaire response
     const assessments = {
         'no': '<span class="badge bg-danger">High Risk</span><small class="d-block text-danger mt-1"><i class="fas fa-exclamation-triangle"></i> Control not implemented</small>',
         'partial': '<span class="badge bg-warning">Medium Risk</span><small class="d-block text-warning mt-1"><i class="fas fa-exclamation-triangle"></i> Partial implementation</small>',
@@ -782,4 +857,53 @@ function createToastContainer() {
     transition: transform 0.2s ease;
 }
 </style>
+
+<script>
+// Mark existing findings when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Create lookup object for findings by question ID
+        window.findingsByQuestionId = {};
+        {% for finding in stride_analysis %}
+            {% if finding.question_id %}
+                window.findingsByQuestionId["{{ finding.question_id }}"] = {
+                    risk_level: "{{ finding.risk_level }}",
+                    threat_category: "{{ finding.threat_category }}",
+                    description: "{{ finding.threat_description }}"
+                };
+            {% endif %}
+        {% endfor %}
+        
+        // Get question IDs that have findings from the backend
+        const questionIdsWithFindings = new Set([
+            {% for finding in stride_analysis %}
+                {% if finding.question_id %}
+                    "{{ finding.question_id }}",
+                {% endif %}
+            {% endfor %}
+        ]);
+        
+        // Mark questions that have findings
+        questionIdsWithFindings.forEach(questionId => {
+            const questionCard = document.querySelector(`[data-question-id="${questionId}"]`);
+            if (questionCard) {
+                // Mark as having a finding
+                questionCard.classList.add('finding-marked');
+                
+                // Update the button
+                const markFindingBtn = questionCard.querySelector('.mark-finding-btn');
+                if (markFindingBtn) {
+                    markFindingBtn.innerHTML = '<i class="fas fa-check"></i> Finding Recorded';
+                    markFindingBtn.classList.remove('btn-outline-warning');
+                    markFindingBtn.classList.add('btn-success');
+                }
+            }
+        });
+        
+        console.log(`Marked ${questionIdsWithFindings.size} questions with existing findings`);
+    } catch (error) {
+        console.error('Error marking existing findings:', error);
+    }
+});
+</script>
 {% endblock %} 
