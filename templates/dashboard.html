@@ -1,175 +1,396 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Cognizant SecArch Portal{% endblock %}
+{% block title %}Dashboard - SecureArch Portal{% endblock %}
 
 {% block content %}
 <div class="content-area">
     <div class="row mb-4">
         <div class="col-12">
-            <h2><i class="fas fa-tachometer-alt"></i> Security Dashboard</h2>
-            <p class="text-muted">Welcome back, {{ session.user_name }}! Here's your security overview.</p>
+            {% if role == 'admin' %}
+                <h2><i class="fas fa-cogs text-danger"></i> Admin Dashboard</h2>
+                <p class="text-muted">System-wide oversight and management</p>
+            {% elif role == 'security_analyst' %}
+                <h2><i class="fas fa-microscope text-warning"></i> Analyst Dashboard</h2>
+                <p class="text-muted">Review and analyze security assessments using STRIDE methodology</p>
+            {% else %}
+                <h2><i class="fas fa-tachometer-alt text-primary"></i> User Dashboard</h2>
+                <p class="text-muted">Welcome back, {{ session.user_name }}! Manage your security assessments here.</p>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="stats-card">
-                <i class="fas fa-laptop-code fa-2x mb-2"></i>
-                <h3>{{ stats.applications }}</h3>
-                <p>Applications</p>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stats-card">
-                <i class="fas fa-search fa-2x mb-2"></i>
-                <h3>{{ stats.reviews }}</h3>
-                <p>Security Reviews</p>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stats-card">
-                <i class="fas fa-shield-alt fa-2x mb-2"></i>
-                <h3>{{ stats.high_risk_findings or 0 }}</h3>
-                <p>Security Findings</p>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stats-card">
-                <i class="fas fa-check-circle fa-2x mb-2"></i>
-                <h3>{{ stats.compliance }}</h3>
-                <p>Compliance Status</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
-        
-          <!-- Quick Actions -->
-
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-rocket"></i> Quick Actions</h5>
+    {% if role == 'admin' %}
+        <!-- Admin Dashboard Content -->
+        <div class="row mb-4">
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                <div class="card border-left-primary h-100">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Users</div>
+                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.total_users }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-users fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="{{ url_for('web_create_application') }}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> New Security Assessment
-                        </a>
-                        <a href="{{ url_for('web_applications') }}" class="btn btn-outline-primary">
-                            <i class="fas fa-list"></i> View All Applications
-                        </a>
-                        <a href="{{ url_for('web_profile') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-user"></i> Update Profile
-                        </a>
+            </div>
+            
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                <div class="card border-left-success h-100">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Applications</div>
+                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.total_applications }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-laptop-code fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h5><i class="fas fa-shield-check"></i> Security Tips</h5>
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                <div class="card border-left-warning h-100">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Reviews</div>
+                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.pending_reviews }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-clock fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <ul class="list-unstyled">
-                        <li class="mb-2">
-                            <i class="fas fa-check text-success"></i>
-                            Enable MFA for all admin accounts
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-check text-success"></i>
-                            Use parameterized queries to prevent SQL injection
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-check text-success"></i>
-                            Implement proper session management
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-check text-success"></i>
-                            Regular security assessments
-                        </li>
-                    </ul>
+            </div>
+
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                <div class="card border-left-info h-100">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Reviews</div>
+                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.total_reviews }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-clipboard-check fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                <div class="card border-left-danger h-100">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">High Risk</div>
+                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.findings_stats.get('High', 0) }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                <div class="card border-left-dark h-100">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Active Users</div>
+                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.active_users }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Recent Applications -->
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-history"></i> Recent Applications</h5>
+        <!-- Admin Quick Actions and Recent Activity -->
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('admin_users') }}" class="btn btn-primary">
+                                <i class="fas fa-users"></i> Manage Users
+                            </a>
+                            <a href="{{ url_for('admin_applications') }}" class="btn btn-info">
+                                <i class="fas fa-laptop-code"></i> Manage Applications
+                            </a>
+                            <a href="{{ url_for('admin_reports') }}" class="btn btn-success">
+                                <i class="fas fa-chart-bar"></i> Generate Reports
+                            </a>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    {% if recent_apps %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Application Name</th>
-                                    <th>Technology</th>
-                                    <th>Criticality</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for app in recent_apps %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ app.name }}</strong>
-                                        <br><small class="text-muted">{{ app.description[:50] }}...</small>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-info">{{ app.technology_stack or 'Not specified' }}</span>
-                                    </td>
-                                    <td>
-                                        {% if app.business_criticality == 'critical' %}
-                                        <span class="badge bg-danger">Critical</span>
-                                        {% elif app.business_criticality == 'high' %}
-                                        <span class="badge bg-warning">High</span>
-                                        {% else %}
-                                        <span class="badge bg-success">{{ app.business_criticality or 'Medium' }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if app.status == 'draft' %}
-                                        <span class="badge bg-secondary"><i class="fas fa-edit"></i> Draft</span>
-                                        {% elif app.status == 'submitted' %}
-                                        <span class="badge bg-warning"><i class="fas fa-clock"></i> Awaiting Review</span>
-                                        {% elif app.status == 'in_review' %}
-                                        <span class="badge bg-primary"><i class="fas fa-search"></i> Under Review</span>
-                                        {% elif app.status == 'completed' %}
-                                        <span class="badge bg-success"><i class="fas fa-check-circle"></i> Completed</span>
-                                        {% elif app.status == 'rejected' %}
-                                        <span class="badge bg-danger"><i class="fas fa-times-circle"></i> Needs Revision</span>
-                                        {% else %}
-                                        <span class="badge bg-info"><i class="fas fa-question-circle"></i> {{ app.status|title }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{{ url_for('web_security_assessment', app_id=app.id) }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-clipboard-check"></i> Review
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+            </div>
+            <div class="col-lg-6">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-info">Recent Applications</h6>
                     </div>
-                    {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-laptop-code fa-3x text-muted mb-3"></i>
-                        <h5>No applications yet</h5>
-                        <p class="text-muted">Start by creating your first application for security review.</p>
-                        <a href="{{ url_for('web_create_application') }}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Create First Application
-                        </a>
+                    <div class="card-body">
+                        {% if recent_applications %}
+                        {% for app in recent_applications[:5] %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ app.name }}</strong>
+                                <br><small class="text-muted">by {{ app.first_name }} {{ app.last_name }}</small>
+                            </div>
+                            <span class="badge bg-{% if app.status == 'completed' %}success{% elif app.status == 'in_review' %}primary{% else %}secondary{% endif %}">
+                                {{ app.status|title }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="text-muted">No recent applications</p>
+                        {% endif %}
                     </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
-    </div>
+
+    {% elif role == 'security_analyst' %}
+        <!-- Analyst Dashboard Content -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card border-left-primary h-100">
+                    <div class="card-body text-center">
+                        <h3 class="text-primary">{{ stats.todo }}</h3>
+                        <p class="text-muted mb-0">Pending Reviews</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-left-warning h-100">
+                    <div class="card-body text-center">
+                        <h3 class="text-warning">{{ stats.in_review }}</h3>
+                        <p class="text-muted mb-0">In Review</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-left-success h-100">
+                    <div class="card-body text-center">
+                        <h3 class="text-success">{{ stats.completed }}</h3>
+                        <p class="text-muted mb-0">Completed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-left-info h-100">
+                    <div class="card-body text-center">
+                        <h3 class="text-info">{{ stats.total_assigned }}</h3>
+                        <p class="text-muted mb-0">Total Assigned</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analyst Workload Sections -->
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Pending Reviews ({{ stats.todo }})</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if todo_applications %}
+                        {% for app in todo_applications[:5] %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ app.name }}</strong>
+                                <br><small class="text-muted">{{ app.business_criticality }} Priority</small>
+                            </div>
+                            <a href="{{ url_for('analyst_security_assessment', app_id=app.id) }}" class="btn btn-sm btn-outline-primary">Review</a>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="text-muted">No pending reviews</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-warning">In Review ({{ stats.in_review }})</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if in_review_applications %}
+                        {% for app in in_review_applications[:5] %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ app.name }}</strong>
+                                <br><small class="text-muted">{{ app.business_criticality }} Priority</small>
+                            </div>
+                            <a href="{{ url_for('analyst_security_assessment', app_id=app.id) }}" class="btn btn-sm btn-outline-warning">Continue</a>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="text-muted">No applications in review</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-success">Recent Completed</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_reviews %}
+                        {% for review in recent_reviews[:5] %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ review.app_name }}</strong>
+                                <br><small class="text-muted">{{ review.created_at[:10] }}</small>
+                            </div>
+                            <span class="badge bg-success">Complete</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="text-muted">No completed reviews</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    {% else %}
+        <!-- User Dashboard Content -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stats-card border-left-primary">
+                    <div class="card-body text-center">
+                        <i class="fas fa-laptop-code fa-2x mb-2 text-primary"></i>
+                        <h3>{{ app_stats.total }}</h3>
+                        <p>Total Applications</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card border-left-warning">
+                    <div class="card-body text-center">
+                        <i class="fas fa-clock fa-2x mb-2 text-warning"></i>
+                        <h3>{{ app_stats.submitted + app_stats.in_review }}</h3>
+                        <p>Under Review</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card border-left-success">
+                    <div class="card-body text-center">
+                        <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
+                        <h3>{{ app_stats.completed }}</h3>
+                        <p>Completed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card border-left-secondary">
+                    <div class="card-body text-center">
+                        <i class="fas fa-edit fa-2x mb-2 text-secondary"></i>
+                        <h3>{{ app_stats.draft }}</h3>
+                        <p>Drafts</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Quick Actions and Recent Activity -->
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('web_create_application') }}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Create New Application
+                            </a>
+                            <a href="{{ url_for('web_applications') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-list"></i> View All Applications
+                            </a>
+                            <a href="{{ url_for('web_profile') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-user"></i> Manage Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-info">Recent Applications</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_activity %}
+                        {% for app in recent_activity %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ app.name }}</strong>
+                                <br><small class="text-muted">{{ app.created_at[:10] }}</small>
+                            </div>
+                            <span class="badge bg-{% if app.status == 'completed' %}success{% elif app.status == 'in_review' %}primary{% elif app.status == 'submitted' %}warning{% else %}secondary{% endif %}">
+                                {{ app.status|title }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="text-muted">No applications yet. <a href="{{ url_for('web_create_application') }}">Create your first one!</a></p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 </div>
+
+<style>
+.border-left-primary { border-left: 4px solid #4e73df !important; }
+.border-left-success { border-left: 4px solid #1cc88a !important; }
+.border-left-info { border-left: 4px solid #36b9cc !important; }
+.border-left-warning { border-left: 4px solid #f6c23e !important; }
+.border-left-danger { border-left: 4px solid #e74a3b !important; }
+.border-left-dark { border-left: 4px solid #5a5c69 !important; }
+.border-left-secondary { border-left: 4px solid #858796 !important; }
+
+.stats-card {
+    background: white;
+    border-radius: 0.35rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    border: 1px solid #e3e6f0;
+    margin-bottom: 1rem;
+}
+
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+</style>
 {% endblock %} 

@@ -229,14 +229,14 @@ def init_db():
     ''')
     
     # Create demo users if not exists
-    existing_demo = conn.execute('SELECT id FROM users WHERE email = ?', ('admin@demo.com',)).fetchone()
+    existing_demo = conn.execute('SELECT id FROM users WHERE email = ?', ('user@demo.com',)).fetchone()
     if not existing_demo:
         demo_user_id = str(uuid.uuid4())
         demo_password_hash = generate_password_hash('password123')
         conn.execute('''
             INSERT INTO users (id, email, password_hash, first_name, last_name, role, organization_name, onboarding_completed)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (demo_user_id, 'admin@demo.com', demo_password_hash, 'Demo', 'User', 'user', 'SecureArch Corp', 1))
+        ''', (demo_user_id, 'user@demo.com', demo_password_hash, 'John', 'User', 'user', 'SecureArch Corp', 1))
     
     # Create demo Security Analyst if not exists
     existing_analyst = conn.execute('SELECT id FROM users WHERE email = ?', ('analyst@demo.com',)).fetchone()
@@ -247,6 +247,16 @@ def init_db():
             INSERT INTO users (id, email, password_hash, first_name, last_name, role, organization_name, job_title, onboarding_completed)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (analyst_user_id, 'analyst@demo.com', analyst_password_hash, 'Security', 'Analyst', 'security_analyst', 'SecureArch Corp', 'Senior Security Analyst', 1))
+    
+    # Create demo Admin if not exists
+    existing_admin = conn.execute('SELECT id FROM users WHERE email = ?', ('superadmin@demo.com',)).fetchone()
+    if not existing_admin:
+        admin_user_id = str(uuid.uuid4())
+        admin_password_hash = generate_password_hash('admin123')
+        conn.execute('''
+            INSERT INTO users (id, email, password_hash, first_name, last_name, role, organization_name, job_title, onboarding_completed)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (admin_user_id, 'superadmin@demo.com', admin_password_hash, 'System', 'Administrator', 'admin', 'SecureArch Corp', 'System Administrator', 1))
     
     conn.commit()
     conn.close()
@@ -273,6 +283,25 @@ def analyst_required(f):
         conn.close()
         
         if not user or user[0] not in ['security_analyst', 'admin']:
+            return redirect(url_for('web_dashboard'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    """Decorator to require Admin role"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('web_login'))
+        
+        # Check if user has admin role
+        conn = get_db()
+        user = conn.execute('SELECT role FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+        conn.close()
+        
+        if not user or user[0] != 'admin':
+            flash('Access denied. Admin privileges required.', 'error')
             return redirect(url_for('web_dashboard'))
         
         return f(*args, **kwargs)
@@ -1032,7 +1061,7 @@ def web_login():
             
             flash(f'Welcome back, {user["first_name"]}!', 'success')
             
-            # Redirect based on onboarding status
+            # Redirect based on onboarding status and user role
             if not user['onboarding_completed']:
                 return redirect(url_for('web_onboarding'))
             else:
@@ -1112,41 +1141,136 @@ def web_onboarding():
 @app.route('/dashboard')
 @login_required
 def web_dashboard():
-    """Main dashboard"""
+    """Unified role-aware dashboard for all user types"""
+    user_role = session.get('user_role', 'user')
+    user_id = session['user_id']
+    
     conn = get_db()
     
-    # Get user stats
-    user_apps = conn.execute('SELECT COUNT(*) as count FROM applications WHERE author_id = ?', 
-                             (session['user_id'],)).fetchone()['count']
+    if user_role == 'admin':
+        # Admin Dashboard - System-wide statistics
+        total_users = conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count']
+        active_users = conn.execute('SELECT COUNT(*) as count FROM users WHERE is_active = 1').fetchone()['count']
+        total_applications = conn.execute('SELECT COUNT(*) as count FROM applications').fetchone()['count']
+        total_reviews = conn.execute('SELECT COUNT(*) as count FROM security_reviews').fetchone()['count']
+        pending_reviews = conn.execute('SELECT COUNT(*) as count FROM security_reviews WHERE status IN ("submitted", "in_review")').fetchone()['count']
+        
+        # Application statistics by status
+        app_stats = conn.execute('''
+            SELECT status, COUNT(*) as count 
+            FROM applications 
+            GROUP BY status
+        ''').fetchall()
+        
+        # User statistics by role
+        user_stats = conn.execute('''
+            SELECT role, COUNT(*) as count 
+            FROM users 
+            WHERE is_active = 1
+            GROUP BY role
+        ''').fetchall()
+        
+        # Security findings statistics
+        findings_stats = conn.execute('''
+            SELECT risk_level, COUNT(*) as count 
+            FROM stride_analysis 
+            GROUP BY risk_level
+        ''').fetchall()
+        
+        # Recent activity (last 10 applications)
+        recent_applications = conn.execute('''
+            SELECT a.id, a.name, a.status, a.created_at, 
+                   u.first_name, u.last_name, u.email
+            FROM applications a
+            JOIN users u ON a.author_id = u.id
+            ORDER BY a.created_at DESC LIMIT 10
+        ''').fetchall()
+        
+        stats = {
+            'total_users': total_users,
+            'active_users': active_users,
+            'total_applications': total_applications,
+            'total_reviews': total_reviews,
+            'pending_reviews': pending_reviews,
+            'app_stats': {row['status']: row['count'] for row in app_stats},
+            'user_stats': {row['role']: row['count'] for row in user_stats},
+            'findings_stats': {row['risk_level']: row['count'] for row in findings_stats}
+        }
+        
+        conn.close()
+        return render_template('dashboard.html', 
+                             role='admin',
+                             stats=stats, 
+                             recent_applications=recent_applications)
     
-    user_reviews = conn.execute('SELECT COUNT(*) as count FROM security_reviews sr JOIN applications a ON sr.application_id = a.id WHERE a.author_id = ?', 
-                               (session['user_id'],)).fetchone()['count']
+    elif user_role == 'security_analyst':
+        # Analyst Dashboard - Review workload and statistics
+        # Get applications for analyst review using workflow engine
+        todo_applications = workflow_engine.get_analyst_applications(user_id, 'todo')
+        in_review_applications = workflow_engine.get_analyst_applications(user_id, 'in_review')
+        completed_applications = workflow_engine.get_analyst_applications(user_id, 'completed')
+        
+        # Get overall statistics
+        stats = {
+            'todo': len(todo_applications),
+            'in_review': len(in_review_applications),
+            'completed': len(completed_applications),
+            'total_assigned': len(todo_applications) + len(in_review_applications) + len(completed_applications)
+        }
+        
+        # Get recent activity
+        recent_reviews = conn.execute('''
+            SELECT sr.*, a.name as app_name
+            FROM security_reviews sr
+            JOIN applications a ON sr.application_id = a.id
+            WHERE sr.analyst_id = ?
+            ORDER BY sr.created_at DESC
+            LIMIT 5
+        ''', (user_id,)).fetchall()
+        
+        conn.close()
+        return render_template('dashboard.html',
+                             role='security_analyst',
+                             todo_applications=todo_applications,
+                             in_review_applications=in_review_applications,
+                             completed_applications=completed_applications,
+                             stats=stats,
+                             recent_reviews=recent_reviews)
     
-    # Get findings count (only analyst STRIDE findings)
-    analyst_findings_count = conn.execute('''
-        SELECT COUNT(*) as count FROM stride_analysis sa 
-        JOIN security_reviews sr ON sa.review_id = sr.id 
-        JOIN applications a ON sr.application_id = a.id 
-        WHERE a.author_id = ?
-    ''', (session['user_id'],)).fetchone()['count']
-    
-    # Get recent applications
-    recent_apps = conn.execute('''
-        SELECT * FROM applications 
-        WHERE author_id = ? 
-        ORDER BY created_at DESC LIMIT 5
-    ''', (session['user_id'],)).fetchall()
-    
-    conn.close()
-    
-    stats = {
-        'applications': user_apps,
-        'reviews': user_reviews,
-        'high_risk_findings': analyst_findings_count,
-        'compliance': 'Good' if analyst_findings_count == 0 else ('Fair' if analyst_findings_count < 5 else 'Needs Attention')
-    }
-    
-    return render_template('dashboard.html', stats=stats, recent_apps=recent_apps)
+    else:
+        # User Dashboard - Personal applications and activities
+        # Get user's applications
+        user_applications = conn.execute('''
+            SELECT * FROM applications 
+            WHERE author_id = ? 
+            ORDER BY created_at DESC
+        ''', (user_id,)).fetchall()
+        
+        # Get application statistics
+        app_stats = {
+            'total': len(user_applications),
+            'draft': len([app for app in user_applications if app['status'] == 'draft']),
+            'submitted': len([app for app in user_applications if app['status'] == 'submitted']),
+            'in_review': len([app for app in user_applications if app['status'] == 'in_review']),
+            'completed': len([app for app in user_applications if app['status'] == 'completed']),
+            'rejected': len([app for app in user_applications if app['status'] == 'rejected'])
+        }
+        
+        # Get recent activity
+        recent_activity = conn.execute('''
+            SELECT a.name, a.status, a.created_at
+            FROM applications a
+            WHERE a.author_id = ?
+            ORDER BY a.created_at DESC
+            LIMIT 5
+        ''', (user_id,)).fetchall()
+        
+        conn.close()
+        return render_template('dashboard.html', 
+                             role='user',
+                             applications=user_applications,
+                             app_stats=app_stats,
+                             recent_activity=recent_activity)
 
 @app.route('/applications')
 @login_required 
@@ -1317,7 +1441,7 @@ def web_security_assessment(app_id):
     for review in existing_reviews:
         if review['field_type'] == 'application_review':
             if review['status'] == 'completed':
-            app_review_completed = True
+                app_review_completed = True
                 app_review_status = 'completed'
             elif review['status'] in ['submitted', 'in_review']:
                 app_review_status = 'pending_analyst'
@@ -1325,7 +1449,7 @@ def web_security_assessment(app_id):
                 app_review_status = 'draft'
         elif review['field_type'] == 'cloud_review':
             if review['status'] == 'completed':
-            cloud_review_completed = True
+                cloud_review_completed = True
                 cloud_review_status = 'completed'
             elif review['status'] in ['submitted', 'in_review']:
                 cloud_review_status = 'pending_analyst'
@@ -1464,82 +1588,8 @@ def web_questionnaire(app_id):
 @app.route('/analyst/dashboard')
 @analyst_required
 def analyst_dashboard():
-    """Security Analyst Dashboard"""
-    conn = get_db()
-    
-    # Get pending reviews (latest per application)
-    pending_reviews = conn.execute('''
-        SELECT sr.id, sr.application_id, sr.status, sr.created_at, sr.risk_score,
-               a.name as app_name, a.business_criticality,
-               u.first_name, u.last_name
-        FROM security_reviews sr
-        JOIN applications a ON sr.application_id = a.id
-        JOIN users u ON a.author_id = u.id
-        WHERE sr.status IN ('submitted', 'in_review')
-        AND sr.id IN (
-            SELECT MAX(id) FROM security_reviews 
-            WHERE status IN ('submitted', 'in_review') 
-            GROUP BY application_id
-        )
-        ORDER BY sr.created_at DESC
-    ''').fetchall()
-    
-    # Get completed reviews (latest per application)
-    completed_reviews = conn.execute('''
-        SELECT sr.id, sr.application_id, sr.status, sr.analyst_reviewed_at, sr.risk_score,
-               a.name as app_name, a.business_criticality,
-               u.first_name, u.last_name
-        FROM security_reviews sr
-        JOIN applications a ON sr.application_id = a.id
-        JOIN users u ON a.author_id = u.id
-        WHERE sr.status = 'completed' AND sr.analyst_id = ?
-        AND sr.id IN (
-            SELECT MAX(id) FROM security_reviews 
-            WHERE status = 'completed' AND analyst_id = ?
-            GROUP BY application_id
-        )
-        ORDER BY sr.analyst_reviewed_at DESC
-        LIMIT 10
-    ''', (session['user_id'], session['user_id'])).fetchall()
-    
-    # Get statistics
-    total_pending = len(pending_reviews)
-    total_completed = len(completed_reviews)
-    
-    # Get severity counts from STRIDE analysis for all reviews
-    severity_counts = conn.execute('''
-        SELECT risk_level, COUNT(*) as count
-        FROM stride_analysis sa
-        JOIN security_reviews sr ON sa.review_id = sr.id
-        GROUP BY risk_level
-    ''').fetchall()
-    
-    # Initialize counts
-    high_risk_count = 0
-    medium_risk_count = 0
-    low_risk_count = 0
-    
-    # Parse severity counts
-    for severity_count in severity_counts:
-        if severity_count['risk_level'] == 'High':
-            high_risk_count = severity_count['count']
-        elif severity_count['risk_level'] == 'Medium':
-            medium_risk_count = severity_count['count']
-        elif severity_count['risk_level'] == 'Low':
-            low_risk_count = severity_count['count']
-    
-    conn.close()
-    
-    return render_template('analyst/dashboard.html', 
-                         pending_reviews=pending_reviews,
-                         completed_reviews=completed_reviews,
-                         stats={
-                             'total_pending': total_pending,
-                             'total_completed': total_completed,
-                             'high_risk_count': high_risk_count,
-                             'medium_risk_count': medium_risk_count,
-                             'low_risk_count': low_risk_count
-                         })
+    """Redirect to unified dashboard"""
+    return redirect(url_for('web_dashboard'))
 
 @app.route('/analyst/security-assessment/<app_id>')
 @analyst_required
@@ -1615,7 +1665,9 @@ def analyst_review_detail(review_id):
         ''', (session['user_id'], review_id))
         
         # Update application status to 'in_review' 
-        update_application_status(review[1], 'in_review', conn)
+        success, error = update_application_status(review[1], 'in_review', conn, 'security_analyst')
+        if not success:
+            flash(f'Failed to update application status: {error}', 'error')
         
         conn.commit()
         
@@ -1624,15 +1676,34 @@ def analyst_review_detail(review_id):
         analyst_name = session.get('user_name', 'Security Analyst')
         review_type_display = 'Application Review' if review[8] == 'application_review' else 'Cloud Review'
         
+        # Get analyst details for better notification
+        analyst_details = conn.execute('SELECT first_name, last_name, email FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+        full_analyst_name = f"{analyst_details['first_name']} {analyst_details['last_name']}" if analyst_details else analyst_name
+        analyst_email = analyst_details['email'] if analyst_details else 'Unknown'
+        
         # Get the application author
         app_author = conn.execute('SELECT author_id FROM applications WHERE id = ?', (review[1],)).fetchone()
         if app_author:
+            # Get author details
+            author_details = conn.execute('SELECT first_name, last_name, email FROM users WHERE id = ?', (app_author['author_id'],)).fetchone()
+            author_name = f"{author_details['first_name']} {author_details['last_name']}" if author_details else 'User'
+            
+            # Notification for the application author
             create_notification(
                 title=f"{review_type_display} Started",
-                message=f"{analyst_name} has started reviewing your {review_type_display.lower()} for '{app_name}'. You will be notified when the review is complete.",
+                message=f"Security Analyst {full_analyst_name} has started reviewing your {review_type_display.lower()} for '{app_name}'. You will be notified when the review is complete.",
                 notification_type='review_started',
                 application_id=review[1],
                 user_id=app_author['author_id']
+            )
+            
+            # Notification for admins
+            create_notification(
+                title=f"{review_type_display} In Progress - Admin Alert",
+                message=f"Analyst: {full_analyst_name} ({analyst_email})\nReviewing: '{app_name}'\nSubmitted by: {author_name}\nType: {review_type_display}\nStatus: Review in progress",
+                notification_type='review_started',
+                application_id=review[1],
+                target_role='admin'
             )
     
     # Parse the questionnaire data (now contains responses, comments, screenshots)
@@ -1847,15 +1918,32 @@ def finalize_review(review_id):
     review_type_display = 'Application Review' if review_info['field_type'] == 'application_review' else 'Cloud Review'
     app_name = review_info['app_name']
     app_author_id = review_info['author_id']
-    analyst_name = session.get('user_name', 'Security Analyst')
+    
+    # Get detailed user information for better notifications
+    analyst_details = conn.execute('SELECT first_name, last_name, email FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    full_analyst_name = f"{analyst_details['first_name']} {analyst_details['last_name']}" if analyst_details else analyst_name
+    analyst_email = analyst_details['email'] if analyst_details else 'Unknown'
+    
+    author_details = conn.execute('SELECT first_name, last_name, email FROM users WHERE id = ?', (app_author_id,)).fetchone()
+    author_name = f"{author_details['first_name']} {author_details['last_name']}" if author_details else 'User'
+    author_email = author_details['email'] if author_details else 'Unknown'
     
     # Create notification for the user that their review is completed
     create_notification(
         title=f"{review_type_display} Completed",
-        message=f"Your {review_type_display.lower()} for '{app_name}' has been completed by {analyst_name}. You can now view the detailed security report.",
+        message=f"Your {review_type_display.lower()} for '{app_name}' has been completed by Security Analyst {full_analyst_name}. You can now view the detailed security report.",
         notification_type='review_completed',
         application_id=app_id,
         user_id=app_author_id
+    )
+    
+    # Create notification for admins about completion
+    create_notification(
+        title=f"{review_type_display} Completed - Admin Alert",
+        message=f"Analyst: {full_analyst_name} ({analyst_email})\nCompleted: '{app_name}'\nFor: {author_name} ({author_email})\nType: {review_type_display}\nStatus: Review completed",
+        notification_type='review_completed',
+        application_id=app_id,
+        target_role='admin'
     )
     
     # Check if all reviews for this application are completed
@@ -1867,7 +1955,9 @@ def finalize_review(review_id):
     # If all reviews are completed, update application status
     all_completed = all([review['status'] == 'completed' for review in all_reviews])
     if all_completed and len(all_reviews) > 0:
-        update_application_status(app_id, 'completed', conn)
+        success, error = update_application_status(app_id, 'completed', conn, 'security_analyst')
+        if not success:
+            flash(f'Failed to complete application: {error}', 'error')
         
         # Create notification that entire security assessment is complete
         create_notification(
@@ -1877,6 +1967,15 @@ def finalize_review(review_id):
             application_id=app_id,
             user_id=app_author_id
         )
+        
+        # Create admin notification for complete assessment
+        create_notification(
+            title="Security Assessment Complete - Admin Alert",
+            message=f"Application: '{app_name}'\nSubmitted by: {author_name} ({author_email})\nStatus: All security reviews completed\nComprehensive security report is now available.",
+            notification_type='assessment_complete',
+            application_id=app_id,
+            target_role='admin'
+        )
     
     conn.commit()
     conn.close()
@@ -1884,33 +1983,53 @@ def finalize_review(review_id):
     flash('Security review finalized successfully!', 'success')
     return redirect(url_for('analyst_dashboard'))
 
-def update_application_status(app_id, new_status, conn):
-    """Update application status with validation"""
-    valid_transitions = {
-        'draft': ['submitted'],
-        'submitted': ['in_review', 'rejected'],
-        'in_review': ['completed', 'rejected'],
-        'completed': ['rejected'],  # Allow reopening if issues found
-        'rejected': ['submitted']   # Allow resubmission
-    }
+def update_application_status(app_id, new_status, conn, user_role='user', business_context=None):
+    """Update application status with enhanced role-based validation"""
+    from app.workflow import workflow_engine
     
-    # Get current status
-    current = conn.execute('SELECT status FROM applications WHERE id = ?', (app_id,)).fetchone()
+    # Get current status and business context
+    current = conn.execute('''
+        SELECT status, business_criticality, author_id 
+        FROM applications WHERE id = ?
+    ''', (app_id,)).fetchone()
+    
     if not current:
-        return False
+        return False, "Application not found"
     
     current_status = current['status']
     
-    # Allow same status (no change)
-    if current_status == new_status:
-        return True
+    # Prepare business context if not provided
+    if business_context is None:
+        business_context = {
+            'criticality': current['business_criticality'],
+            'application_id': app_id
+        }
     
-    # Check if transition is valid
-    if new_status in valid_transitions.get(current_status, []):
-        conn.execute('UPDATE applications SET status = ? WHERE id = ?', (new_status, app_id))
-        return True
+    # Check if transition is valid using workflow engine
+    is_valid, error_message = workflow_engine.can_transition(
+        current_status, new_status, user_role, business_context
+    )
     
-    return False
+    if not is_valid:
+        return False, error_message
+    
+    # Update the status
+    conn.execute('UPDATE applications SET status = ? WHERE id = ?', (new_status, app_id))
+    
+    # Log the status change for audit
+    from app.database import log_user_action
+    from flask import session
+    
+    user_id = session.get('user_id') if 'session' in globals() else 'system'
+    log_user_action(
+        user_id=user_id,
+        action='status_change',
+        resource_type='application',
+        resource_id=app_id,
+        details=f"Status changed from {current_status} to {new_status}"
+    )
+    
+    return True, None
 
 def analyze_stride_threats(responses):
     """Analyze questionnaire responses to identify STRIDE threats"""
@@ -2113,7 +2232,9 @@ def submit_questionnaire(app_id):
           json.dumps(recommendations), 'submitted', datetime.now().isoformat()))
     
     # Update application status to 'submitted' when first questionnaire is submitted
-    update_application_status(app_id, 'submitted', conn)
+    success, error = update_application_status(app_id, 'submitted', conn, 'user')
+    if not success:
+        flash(f'Failed to submit application: {error}', 'error')
     
     conn.commit()
     
@@ -2212,15 +2333,27 @@ def web_review_results(app_id):
     app = conn.execute('SELECT * FROM applications WHERE id = ? AND author_id = ?', 
                       (app_id, session['user_id'])).fetchone()
     
+    # Check if application exists and is not in draft status
+    if not app:
+        conn.close()
+        return redirect(url_for('web_applications'))
+    
+    # Prevent access to review results for draft applications
+    if app['status'] == 'draft':
+        conn.close()
+        flash('Review results are not available for draft applications. Please submit your application for review first.', 'warning')
+        return redirect(url_for('web_security_assessment', app_id=app_id))
+    
     # Get ALL submitted reviews for this application (both Application Review and Cloud Review)
     all_reviews = conn.execute('''SELECT * FROM security_reviews 
                                  WHERE application_id = ? AND status IN ('submitted', 'completed', 'in_review') 
                                  ORDER BY field_type, created_at DESC''', 
                              (app_id,)).fetchall()
     
-    if not app or not all_reviews:
+    if not all_reviews:
         conn.close()
-        return redirect(url_for('web_applications'))
+        flash('No review results available yet. Please complete the security assessment first.', 'info')
+        return redirect(url_for('web_security_assessment', app_id=app_id))
     
     # Combine data from all reviews
     combined_responses = {}
@@ -2592,7 +2725,9 @@ def submit_for_review():
         ''', (review_id, app_id, review_type, 'submitted', session['user_id']))
         
         # Update application status to 'submitted' if it's currently 'draft'
-        update_application_status(app_id, 'submitted', conn)
+        success, error = update_application_status(app_id, 'submitted', conn, 'user')
+        if not success:
+            return jsonify({'success': False, 'error': f'Failed to submit: {error}'}), 400
         
         conn.commit()
         conn.close()
@@ -2602,12 +2737,26 @@ def submit_for_review():
         user_name = session.get('user_name', 'A user')
         review_type_display = 'Application Review' if review_type == 'application_review' else 'Cloud Review'
         
+        # Get user details for better notification
+        user_details = conn.execute('SELECT first_name, last_name, email FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+        full_user_name = f"{user_details['first_name']} {user_details['last_name']}" if user_details else user_name
+        user_email = user_details['email'] if user_details else 'Unknown'
+        
         create_notification(
             title=f"New {review_type_display} Submitted",
-            message=f"{user_name} has submitted '{app_name}' for {review_type_display.lower()}. Review is now pending.",
+            message=f"{full_user_name} ({user_email}) has submitted '{app_name}' for {review_type_display.lower()}. Review is now pending assignment.",
             notification_type='new_submission',
             application_id=app_id,
             target_role='security_analyst'
+        )
+        
+        # Create notification for admins with more details
+        create_notification(
+            title=f"New {review_type_display} Submitted - Admin Alert",
+            message=f"User: {full_user_name} ({user_email})\nApplication: '{app_name}'\nType: {review_type_display}\nStatus: Pending analyst assignment",
+            notification_type='new_submission',
+            application_id=app_id,
+            target_role='admin'
         )
         
         # Create notification for the user
@@ -2794,6 +2943,364 @@ def api_mark_all_read():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# === ADMIN ROUTES ===
+
+@app.route('/admin/dashboard')
+@admin_required
+def admin_dashboard():
+    """Admin Dashboard with system-wide statistics"""
+    conn = get_db()
+    
+    # System-wide statistics
+    total_users = conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count']
+    active_users = conn.execute('SELECT COUNT(*) as count FROM users WHERE is_active = 1').fetchone()['count']
+    total_applications = conn.execute('SELECT COUNT(*) as count FROM applications').fetchone()['count']
+    total_reviews = conn.execute('SELECT COUNT(*) as count FROM security_reviews').fetchone()['count']
+    pending_reviews = conn.execute('SELECT COUNT(*) as count FROM security_reviews WHERE status IN ("submitted", "in_review")').fetchone()['count']
+    
+    # Application statistics by status
+    app_stats = conn.execute('''
+        SELECT status, COUNT(*) as count 
+        FROM applications 
+        GROUP BY status
+    ''').fetchall()
+    
+    # User statistics by role
+    user_stats = conn.execute('''
+        SELECT role, COUNT(*) as count 
+        FROM users 
+        WHERE is_active = 1
+        GROUP BY role
+    ''').fetchall()
+    
+    # Security findings statistics
+    findings_stats = conn.execute('''
+        SELECT risk_level, COUNT(*) as count 
+        FROM stride_analysis 
+        GROUP BY risk_level
+    ''').fetchall()
+    
+    # Recent activity (last 10 applications)
+    recent_applications = conn.execute('''
+        SELECT a.id, a.name, a.status, a.created_at, 
+               u.first_name, u.last_name, u.email
+        FROM applications a
+        JOIN users u ON a.author_id = u.id
+        ORDER BY a.created_at DESC LIMIT 10
+    ''').fetchall()
+    
+    conn.close()
+    
+    stats = {
+        'total_users': total_users,
+        'active_users': active_users,
+        'total_applications': total_applications,
+        'total_reviews': total_reviews,
+        'pending_reviews': pending_reviews,
+        'app_stats': {row['status']: row['count'] for row in app_stats},
+        'user_stats': {row['role']: row['count'] for row in user_stats},
+        'findings_stats': {row['risk_level']: row['count'] for row in findings_stats}
+    }
+    
+    return render_template('admin/dashboard.html', 
+                         stats=stats, 
+                         recent_applications=recent_applications)
+
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    """Admin User Management"""
+    conn = get_db()
+    
+    # Get all users with additional information
+    users_raw = conn.execute('''
+        SELECT u.*, 
+               COUNT(a.id) as application_count,
+               COUNT(sr.id) as review_count
+        FROM users u
+        LEFT JOIN applications a ON u.id = a.author_id
+        LEFT JOIN security_reviews sr ON u.id = sr.analyst_id
+        GROUP BY u.id
+        ORDER BY u.created_at DESC
+    ''').fetchall()
+    
+    conn.close()
+    
+    # Convert Row objects to dictionaries for JSON serialization
+    users = [dict(user) for user in users_raw]
+    
+    return render_template('admin/users.html', users=users)
+
+@app.route('/admin/users/<user_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_user(user_id):
+    """Edit user details and role"""
+    conn = get_db()
+    
+    if request.method == 'POST':
+        # Update user information
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        email = request.form.get('email')
+        role = request.form.get('role')
+        is_active = 1 if request.form.get('is_active') == 'on' else 0
+        
+        try:
+            conn.execute('''
+                UPDATE users 
+                SET first_name = ?, last_name = ?, email = ?, role = ?, is_active = ?
+                WHERE id = ?
+            ''', (first_name, last_name, email, role, is_active, user_id))
+            conn.commit()
+            
+            flash(f'User {first_name} {last_name} updated successfully!', 'success')
+            return redirect(url_for('admin_users'))
+            
+        except Exception as e:
+            flash(f'Error updating user: {str(e)}', 'error')
+    
+    # Get user details
+    user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    conn.close()
+    
+    if not user:
+        flash('User not found', 'error')
+        return redirect(url_for('admin_users'))
+    
+    return render_template('admin/edit_user.html', user=user)
+
+@app.route('/admin/users/<user_id>/toggle-status', methods=['POST'])
+@admin_required
+def admin_toggle_user_status(user_id):
+    """Toggle user active status"""
+    conn = get_db()
+    
+    user = conn.execute('SELECT is_active, first_name, last_name FROM users WHERE id = ?', (user_id,)).fetchone()
+    if user:
+        new_status = 0 if user['is_active'] else 1
+        conn.execute('UPDATE users SET is_active = ? WHERE id = ?', (new_status, user_id))
+        conn.commit()
+        
+        status_text = "activated" if new_status else "deactivated"
+        flash(f'User {user["first_name"]} {user["last_name"]} {status_text} successfully!', 'success')
+    else:
+        flash('User not found', 'error')
+    
+    conn.close()
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/applications')
+@admin_required
+def admin_applications():
+    """Admin Application Management"""
+    conn = get_db()
+    
+    # Get all applications with user information
+    applications_raw = conn.execute('''
+        SELECT a.*, 
+               u.first_name, u.last_name, u.email,
+               COUNT(sr.id) as review_count,
+               MAX(sr.created_at) as last_review_date
+        FROM applications a
+        JOIN users u ON a.author_id = u.id
+        LEFT JOIN security_reviews sr ON a.id = sr.application_id
+        GROUP BY a.id
+        ORDER BY a.created_at DESC
+    ''').fetchall()
+    
+    conn.close()
+    
+    # Convert Row objects to dictionaries for JSON serialization
+    applications = [dict(app) for app in applications_raw]
+    
+    return render_template('admin/applications.html', applications=applications)
+
+@app.route('/admin/applications/<app_id>/change-status', methods=['POST'])
+@admin_required
+def admin_change_application_status(app_id):
+    """Admin override of application status"""
+    new_status = request.form.get('status')
+    
+    conn = get_db()
+    app = conn.execute('SELECT name FROM applications WHERE id = ?', (app_id,)).fetchone()
+    
+    if app:
+        conn.execute('UPDATE applications SET status = ? WHERE id = ?', (new_status, app_id))
+        conn.commit()
+        flash(f'Application "{app["name"]}" status changed to {new_status}!', 'success')
+    else:
+        flash('Application not found', 'error')
+    
+    conn.close()
+    return redirect(url_for('admin_applications'))
+
+@app.route('/admin/applications/<app_id>/delete', methods=['POST'])
+@admin_required
+def admin_delete_application(app_id):
+    """Admin delete application with all related data"""
+    conn = get_db()
+    
+    try:
+        app = conn.execute('SELECT name FROM applications WHERE id = ?', (app_id,)).fetchone()
+        
+        if app:
+            # Delete related records first (due to foreign key constraints)
+            conn.execute('DELETE FROM stride_analysis WHERE review_id IN (SELECT id FROM security_reviews WHERE application_id = ?)', (app_id,))
+            conn.execute('DELETE FROM security_reviews WHERE application_id = ?', (app_id,))
+            conn.execute('DELETE FROM notifications WHERE application_id = ?', (app_id,))
+            conn.execute('DELETE FROM applications WHERE id = ?', (app_id,))
+            conn.commit()
+            
+            flash(f'Application "{app["name"]}" and all related data deleted successfully!', 'success')
+        else:
+            flash('Application not found', 'error')
+            
+    except Exception as e:
+        flash(f'Error deleting application: {str(e)}', 'error')
+    
+    conn.close()
+    return redirect(url_for('admin_applications'))
+
+@app.route('/admin/reviews')
+@admin_required
+def admin_reviews():
+    """Admin Security Review Management"""
+    conn = get_db()
+    
+    # Get all security reviews with application and user information
+    reviews_raw = conn.execute('''
+        SELECT sr.*, 
+               a.name as app_name,
+               u1.first_name as author_first, u1.last_name as author_last, u1.email as author_email,
+               u2.first_name as analyst_first, u2.last_name as analyst_last, u2.email as analyst_email
+        FROM security_reviews sr
+        JOIN applications a ON sr.application_id = a.id
+        JOIN users u1 ON a.author_id = u1.id
+        LEFT JOIN users u2 ON sr.analyst_id = u2.id
+        ORDER BY sr.created_at DESC
+    ''').fetchall()
+    
+    # Get available analysts for reassignment
+    analysts_raw = conn.execute('''
+        SELECT id, first_name, last_name, email 
+        FROM users 
+        WHERE role IN ('security_analyst', 'admin') AND is_active = 1
+        ORDER BY first_name, last_name
+    ''').fetchall()
+    
+    conn.close()
+    
+    # Convert Row objects to dictionaries for JSON serialization
+    reviews = [dict(review) for review in reviews_raw]
+    analysts = [dict(analyst) for analyst in analysts_raw]
+    
+    return render_template('admin/reviews.html', reviews=reviews, analysts=analysts)
+
+@app.route('/admin/reviews/<review_id>/reassign', methods=['POST'])
+@admin_required
+def admin_reassign_review(review_id):
+    """Reassign review to different analyst"""
+    new_analyst_id = request.form.get('analyst_id')
+    
+    conn = get_db()
+    
+    # Get analyst name for flash message
+    analyst = conn.execute('SELECT first_name, last_name FROM users WHERE id = ?', (new_analyst_id,)).fetchone()
+    
+    if analyst:
+        conn.execute('UPDATE security_reviews SET analyst_id = ? WHERE id = ?', (new_analyst_id, review_id))
+        conn.commit()
+        flash(f'Review reassigned to {analyst["first_name"]} {analyst["last_name"]}!', 'success')
+    else:
+        flash('Analyst not found', 'error')
+    
+    conn.close()
+    return redirect(url_for('admin_reviews'))
+
+@app.route('/admin/audit-logs')
+@admin_required
+def admin_audit_logs():
+    """View system audit logs"""
+    conn = get_db()
+    
+    # Get recent audit logs with user information
+    logs = conn.execute('''
+        SELECT al.*, u.first_name, u.last_name, u.email
+        FROM audit_logs al
+        LEFT JOIN users u ON al.user_id = u.id
+        ORDER BY al.created_at DESC
+        LIMIT 100
+    ''').fetchall()
+    
+    conn.close()
+    
+    return render_template('admin/audit_logs.html', logs=logs)
+
+@app.route('/admin/settings')
+@admin_required
+def admin_settings():
+    """System configuration settings"""
+    return render_template('admin/settings.html')
+
+@app.route('/admin/reports')
+@admin_required
+def admin_reports():
+    """Generate system reports"""
+    conn = get_db()
+    
+    # Comprehensive system statistics for reporting
+    report_data = {
+        'users': {
+            'total': conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count'],
+            'active': conn.execute('SELECT COUNT(*) as count FROM users WHERE is_active = 1').fetchone()['count'],
+            'by_role': dict(conn.execute('SELECT role, COUNT(*) as count FROM users GROUP BY role').fetchall())
+        },
+        'applications': {
+            'total': conn.execute('SELECT COUNT(*) as count FROM applications').fetchone()['count'],
+            'by_status': dict(conn.execute('SELECT status, COUNT(*) as count FROM applications GROUP BY status').fetchall()),
+            'by_criticality': dict(conn.execute('SELECT business_criticality, COUNT(*) as count FROM applications GROUP BY business_criticality').fetchall())
+        },
+        'reviews': {
+            'total': conn.execute('SELECT COUNT(*) as count FROM security_reviews').fetchone()['count'],
+            'by_status': dict(conn.execute('SELECT status, COUNT(*) as count FROM security_reviews GROUP BY status').fetchall()),
+            'by_analyst': dict(conn.execute('''
+                SELECT u.first_name || " " || u.last_name as analyst_name, COUNT(*) as count 
+                FROM security_reviews sr 
+                JOIN users u ON sr.analyst_id = u.id 
+                WHERE sr.analyst_id IS NOT NULL 
+                GROUP BY sr.analyst_id
+            ''').fetchall())
+        },
+        'findings': {
+            'total': conn.execute('SELECT COUNT(*) as count FROM stride_analysis').fetchone()['count'],
+            'by_risk_level': dict(conn.execute('SELECT risk_level, COUNT(*) as count FROM stride_analysis GROUP BY risk_level').fetchall()),
+            'by_category': dict(conn.execute('SELECT threat_category, COUNT(*) as count FROM stride_analysis GROUP BY threat_category').fetchall())
+        }
+    }
+    
+    conn.close()
+    
+    return render_template('admin/reports.html', report_data=report_data)
+
+@app.route('/analyst/reviews')
+@analyst_required
+def analyst_reviews():
+    """Analyst Security Review Management"""
+    conn = get_db()
+    
+    # Get all security reviews for the analyst
+    reviews = conn.execute('''
+        SELECT sr.*, a.name as app_name
+        FROM security_reviews sr
+        JOIN applications a ON sr.application_id = a.id
+        WHERE sr.analyst_id = ?
+        ORDER BY sr.created_at DESC
+    ''', (session['user_id'],)).fetchall()
+    
+    conn.close()
+    
+    return render_template('analyst/reviews.html', reviews=reviews)
+
 if __name__ == '__main__':
     # Initialize database
     init_db()
@@ -2805,8 +3312,9 @@ if __name__ == '__main__':
     print("📋 Security questionnaires loaded")
     print("🛡️ STRIDE threat modeling ready")
     print("🌐 Server starting on http://localhost:5000")
-    print("👤 Demo User: admin@demo.com / password123")
+    print("👤 Demo User: user@demo.com / password123")
     print("🔍 Demo Analyst: analyst@demo.com / analyst123")
+    print("🛡️ Demo Admin: superadmin@demo.com / admin123")
     
     # Start Flask app
     app.run(host='0.0.0.0', port=5000, debug=True) 

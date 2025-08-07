@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Edit User - Admin Portal{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_users') }}">User Management</a></li>
+                    <li class="breadcrumb-item active">Edit User</li>
+                </ol>
+            </nav>
+            <h2><i class="fas fa-user-edit text-primary"></i> Edit User</h2>
+            <p class="text-muted">Modify user information and permissions</p>
+        </div>
+    </div>
+
+    <!-- Edit User Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user"></i> User Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="first_name" class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" 
+                                           value="{{ user.first_name }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="last_name" class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" 
+                                           value="{{ user.last_name }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ user.email }}" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="role" class="form-label">User Role</label>
+                                    <select class="form-control" id="role" name="role" required>
+                                        <option value="user" {% if user.role == 'user' %}selected{% endif %}>
+                                            User - Can create and submit applications
+                                        </option>
+                                        <option value="security_analyst" {% if user.role == 'security_analyst' %}selected{% endif %}>
+                                            Security Analyst - Can review applications
+                                        </option>
+                                        <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>
+                                            Admin - Full system access
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="organization_name" class="form-label">Organization</label>
+                                    <input type="text" class="form-control" id="organization_name" name="organization_name" 
+                                           value="{{ user.organization_name or '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="job_title" class="form-label">Job Title</label>
+                            <input type="text" class="form-control" id="job_title" name="job_title" 
+                                   value="{{ user.job_title or '' }}">
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" 
+                                   {% if user.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">
+                                <strong>Account Active</strong> - User can log in and access the system
+                            </label>
+                        </div>
+
+                        <div class="border-top pt-3">
+                            <h6>Additional Information</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <strong>Created:</strong> {{ user.created_at[:16] if user.created_at else 'Unknown' }}<br>
+                                        <strong>Last Login:</strong> {{ user.last_login_at[:16] if user.last_login_at else 'Never' }}
+                                    </small>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <strong>User ID:</strong> {{ user.id }}<br>
+                                        <strong>Onboarding:</strong> {{ 'Completed' if user.onboarding_completed else 'Pending' }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Users
+                            </a>
+                            <div>
+                                <button type="button" class="btn btn-warning me-2" onclick="resetPassword()">
+                                    <i class="fas fa-key"></i> Reset Password
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Activity Summary -->
+    <div class="row mt-4 justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-chart-line"></i> User Activity Summary
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="card border-left-primary">
+                                <div class="card-body py-3">
+                                    <div class="h4 mb-0 font-weight-bold text-primary">0</div>
+                                    <small class="text-muted">Applications Created</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-left-success">
+                                <div class="card-body py-3">
+                                    <div class="h4 mb-0 font-weight-bold text-success">0</div>
+                                    <small class="text-muted">Reviews Completed</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-left-warning">
+                                <div class="card-body py-3">
+                                    <div class="h4 mb-0 font-weight-bold text-warning">0</div>
+                                    <small class="text-muted">Login Count</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-left-info">
+                                <div class="card-body py-3">
+                                    <div class="h4 mb-0 font-weight-bold text-info">{{ user.experience_level|title if user.experience_level else 'N/A' }}</div>
+                                    <small class="text-muted">Experience Level</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reset User Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to reset the password for <strong>{{ user.first_name }} {{ user.last_name }}</strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    This will generate a temporary password that the user must change on their next login.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="confirmResetPassword()">
+                    <i class="fas fa-key"></i> Reset Password
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function resetPassword() {
+    new bootstrap.Modal(document.getElementById('resetPasswordModal')).show();
+}
+
+function confirmResetPassword() {
+    // In a real implementation, this would make an API call to reset the password
+    alert('Password reset functionality would be implemented here.\n\nThe user would receive an email with a temporary password or reset link.');
+    bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal')).hide();
+}
+
+// Role change warning
+document.getElementById('role').addEventListener('change', function() {
+    const currentRole = '{{ user.role }}';
+    const newRole = this.value;
+    
+    if (currentRole !== newRole) {
+        if (newRole === 'admin') {
+            if (!confirm('Warning: You are about to grant admin privileges to this user. This will give them full system access. Continue?')) {
+                this.value = currentRole;
+            }
+        } else if (currentRole === 'admin' && newRole !== 'admin') {
+            if (!confirm('Warning: You are about to remove admin privileges from this user. Continue?')) {
+                this.value = currentRole;
+            }
+        }
+    }
+});
+</script>
+
+<style>
+.border-left-primary { border-left: 4px solid #4e73df !important; }
+.border-left-success { border-left: 4px solid #1cc88a !important; }
+.border-left-warning { border-left: 4px solid #f6c23e !important; }
+.border-left-info { border-left: 4px solid #36b9cc !important; }
+
+.card {
+    transition: transform 0.2s;
+}
+
+.form-control:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+</style>
+{% endblock %} 

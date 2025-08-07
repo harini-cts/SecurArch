@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - SecureArch Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-cogs text-danger"></i> System Administration</h2>
+            <p class="text-muted">Complete system oversight and management</p>
+        </div>
+    </div>
+
+    <!-- System Health Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-primary h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Users</div>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.total_users }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-success h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active Users</div>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.active_users }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-info h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Applications</div>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.total_applications }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-laptop-code fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-warning h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Total Reviews</div>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.total_reviews }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-danger h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Pending Reviews</div>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.pending_reviews }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-dark h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">High Risk Findings</div>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.findings_stats.get('High', 0) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Sections -->
+    <div class="row mb-4">
+        <!-- Quick Actions -->
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-tachometer-alt"></i> Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('admin_users') }}" class="btn btn-primary">
+                            <i class="fas fa-users"></i> Manage Users
+                        </a>
+                        <a href="{{ url_for('admin_applications') }}" class="btn btn-info">
+                            <i class="fas fa-laptop-code"></i> Manage Applications
+                        </a>
+                        <a href="{{ url_for('admin_reviews') }}" class="btn btn-warning">
+                            <i class="fas fa-clipboard-check"></i> Manage Reviews
+                        </a>
+                        <a href="{{ url_for('admin_audit_logs') }}" class="btn btn-danger">
+                            <i class="fas fa-file-alt"></i> Audit Logs
+                        </a>
+                        <a href="{{ url_for('admin_reports') }}" class="btn btn-success">
+                            <i class="fas fa-chart-bar"></i> Generate Reports
+                        </a>
+                        <a href="{{ url_for('admin_settings') }}" class="btn btn-secondary">
+                            <i class="fas fa-cog"></i> System Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Statistics -->
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-chart-pie"></i> System Breakdown
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <h6>Applications by Status:</h6>
+                    {% for status, count in stats.app_stats.items() %}
+                    <div class="d-flex justify-content-between">
+                        <span class="text-capitalize">{{ status }}:</span>
+                        <strong>{{ count }}</strong>
+                    </div>
+                    {% endfor %}
+
+                    <hr>
+                    <h6>Users by Role:</h6>
+                    {% for role, count in stats.user_stats.items() %}
+                    <div class="d-flex justify-content-between">
+                        <span class="text-capitalize">{{ role.replace('_', ' ') }}:</span>
+                        <strong>{{ count }}</strong>
+                    </div>
+                    {% endfor %}
+
+                    <hr>
+                    <h6>Security Findings:</h6>
+                    {% for risk, count in stats.findings_stats.items() %}
+                    <div class="d-flex justify-content-between">
+                        <span class="{% if risk == 'High' %}text-danger{% elif risk == 'Medium' %}text-warning{% else %}text-success{% endif %}">
+                            {{ risk }} Risk:
+                        </span>
+                        <strong>{{ count }}</strong>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-history"></i> Recent Applications
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_applications %}
+                    <div class="list-group list-group-flush">
+                        {% for app in recent_applications %}
+                        <div class="list-group-item border-0 p-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">{{ app.name }}</h6>
+                                    <small class="text-muted">by {{ app.first_name }} {{ app.last_name }}</small>
+                                </div>
+                                <div class="text-right">
+                                    <span class="badge {% if app.status == 'completed' %}bg-success{% elif app.status == 'in_review' %}bg-primary{% elif app.status == 'submitted' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                        {{ app.status|title }}
+                                    </span>
+                                    <br>
+                                    <small class="text-muted">{{ app.created_at[:10] }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">No recent applications</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Alerts -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow border-left-warning">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">
+                        <i class="fas fa-exclamation-triangle"></i> System Alerts
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            {% if stats.pending_reviews > 10 %}
+                            <div class="alert alert-warning" role="alert">
+                                <i class="fas fa-clock"></i> <strong>{{ stats.pending_reviews }} pending reviews</strong> require attention
+                            </div>
+                            {% endif %}
+                            
+                            {% if stats.findings_stats.get('High', 0) > 20 %}
+                            <div class="alert alert-danger" role="alert">
+                                <i class="fas fa-exclamation-triangle"></i> <strong>{{ stats.findings_stats.get('High', 0) }} high-risk findings</strong> identified
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            {% if stats.total_users - stats.active_users > 5 %}
+                            <div class="alert alert-info" role="alert">
+                                <i class="fas fa-user-slash"></i> <strong>{{ stats.total_users - stats.active_users }} inactive users</strong> in system
+                            </div>
+                            {% endif %}
+                            
+                            <div class="alert alert-success" role="alert">
+                                <i class="fas fa-check-circle"></i> System operational - All services running normally
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.border-left-primary { border-left: 4px solid #4e73df !important; }
+.border-left-success { border-left: 4px solid #1cc88a !important; }
+.border-left-info { border-left: 4px solid #36b9cc !important; }
+.border-left-warning { border-left: 4px solid #f6c23e !important; }
+.border-left-danger { border-left: 4px solid #e74a3b !important; }
+.border-left-dark { border-left: 4px solid #5a5c69 !important; }
+
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %} 

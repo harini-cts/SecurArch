@@ -227,25 +227,71 @@
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Role-based Navigation -->
                 <ul class="navbar-nav me-auto">
                     {% if session.user_id %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('web_dashboard') }}">
-                            <i class="fas fa-tachometer-alt"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('web_applications') }}">
-                            <i class="fas fa-laptop-code"></i> Applications
-                        </a>
-                    </li>
-                    {% if session.user_role in ['security_analyst', 'admin'] %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('analyst_dashboard') }}">
-                            <i class="fas fa-microscope"></i> Analyst Dashboard
-                        </a>
-                    </li>
-                    {% endif %}
+                        <!-- Dashboard Link (for non-admin users only) -->
+                        {% if session.user_role != 'admin' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('web_dashboard') }}">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        <!-- User Applications (for regular users only) -->
+                        {% if session.user_role == 'user' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('web_applications') }}">
+                                <i class="fas fa-laptop-code"></i> Applications
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        <!-- Admin Role Navigation - All functionality under dropdown -->
+                        {% if session.user_role == 'admin' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-cogs text-danger"></i> Admin
+                            </a>
+                            <ul class="dropdown-menu">
+                                <!-- Core Admin Views -->
+                                <li><a class="dropdown-item" href="{{ url_for('web_dashboard') }}">
+                                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('web_applications') }}">
+                                    <i class="fas fa-laptop-code"></i> Applications
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                
+                                <!-- Admin Management -->
+                                <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}">
+                                    <i class="fas fa-chart-line"></i> System Administration
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_users') }}">
+                                    <i class="fas fa-users"></i> User Management
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_applications') }}">
+                                    <i class="fas fa-laptop-code"></i> Application Management
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_reviews') }}">
+                                    <i class="fas fa-clipboard-check"></i> Review Management
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                
+                                <!-- System Tools -->
+                                <li><a class="dropdown-item" href="{{ url_for('admin_audit_logs') }}">
+                                    <i class="fas fa-file-alt"></i> Audit Logs
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_reports') }}">
+                                    <i class="fas fa-chart-bar"></i> Reports
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_settings') }}">
+                                    <i class="fas fa-cog"></i> Settings
+                                </a></li>
+                            </ul>
+                        </li>
+                        {% endif %}
                     {% endif %}
                 </ul>
                 

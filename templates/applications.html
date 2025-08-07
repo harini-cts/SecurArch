@@ -62,22 +62,30 @@
                     </div>
                     <div class="card-footer">
                         <div class="d-flex gap-2 mb-2">
-                            {% if app.review_status %}
+                            {% if app.review_status and app.status != 'draft' %}
                                 <a href="{{ url_for('web_review_results', app_id=app.id) }}" class="btn btn-outline-primary btn-sm flex-fill">
                                     <i class="fas fa-chart-line"></i> View Results
+                                </a>
+                            {% elif app.status == 'draft' %}
+                                <a href="{{ url_for('web_security_assessment', app_id=app.id) }}" class="btn btn-outline-success btn-sm flex-fill">
+                                    <i class="fas fa-clipboard-check"></i> Start Assessment
                                 </a>
                             {% else %}
                                 <a href="{{ url_for('web_security_assessment', app_id=app.id) }}" class="btn btn-outline-success btn-sm flex-fill">
                                     <i class="fas fa-clipboard-check"></i> Start Review
                                 </a>
                             {% endif %}
+                            {% if app.status == 'draft' %}
                             <button class="btn btn-outline-secondary btn-sm" onclick="editApplication('{{ app.id }}')">
                                 <i class="fas fa-edit"></i>
                             </button>
+                            {% endif %}
                         </div>
+                        {% if app.status in ['draft', 'rejected'] %}
                         <button class="btn btn-outline-danger btn-sm w-100" onclick="deleteApplication('{{ app.id }}', '{{ app.name }}')">
                             <i class="fas fa-trash"></i> Delete Application
                         </button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
