@@ -12,19 +12,31 @@
     
     <style>
         :root {
-            --primary-color: #000048;    /* Midnight blue */
-            --secondary-color: #05819B;  /* Dark teal */
-            --success-color: #2F78C4;    /* Medium blue */
-            --warning-color: #E9C71D;    /* Highlight yellow */
-            --danger-color: #B81F2D;     /* Highlight red */
-            --info-color: #2E308E;       /* Dark plum */
-            --light-bg: #D0D0CE;         /* Light gray */
-            --dark-bg: #53565A;          /* Dark gray */
+            /* Cognizant Official Brand Colors - Exact from Palette */
+            --primary-color: #000048;        /* Midnight blue */
+            --secondary-color: #05819B;      /* Dark teal */
+            --success-color: #26EFE9;        /* Light teal */
+            --warning-color: #E9C71D;        /* Highlight yellow */
+            --danger-color: #B81F2D;         /* Highlight red */
+            --info-color: #2E308E;           /* Dark plum */
+            
+            /* Cognizant Gray Scale */
+            --light-bg: #D0D0CE;            /* Light gray */
+            --medium-bg: #97999B;           /* Medium gray */
+            --dark-bg: #53565A;             /* Dark gray */
+            
+            /* Extended Cognizant Palette */
+            --dark-blue: #2F78C4;           /* Dark blue */
+            --medium-blue: #66AA2DC;        /* Medium blue */
+            --light-blue: #92BBE6;          /* Light blue */
+            --medium-teal: #06C7CC;         /* Medium teal */
+            --medium-plum: #737308;         /* Medium plum */
+            --light-plum: #85A0F9;          /* Light plum */
         }
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--primary-color) 0%, #2E308E 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--info-color) 100%);
             min-height: 100vh;
         }
         
@@ -89,17 +101,88 @@
         }
         
         .btn-primary {
-            background: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             border: none;
             border-radius: 25px;
             padding: 10px 25px;
             font-weight: 500;
             transition: all 0.3s ease;
+            color: white;
         }
         
         .btn-primary:hover {
-            background: var(--secondary-color);
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
             transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 72, 0.3);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--medium-bg);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: var(--dark-bg);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(83, 86, 90, 0.3);
+            color: white;
+        }
+        
+        .btn-success {
+            background: var(--success-color);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: var(--primary-color);
+        }
+        
+        .btn-success:hover {
+            background: var(--medium-teal);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(38, 239, 233, 0.3);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: var(--warning-color);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: var(--primary-color);
+        }
+        
+        .btn-warning:hover {
+            background: #F5D63D;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(233, 199, 29, 0.3);
+            color: var(--primary-color);
+        }
+        
+        .btn-danger {
+            background: var(--danger-color);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #D4344A;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(184, 31, 45, 0.3);
+            color: white;
         }
         
         .form-control {
@@ -128,6 +211,56 @@
             font-size: 0.8rem;
             padding: 8px 12px;
             border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        /* Cognizant Brand Badge Colors */
+        .badge.bg-primary, .bg-primary {
+            background: var(--primary-color) !important;
+            color: white;
+        }
+        
+        .badge.bg-secondary, .bg-secondary {
+            background: var(--secondary-color) !important;
+            color: white;
+        }
+        
+        .badge.bg-success, .bg-success {
+            background: var(--success-color) !important;
+            color: var(--primary-color);
+        }
+        
+        .badge.bg-warning, .bg-warning {
+            background: var(--warning-color) !important;
+            color: var(--primary-color);
+        }
+        
+        .badge.bg-danger, .bg-danger {
+            background: var(--danger-color) !important;
+            color: white;
+        }
+        
+        .badge.bg-info, .bg-info {
+            background: var(--info-color) !important;
+            color: white;
+        }
+        
+        .badge.bg-outline-success {
+            background: transparent !important;
+            border: 2px solid var(--success-color);
+            color: var(--success-color);
+        }
+        
+        .badge.bg-outline-warning {
+            background: transparent !important;
+            border: 2px solid var(--warning-color);
+            color: var(--warning-color);
+        }
+        
+        .badge.bg-outline-danger {
+            background: transparent !important;
+            border: 2px solid var(--danger-color);
+            color: var(--danger-color);
         }
         
         .stats-card {
@@ -146,7 +279,7 @@
         }
         
         .questionnaire-section {
-            background: #f8f9fa;
+            background: var(--light-bg);
             border-radius: 10px;
             padding: 20px;
             margin: 15px 0;
@@ -187,39 +320,236 @@
         }
 
         .alert-success {
-            background-color: var(--success-color);
-            color: white;
-            border: none;
+            background: linear-gradient(135deg, var(--success-color), var(--medium-teal));
+            color: var(--primary-color);
+            border: 1px solid var(--success-color);
+            border-radius: 15px;
+            font-weight: 500;
         }
 
         .alert-warning {
-            background-color: var(--warning-color);
-            color: #000048;
-            border: none;
+            background: linear-gradient(135deg, var(--warning-color), #F5D63D);
+            color: var(--primary-color);
+            border: 1px solid var(--warning-color);
+            border-radius: 15px;
+            font-weight: 500;
         }
 
         .alert-danger {
-            background-color: var(--danger-color);
+            background: linear-gradient(135deg, var(--danger-color), #D4344A);
             color: white;
-            border: none;
+            border: 1px solid var(--danger-color);
+            border-radius: 15px;
+            font-weight: 500;
         }
 
         .alert-info {
-            background-color: var(--info-color);
+            background: linear-gradient(135deg, var(--info-color), var(--medium-plum));
             color: white;
-            border: none;
+            border: 1px solid var(--info-color);
+            border-radius: 15px;
+            font-weight: 500;
+        }
+
+        /* Admin Navigation Bar Styling - Minimal Clean Design */
+        .navbar .navbar-nav.me-auto {
+            gap: 15px;
+        }
+
+        .navbar .nav-item .nav-link {
+            border-radius: 10px;
+            margin: 0;
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        /* Admin-specific navigation styling */
+        body.admin-user .navbar .nav-item .nav-link {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        body.admin-user .navbar .nav-item .nav-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        body.admin-user .navbar .nav-item .nav-link.active {
+            background: var(--warning-color);
+            color: var(--primary-color);
+            border: 1px solid var(--warning-color);
+            font-weight: 600;
+        }
+
+        /* Special styling for admin toggle */
+        .navbar .admin-toggle {
+            background: linear-gradient(135deg, rgba(232, 199, 29, 0.2), rgba(232, 199, 29, 0.1)) !important;
+            border: 1px solid rgba(232, 199, 29, 0.4) !important;
+            color: var(--warning-color) !important;
+            font-weight: 600;
+        }
+
+        .navbar .admin-toggle:hover {
+            background: linear-gradient(135deg, rgba(232, 199, 29, 0.3), rgba(232, 199, 29, 0.2)) !important;
+            border: 1px solid rgba(232, 199, 29, 0.6) !important;
+            color: white !important;
+        }
+
+        /* Enhanced Admin Dropdown Styling */
+        .navbar .admin-dropdown {
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            margin-top: 10px;
+            min-width: 280px;
+            backdrop-filter: blur(10px);
+        }
+
+        .navbar .admin-dropdown .dropdown-header {
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 8px 16px 5px 16px;
+            margin-bottom: 5px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        .navbar .admin-dropdown .dropdown-header i {
+            margin-right: 8px;
+            color: var(--secondary-color);
+        }
+
+        .navbar .admin-dropdown .dropdown-item {
+            color: var(--primary-color);
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin: 3px 0;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .navbar .admin-dropdown .dropdown-item:hover {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            transform: translateX(8px);
+            border-left: 3px solid var(--warning-color);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar .admin-dropdown .dropdown-item:focus {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
+
+        .navbar .admin-dropdown .dropdown-item i {
+            width: 20px;
+            margin-right: 12px;
+            text-align: center;
+            opacity: 0.8;
+        }
+
+        .navbar .admin-dropdown .dropdown-divider {
+            margin: 12px 0;
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        /* Dropdown toggle arrow styling */
+        .navbar .dropdown-toggle::after {
+            margin-left: 10px;
+            vertical-align: middle;
+            border-top: 0.4em solid;
+            border-right: 0.3em solid transparent;
+            border-left: 0.3em solid transparent;
+        }
+
+        /* Responsive admin navigation */
+        @media (max-width: 1200px) {
+            .navbar .nav-item .nav-link {
+                font-size: 0.9rem;
+                padding: 10px 16px;
+            }
+            
+            .navbar .admin-dropdown {
+                min-width: 260px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .navbar .navbar-nav.me-auto {
+                gap: 0;
+            }
+
+            .navbar .nav-item .nav-link {
+                display: block;
+                margin: 5px 0;
+                padding: 15px 20px;
+                font-size: 1rem;
+                border-radius: 8px;
+            }
+            
+            body.admin-user .navbar .nav-item .nav-link {
+                background: rgba(255, 255, 255, 0.08);
+                margin: 5px 0;
+            }
+
+            .navbar .admin-dropdown {
+                background: rgba(255, 255, 255, 0.95);
+                position: static;
+                float: none;
+                width: auto;
+                margin: 5px 0 0 0;
+                border: none;
+                border-radius: 0;
+                box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+                padding: 10px;
+            }
+
+            .navbar .admin-dropdown .dropdown-item {
+                padding: 12px 25px;
+                color: rgba(255, 255, 255, 0.9);
+                margin: 2px 0;
+            }
+
+            .navbar .admin-dropdown .dropdown-header {
+                color: rgba(255, 255, 255, 0.7);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            }
+
+            .navbar .admin-dropdown .dropdown-item:hover {
+                background: rgba(255, 255, 255, 0.15);
+                color: white;
+                transform: none;
+                border-left: 3px solid var(--warning-color);
+            }
+        }
+
+        /* Icon spacing for admin nav */
+        .navbar .nav-link i {
+            margin-right: 8px;
+            width: 18px;
+            text-align: center;
         }
     </style>
     
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body{% if session.user_role == 'admin' %} class="admin-user"{% endif %}>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark" style="background: var(--primary-color);">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('web_home') }}">
                 <img src="{{ url_for('static', filename='images/cognizant_logo.png') }}" alt="Cognizant Logo" class="img-fluid">
-                Cognizant SecArch Portal
+                SecArch Portal
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -230,14 +560,12 @@
                 <!-- Role-based Navigation -->
                 <ul class="navbar-nav me-auto">
                     {% if session.user_id %}
-                        <!-- Dashboard Link (for non-admin users only) -->
-                        {% if session.user_role != 'admin' %}
+                        <!-- Dashboard Link (for all users) -->
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('web_dashboard') }}">
                                 <i class="fas fa-tachometer-alt"></i> Dashboard
                             </a>
                         </li>
-                        {% endif %}
                         
                         <!-- User Applications (for regular users only) -->
                         {% if session.user_role == 'user' %}
@@ -248,46 +576,53 @@
                         </li>
                         {% endif %}
                         
-                        <!-- Admin Role Navigation - All functionality under dropdown -->
+                        <!-- Clean Admin Navigation - Minimal Design -->
                         {% if session.user_role == 'admin' %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-cogs text-danger"></i> Admin
+                        <!-- Applications (Direct Access) -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('web_applications') }}">
+                                <i class="fas fa-laptop-code"></i> Applications
                             </a>
-                            <ul class="dropdown-menu">
-                                <!-- Core Admin Views -->
-                                <li><a class="dropdown-item" href="{{ url_for('web_dashboard') }}">
-                                    <i class="fas fa-tachometer-alt"></i> Dashboard
-                                </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('web_applications') }}">
-                                    <i class="fas fa-laptop-code"></i> Applications
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                
-                                <!-- Admin Management -->
+                        </li>
+                        
+                        <!-- Single Admin Dropdown - Everything Else -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle admin-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-shield-alt"></i> Admin
+                            </a>
+                            <ul class="dropdown-menu admin-dropdown">
+                                <!-- Core Administration -->
+                                <li><h6 class="dropdown-header"><i class="fas fa-cog"></i> System</h6></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}">
                                     <i class="fas fa-chart-line"></i> System Administration
                                 </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_reports') }}">
+                                    <i class="fas fa-chart-bar"></i> Reports & Analytics
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_settings') }}">
+                                    <i class="fas fa-cog"></i> Settings
+                                </a></li>
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                
+                                <!-- Management Functions -->
+                                <li><h6 class="dropdown-header"><i class="fas fa-users-cog"></i> Management</h6></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_users') }}">
                                     <i class="fas fa-users"></i> User Management
                                 </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_applications') }}">
-                                    <i class="fas fa-laptop-code"></i> Application Management
+                                    <i class="fas fa-cogs"></i> Application Management
                                 </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_reviews') }}">
                                     <i class="fas fa-clipboard-check"></i> Review Management
                                 </a></li>
+                                
                                 <li><hr class="dropdown-divider"></li>
                                 
-                                <!-- System Tools -->
+                                <!-- Monitoring -->
+                                <li><h6 class="dropdown-header"><i class="fas fa-eye"></i> Monitoring</h6></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_audit_logs') }}">
                                     <i class="fas fa-file-alt"></i> Audit Logs
-                                </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('admin_reports') }}">
-                                    <i class="fas fa-chart-bar"></i> Reports
-                                </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('admin_settings') }}">
-                                    <i class="fas fa-cog"></i> Settings
                                 </a></li>
                             </ul>
                         </li>
@@ -640,6 +975,54 @@
     }
     </style>
     {% endif %}
+    
+    <!-- Active Navigation Highlighting -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get current path
+        const currentPath = window.location.pathname;
+        
+        // Find all navigation links (both nav-link and dropdown-item)
+        const navLinks = document.querySelectorAll('.navbar .nav-link, .navbar .dropdown-item');
+        
+        // Remove any existing active classes
+        navLinks.forEach(link => link.classList.remove('active'));
+        document.querySelectorAll('.navbar .dropdown-toggle').forEach(toggle => toggle.classList.remove('active'));
+        
+        // Add active class to current page link
+        let foundActive = false;
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href && (currentPath === href || (href !== '/' && currentPath.startsWith(href)))) {
+                link.classList.add('active');
+                foundActive = true;
+                
+                // If it's a dropdown item, also highlight the parent dropdown toggle
+                const dropdownItem = link.closest('.dropdown-menu');
+                if (dropdownItem) {
+                    const dropdownToggle = dropdownItem.previousElementSibling;
+                    if (dropdownToggle && dropdownToggle.classList.contains('dropdown-toggle')) {
+                        dropdownToggle.classList.add('active');
+                    }
+                }
+            }
+        });
+        
+        // Special handling for admin routes - highlight admin dropdown if on any admin page
+        if (currentPath.startsWith('/admin/') && !foundActive) {
+            const adminToggle = document.querySelector('#adminDropdown');
+            if (adminToggle) {
+                adminToggle.classList.add('active');
+            }
+            
+            // Also highlight the specific admin page if found
+            const adminLink = document.querySelector(`a[href="${currentPath}"]`);
+            if (adminLink) {
+                adminLink.classList.add('active');
+            }
+        }
+    });
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>

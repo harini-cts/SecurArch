@@ -14,9 +14,13 @@
                         <p class="mb-0 text-muted">Application: <strong>{{ application.name }}</strong></p>
                     </div>
                     <div class="text-end">
-                        <span class="badge bg-{{ 'success' if review.security_level == 'High' else ('warning' if review.security_level == 'Medium' else 'danger') }} fs-6">
-                            {{ review.security_level }} Security
-                        </span>
+                        {% if review.risk_score <= 1.5 %}
+                            <span class="badge bg-success fs-6">High Security</span>
+                        {% elif review.risk_score <= 2.5 %}
+                            <span class="badge bg-warning fs-6">Medium Security</span>
+                        {% else %}
+                            <span class="badge bg-danger fs-6">Low Security</span>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -187,18 +191,28 @@
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Security Level Assessment</label>
-                            <div class="alert alert-{{ 'success' if review.security_level == 'High' else ('warning' if review.security_level == 'Medium' else 'danger') }}">
-                                <i class="fas fa-shield-alt"></i> <strong>{{ review.security_level }} Security Level</strong>
-                                <p class="mb-0 mt-2">
-                                    {% if review.security_level == 'High' %}
+                            {% if review.risk_score <= 1.5 %}
+                                <div class="alert alert-success">
+                                    <i class="fas fa-shield-alt"></i> <strong>High Security Level</strong>
+                                    <p class="mb-0 mt-2">
                                         Your application demonstrates strong security controls across multiple areas.
-                                    {% elif review.security_level == 'Medium' %}
+                                    </p>
+                                </div>
+                            {% elif review.risk_score <= 2.5 %}
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-shield-alt"></i> <strong>Medium Security Level</strong>
+                                    <p class="mb-0 mt-2">
                                         Your application has good security foundations with some areas for improvement.
-                                    {% else %}
+                                    </p>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-shield-alt"></i> <strong>Low Security Level</strong>
+                                    <p class="mb-0 mt-2">
                                         Your application needs significant security improvements in multiple areas.
-                                    {% endif %}
-                                </p>
-                            </div>
+                                    </p>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="col-md-6">

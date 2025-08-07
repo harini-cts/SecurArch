@@ -1279,12 +1279,12 @@ def web_applications():
     conn = get_db()
     apps = conn.execute('''
         SELECT a.*, 
-               sr.security_level, 
+               sr.risk_score, 
                sr.status as review_status
         FROM applications a
         LEFT JOIN (
             SELECT application_id, 
-                   security_level, 
+                   risk_score, 
                    status,
                    MAX(created_at) as latest_created
             FROM security_reviews 
@@ -1640,7 +1640,7 @@ def analyst_review_detail(review_id):
     
     # Get review with application details and field_type
     review = conn.execute('''
-        SELECT sr.id, sr.application_id, sr.questionnaire_responses, sr.security_level, 
+        SELECT sr.id, sr.application_id, sr.questionnaire_responses, sr.risk_score, 
                sr.recommendations, sr.status, sr.analyst_reviewed_at, sr.created_at, sr.field_type,
                a.name as app_name, a.description as app_description, 
                a.technology_stack, a.deployment_environment, a.business_criticality, a.data_classification,
@@ -2189,12 +2189,13 @@ def submit_questionnaire(app_id):
     # Determine security level based on high-risk answers
     high_risk_percentage = (high_risk_answers / answered_questions * 100) if answered_questions > 0 else 0
     
+    # Calculate risk score instead of security level
     if high_risk_percentage <= 20:
-        security_level = 'High'
+        risk_score = 1.0  # Low risk
     elif high_risk_percentage <= 50:
-        security_level = 'Medium'
+        risk_score = 2.0  # Medium risk
     else:
-        security_level = 'Low'
+        risk_score = 3.0  # High risk
     
     # Generate recommendations (updated to not use risk_score)
     recommendations = generate_recommendations(responses, high_risk_percentage)
@@ -2225,10 +2226,10 @@ def submit_questionnaire(app_id):
     
     conn.execute('''
         INSERT INTO security_reviews (id, application_id, author_id, field_type, questionnaire_responses, 
-                                     security_level, recommendations, 
+                                     risk_score, recommendations, 
                                      status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (review_id, app_id, session['user_id'], field_type, json.dumps(questionnaire_data), security_level, 
+    ''', (review_id, app_id, session['user_id'], field_type, json.dumps(questionnaire_data), risk_score, 
           json.dumps(recommendations), 'submitted', datetime.now().isoformat()))
     
     # Update application status to 'submitted' when first questionnaire is submitted
