@@ -1267,9 +1267,6 @@ def web_dashboard():
         
         conn.close()
         
-        # Debug: Print app_stats to console
-        print(f"DEBUG: app_stats = {app_stats}")
-        
         return render_template('dashboard.html', 
                              role='user',
                              applications=user_applications,
