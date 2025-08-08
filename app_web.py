@@ -116,6 +116,29 @@ def migrate_database():
                 )
             ''')
             print("   ✅ Updated stride_analysis table with new schema")
+        
+        # Check if audit_logs table exists
+        try:
+            conn.execute('SELECT id FROM audit_logs LIMIT 1')
+            print("   ✅ audit_logs table exists")
+        except sqlite3.OperationalError:
+            print("   🔧 Creating audit_logs table...")
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT,
+                    action TEXT NOT NULL,
+                    resource_type TEXT,
+                    resource_id TEXT,
+                    details TEXT,
+                    ip_address TEXT,
+                    user_agent TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            ''')
+            print("   ✅ Created audit_logs table")
+        
         print("🎉 Database migration completed successfully!")
     
     conn.commit()
