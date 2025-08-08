@@ -239,7 +239,7 @@ class WorkflowEngine:
         visible_applications = []
         
         for app in applications:
-            app_status = app.get('status', '')
+            app_status = app['status'] if app['status'] else ''
             
             # Check if visible to analyst
             if self.is_visible_to_role(app_status, UserRole.SECURITY_ANALYST.value, is_owner=False):
@@ -287,8 +287,8 @@ class WorkflowEngine:
         current_time = datetime.now()
         
         for app in applications:
-            status = app.get('status', '')
-            created_at_str = app.get('created_at', '')
+            status = app['status'] if app['status'] else ''
+            created_at_str = app['created_at'] if app['created_at'] else ''
             
             if not created_at_str:
                 continue
@@ -326,13 +326,14 @@ class WorkflowEngine:
         if user_role == UserRole.SECURITY_ANALYST.value:
             # Use analyst-specific statuses
             for app in applications:
-                if self.is_visible_to_role(app.get('status', ''), user_role, False):
-                    analyst_status = self.get_analyst_status(app.get('status', ''))
+                app_status = app['status'] if app['status'] else ''
+                if self.is_visible_to_role(app_status, user_role, False):
+                    analyst_status = self.get_analyst_status(app_status)
                     summary[analyst_status] = summary.get(analyst_status, 0) + 1
         else:
             # Use regular statuses for users and admins
             for app in applications:
-                status = app.get('status', 'unknown')
+                status = app['status'] if app['status'] else 'unknown'
                 summary[status] = summary.get(status, 0) + 1
         
         return summary
