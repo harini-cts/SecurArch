@@ -560,11 +560,17 @@
                 <!-- Role-based Navigation -->
                 <ul class="navbar-nav me-auto">
                     {% if session.user_id %}
-                        <!-- Dashboard Link (for all users) -->
+                        <!-- Dashboard Link (role-specific) -->
                         <li class="nav-item">
+                            {% if session.user_role == 'admin' %}
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                            {% else %}
                             <a class="nav-link" href="{{ url_for('web_dashboard') }}">
                                 <i class="fas fa-tachometer-alt"></i> Dashboard
                             </a>
+                            {% endif %}
                         </li>
                         
                         <!-- Reviews Tab (for analysts and admins) -->
