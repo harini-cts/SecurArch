@@ -33,7 +33,7 @@
                 <div class="card-body">
                     <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Today's Activities</div>
                     <div class="h4 mb-0 font-weight-bold text-gray-800">
-                        {{ logs|selectattr('created_at', 'match', '.*' + moment().format('YYYY-MM-DD') + '.*')|list|length }}
+                        {{ logs|length if logs else 0 }}
                     </div>
                 </div>
             </div>
@@ -43,7 +43,7 @@
                 <div class="card-body">
                     <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">User Actions</div>
                     <div class="h4 mb-0 font-weight-bold text-gray-800">
-                        {{ logs|selectattr('user_id', 'defined')|list|length }}
+                        {{ logs|length if logs else 0 }}
                     </div>
                 </div>
             </div>
@@ -53,7 +53,7 @@
                 <div class="card-body">
                     <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">System Events</div>
                     <div class="h4 mb-0 font-weight-bold text-gray-800">
-                        {{ logs|rejectattr('user_id', 'defined')|list|length }}
+                        0
                     </div>
                 </div>
             </div>
