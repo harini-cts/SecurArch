@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Cognizant SecArch Portal - Security Architecture Review Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 text-center py-5">
+        <h1 class="display-4 mb-4">
+            <i class="fas fa-shield-alt text-primary"></i> 
+            Welcome to Cognizant SecArch Portal
+        </h1>
+        <p class="lead text-muted mb-5">
+            Enterprise-grade Security Architecture Review Platform with OWASP Standards Integration
+        </p>
+        
+        <div class="row justify-content-center mb-5">
+            <div class="col-lg-8">
+                {% if not session.user_id %}
+                <a href="{{ url_for('web_register') }}" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-user-plus"></i> Get Started - Create Account
+                </a>
+                <a href="{{ url_for('web_login') }}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+                {% else %}
+                <a href="{{ url_for('web_dashboard') }}" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                </a>
+                <a href="{{ url_for('web_create_application') }}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-plus"></i> New Security Review
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-4">
+        <div class="stats-card">
+            <i class="fas fa-clipboard-check fa-3x mb-3"></i>
+            <h3>Smart Assessment</h3>
+            <p>OWASP-based security questionnaires with automated risk scoring</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card">
+            <i class="fas fa-users fa-3x mb-3"></i>
+            <h3>Expert Reviews</h3>
+            <p>Connect with security professionals for detailed architecture reviews</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card">
+            <i class="fas fa-chart-line fa-3x mb-3"></i>
+            <h3>Risk Analytics</h3>
+            <p>Comprehensive reporting and actionable security recommendations</p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-shield-alt"></i> OWASP Standards Integration</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i> 
+                        <strong>ASVS (Application Security Verification Standard)</strong>
+                        <br><small class="text-muted">Levels 1, 2, and 3 verification requirements</small>
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i> 
+                        <strong>OWASP Top 10</strong>
+                        <br><small class="text-muted">2021 and 2017 versions covered</small>
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i> 
+                        <strong>Proactive Controls</strong>
+                        <br><small class="text-muted">12 key security controls implementation</small>
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i> 
+                        <strong>SAMM (Software Assurance Maturity Model)</strong>
+                        <br><small class="text-muted">Organizational security maturity assessment</small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-rocket"></i> How It Works</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                <strong>1</strong>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Register & Onboard</h6>
+                                <small class="text-muted">Create account and set preferences</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                <strong>2</strong>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Add Application</h6>
+                                <small class="text-muted">Describe your application architecture</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                <strong>3</strong>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Security Assessment</h6>
+                                <small class="text-muted">Complete OWASP-based questionnaires</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                <strong>4</strong>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Get Results</h6>
+                                <small class="text-muted">Receive detailed recommendations</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not session.user_id %}
+<div class="row mt-5">
+    <div class="col-12 text-center">
+        <div class="card">
+            <div class="card-body">
+                <h5>Ready to secure your applications?</h5>
+                <p class="text-muted">Join thousands of security professionals using Cognizant SecArch Portal</p>
+                <a href="{{ url_for('web_register') }}" class="btn btn-primary">
+                    <i class="fas fa-rocket"></i> Start Your Free Security Assessment
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %} 

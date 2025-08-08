@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Applications - Cognizant SecArch Portal{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-laptop-code"></i> My Applications</h2>
+            {% if session.user_role == 'user' %}
+            <a href="{{ url_for('web_create_application') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Application
+            </a>
+            {% endif %}
+        </div>
+
+        {% if applications %}
+        <div class="row">
+            {% for app in applications %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">{{ app.name }}</h5>
+                        <div class="d-flex gap-2">
+                            <!-- Application Status -->
+                            {% if app.status == 'draft' %}
+                            <span class="badge bg-secondary"><i class="fas fa-edit"></i> Draft</span>
+                            {% elif app.status == 'submitted' %}
+                            <span class="badge bg-warning"><i class="fas fa-clock"></i> Awaiting Review</span>
+                            {% elif app.status == 'in_review' %}
+                            <span class="badge bg-primary"><i class="fas fa-search"></i> Under Review</span>
+                            {% elif app.status == 'completed' %}
+                            <span class="badge bg-success"><i class="fas fa-check-circle"></i> Completed</span>
+                            {% elif app.status == 'rejected' %}
+                            <span class="badge bg-danger"><i class="fas fa-times-circle"></i> Needs Revision</span>
+                            {% else %}
+                            <span class="badge bg-info"><i class="fas fa-question-circle"></i> {{ app.status|title }}</span>
+                            {% endif %}
+                            
+                            <!-- Security Level (if available) -->
+                            {% if app.review_status and app.risk_score %}
+                                {% if app.risk_score <= 1.5 %}
+                                    <span class="badge bg-outline-success border">High Security</span>
+                                {% elif app.risk_score <= 2.5 %}
+                                    <span class="badge bg-outline-warning border">Medium Security</span>
+                                {% else %}
+                                    <span class="badge bg-outline-danger border">Low Security</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">{{ app.description[:100] }}{% if app.description|length > 100 %}...{% endif %}</p>
+                        
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <strong>Technology:</strong> {{ app.technology_stack }}<br>
+                                <strong>Environment:</strong> {{ app.deployment_environment }}<br>
+                                <strong>Criticality:</strong> {{ app.business_criticality }}
+                            </small>
+                        </div>
+
+
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex gap-2 mb-2">
+                            {% if app.review_status and app.status != 'draft' %}
+                                <a href="{{ url_for('web_review_results', app_id=app.id) }}" class="btn btn-outline-primary btn-sm flex-fill">
+                                    <i class="fas fa-chart-line"></i> View Results
+                                </a>
+                            {% elif app.status == 'draft' %}
+                                <a href="{{ url_for('web_security_assessment', app_id=app.id) }}" class="btn btn-outline-success btn-sm flex-fill">
+                                    <i class="fas fa-clipboard-check"></i> Start Assessment
+                                </a>
+                            {% else %}
+                                <a href="{{ url_for('web_security_assessment', app_id=app.id) }}" class="btn btn-outline-success btn-sm flex-fill">
+                                    <i class="fas fa-clipboard-check"></i> Start Review
+                                </a>
+                            {% endif %}
+                            {% if app.status == 'draft' %}
+                            <button class="btn btn-outline-secondary btn-sm" onclick="editApplication('{{ app.id }}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% if app.status in ['draft', 'rejected'] %}
+                        <button class="btn btn-outline-danger btn-sm w-100" onclick="deleteApplication('{{ app.id }}', '{{ app.name }}')">
+                            <i class="fas fa-trash"></i> Delete Application
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-laptop-code fa-5x text-muted"></i>
+            </div>
+            {% if session.user_role == 'admin' %}
+            <h4>No Applications Available</h4>
+            <p class="text-muted mb-4">Applications submitted by users will appear here for administrative oversight.</p>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-chart-line"></i> Go to Admin Dashboard
+            </a>
+            {% else %}
+            <h4>No Applications Yet</h4>
+            <p class="text-muted mb-4">Get started by adding your first application for security review.</p>
+            <a href="{{ url_for('web_create_application') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus"></i> Add Your First Application
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function editApplication(appId) {
+    // Placeholder for edit functionality
+    alert('Edit functionality coming soon for application: ' + appId);
+}
+
+function deleteApplication(appId, appName) {
+    // Show confirmation dialog
+    if (confirm(`Are you sure you want to delete the application "${appName}"?\n\nThis will permanently delete:\n• The application\n• All security reviews\n• All STRIDE analysis\n• All uploaded files\n\nThis action cannot be undone.`)) {
+        // Show loading state
+        const deleteBtn = event.target.closest('button');
+        const originalContent = deleteBtn.innerHTML;
+        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+        deleteBtn.disabled = true;
+        
+        // Send delete request
+        fetch(`/delete-application/${appId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // Success - reload page to refresh the list
+                window.location.reload();
+            } else {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Failed to delete application');
+                });
+            }
+        })
+        .catch(error => {
+            // Reset button and show error
+            deleteBtn.innerHTML = originalContent;
+            deleteBtn.disabled = false;
+            alert('Error deleting application: ' + error.message);
+        });
+    }
+}
+</script>
+{% endblock %} 

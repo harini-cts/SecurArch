@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ error_code }} - Cognizant SecArch Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="text-center">
+            <!-- Error Icon -->
+            <div class="mb-4">
+                {% if error_code == 404 %}
+                <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: var(--warning-color);"></i>
+                {% else %}
+                <i class="fas fa-times-circle" style="font-size: 4rem; color: var(--danger-color);"></i>
+                {% endif %}
+            </div>
+            
+            <!-- Error Message -->
+            <h1 class="display-1 fw-bold">{{ error_code }}</h1>
+            <h2 class="mb-4">
+                {% if error_code == 404 %}
+                Page Not Found
+                {% elif error_code == 500 %}
+                Internal Server Error
+                {% else %}
+                Error
+                {% endif %}
+            </h2>
+            
+            <p class="lead mb-4">{{ error_message }}</p>
+            
+            {% if error_code == 404 %}
+            <p class="text-muted">
+                The page you're looking for might have been moved, deleted, or you might have typed the wrong URL.
+            </p>
+            {% elif error_code == 500 %}
+            <p class="text-muted">
+                Something went wrong on our end. Our team has been notified and is working to fix the issue.
+            </p>
+            {% endif %}
+            
+                         <!-- Action Buttons -->
+             <div class="mt-5">
+                 <a href="{{ url_for('web_home') }}" class="btn btn-primary btn-lg me-3">
+                     <i class="fas fa-home"></i> Go Home
+                 </a>
+                 
+                 {% if session.user_id %}
+                 <a href="{{ url_for('web_dashboard') }}" class="btn btn-secondary btn-lg">
+                     <i class="fas fa-tachometer-alt"></i> Dashboard
+                 </a>
+                 {% else %}
+                 <a href="{{ url_for('web_login') }}" class="btn btn-secondary btn-lg">
+                     <i class="fas fa-sign-in-alt"></i> Login
+                 </a>
+                 {% endif %}
+             </div>
+            
+            <!-- Help Section -->
+            <div class="mt-5">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-question-circle"></i> Need Help?
+                        </h5>
+                        <p class="card-text">
+                            If you continue to experience issues, please contact our support team.
+                        </p>
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <i class="fas fa-envelope fa-2x mb-2" style="color: var(--primary-color);"></i>
+                                <p><strong>Email Support</strong><br>support@securearch.com</p>
+                            </div>
+                            <div class="col-md-4">
+                                <i class="fas fa-book fa-2x mb-2" style="color: var(--secondary-color);"></i>
+                                <p><strong>Documentation</strong><br>Check our user guide</p>
+                            </div>
+                            <div class="col-md-4">
+                                <i class="fas fa-life-ring fa-2x mb-2" style="color: var(--success-color);"></i>
+                                <p><strong>Live Chat</strong><br>24/7 support available</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Error Details (for development) -->
+            {% if config.DEBUG %}
+            <div class="mt-4">
+                <details class="text-start">
+                    <summary class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-bug"></i> Debug Information
+                    </summary>
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <pre class="text-muted small">
+Error Code: {{ error_code }}
+Error Message: {{ error_message }}
+Timestamp: {{ timestamp or 'N/A' }}
+                        </pre>
+                    </div>
+                </details>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.display-1 {
+    font-size: 6rem;
+    font-weight: 300;
+    color: var(--primary-color);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+details summary {
+    cursor: pointer;
+    outline: none;
+}
+
+details summary:hover {
+    color: var(--primary-color);
+}
+
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+</style>
+{% endblock %} 

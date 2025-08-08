@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - {{ user.first_name }} {{ user.last_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Profile Information -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <!-- Profile Avatar -->
+                    <div class="mb-4">
+                        <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center" 
+                             style="width: 100px; height: 100px; font-size: 2rem;">
+                            {{ user.first_name[0] }}{{ user.last_name[0] }}
+                        </div>
+                    </div>
+                    
+                    <!-- User Info -->
+                    <h4 class="mb-1">{{ user.first_name }} {{ user.last_name }}</h4>
+                    <p class="text-muted mb-1">{{ user.email }}</p>
+                    {% if user.job_title %}
+                    <p class="text-muted mb-3">{{ user.job_title }}</p>
+                    {% endif %}
+                    
+                    <!-- Role Badge -->
+                    {% if user.role == 'admin' %}
+                    <span class="badge bg-danger mb-3">Administrator</span>
+                    {% elif user.role == 'analyst' %}
+                    <span class="badge bg-primary mb-3">Security Analyst</span>
+                    {% else %}
+                    <span class="badge bg-secondary mb-3">User</span>
+                    {% endif %}
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('web_edit_profile') }}" class="btn btn-primary">
+                            <i class="fas fa-edit"></i> Edit Profile
+                        </a>
+                        <a href="{{ url_for('web_change_password') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-key"></i> Change Password
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Account Information -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Account Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Member Since:</strong></div>
+                        <div class="col-6 text-muted">{{ user.created_at[:10] }}</div>
+                    </div>
+                    {% if user.last_login_at %}
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Last Login:</strong></div>
+                        <div class="col-6 text-muted">{{ user.last_login_at[:10] }}</div>
+                    </div>
+                    {% endif %}
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Status:</strong></div>
+                        <div class="col-6">
+                            {% if user.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card border-primary">
+                        <div class="card-body text-center">
+                            <div class="text-primary">
+                                <i class="fas fa-laptop-code fa-2x mb-2"></i>
+                            </div>
+                            <h3 class="text-primary">{{ stats.applications }}</h3>
+                            <p class="card-text text-muted">Applications Submitted</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-success">
+                        <div class="card-body text-center">
+                            <div class="text-success">
+                                <i class="fas fa-shield-alt fa-2x mb-2"></i>
+                            </div>
+                            <h3 class="text-success">{{ stats.reviews }}</h3>
+                            <p class="card-text text-muted">Security Reviews</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Profile Details -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-user"></i> Profile Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Organization</label>
+                            <p class="text-muted">{{ user.organization_name or 'Not specified' }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Job Title</label>
+                            <p class="text-muted">{{ user.job_title or 'Not specified' }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Experience Level</label>
+                            <p class="text-muted">
+                                {% if user.experience_level %}
+                                    {% if user.experience_level == 'beginner' %}
+                                        <span class="badge bg-info">Beginner</span>
+                                    {% elif user.experience_level == 'intermediate' %}
+                                        <span class="badge bg-warning">Intermediate</span>
+                                    {% elif user.experience_level == 'advanced' %}
+                                        <span class="badge bg-success">Advanced</span>
+                                    {% elif user.experience_level == 'expert' %}
+                                        <span class="badge bg-danger">Expert</span>
+                                    {% else %}
+                                        {{ user.experience_level|title }}
+                                    {% endif %}
+                                {% else %}
+                                    Not specified
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Role</label>
+                            <p class="text-muted">{{ user.role|title }}</p>
+                        </div>
+                        {% if user.interests %}
+                        <div class="col-12 mb-3">
+                            <label class="form-label fw-bold">Interests</label>
+                            <p class="text-muted">{{ user.interests }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_activity %}
+                    <div class="list-group list-group-flush">
+                        {% for activity in recent_activity %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ activity.name }}</h6>
+                                <small class="text-muted">{{ activity.created_at[:10] }}</small>
+                            </div>
+                            <div>
+                                {% if activity.status == 'draft' %}
+                                <span class="badge bg-secondary"><i class="fas fa-edit"></i> Draft</span>
+                                {% elif activity.status == 'submitted' %}
+                                <span class="badge bg-warning"><i class="fas fa-clock"></i> Awaiting Review</span>
+                                {% elif activity.status == 'in_review' %}
+                                <span class="badge bg-primary"><i class="fas fa-search"></i> Under Review</span>
+                                {% elif activity.status == 'completed' %}
+                                <span class="badge bg-success"><i class="fas fa-check-circle"></i> Completed</span>
+                                {% else %}
+                                <span class="badge bg-info">{{ activity.status|title }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No recent activity found.</p>
+                        <a href="{{ url_for('web_create_application') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create Your First Application
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: box-shadow 0.15s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.list-group-item {
+    border-left: none;
+    border-right: none;
+}
+
+.list-group-item:first-child {
+    border-top: none;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+</style>
+{% endblock %} 

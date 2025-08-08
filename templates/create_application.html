@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Add Application - Cognizant SecArch Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-plus"></i> Add New Application</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data" id="applicationForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Application Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deployment_environment" class="form-label">Deployment Environment *</label>
+                                <select class="form-control" id="deployment_environment" name="deployment_environment" required>
+                                    <option value="">Select Environment</option>
+                                    <option value="Development">Development</option>
+                                    <option value="Testing">Testing</option>
+                                    <option value="Staging">Staging</option>
+                                    <option value="Production">Production</option>
+                                    <option value="Cloud">Cloud</option>
+                                    <option value="Hybrid">Hybrid</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="Brief description of the application"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="business_criticality" class="form-label">Business Criticality <span class="text-danger">*</span></label>
+                                <select class="form-select" id="business_criticality" name="business_criticality" required>
+                                    <option value="">Choose...</option>
+                                    <option value="critical">Critical</option>
+                                    <option value="high">High</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="low">Low</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="data_classification" class="form-label">Data Classification *</label>
+                                <select class="form-control" id="data_classification" name="data_classification" required>
+                                    <option value="">Select Classification</option>
+                                    <option value="Public">Public</option>
+                                    <option value="Internal">Internal</option>
+                                    <option value="Confidential">Confidential</option>
+                                    <option value="Restricted">Restricted</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- File Upload Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5><i class="fas fa-file-upload"></i> Architecture & Documentation</h5>
+                            <p class="text-muted">Upload supporting documents for security review (Optional)</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="logical_architecture" class="form-label">Logical Architecture Diagram</label>
+                        <input type="file" class="form-control" id="logical_architecture" name="logical_architecture" 
+                               accept=".pdf,.png,.jpg,.jpeg,.svg,.vsdx,.drawio" 
+                               data-max-size="10485760">
+                        <div class="form-text">
+                            Accepted formats: PDF, PNG, JPG, SVG, Visio (.vsdx), Draw.io (.drawio) - Max 10MB
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="physical_architecture" class="form-label">Physical Architecture Diagram</label>
+                        <input type="file" class="form-control" id="physical_architecture" name="physical_architecture" 
+                               accept=".pdf,.png,.jpg,.jpeg,.svg,.vsdx,.drawio"
+                               data-max-size="10485760">
+                        <div class="form-text">
+                            Accepted formats: PDF, PNG, JPG, SVG, Visio (.vsdx), Draw.io (.drawio) - Max 10MB
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="overview_document" class="form-label">Application Overview Document</label>
+                        <input type="file" class="form-control" id="overview_document" name="overview_document" 
+                               accept=".pdf,.doc,.docx,.txt,.md"
+                               data-max-size="10485760">
+                        <div class="form-text">
+                            Accepted formats: PDF, Word (.doc, .docx), Text (.txt), Markdown (.md) - Max 10MB
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Technology Stack (Select all that apply)</label>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="technology_stack" value="JavaScript" id="tech_js">
+                                    <label class="form-check-label" for="tech_js">JavaScript</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="technology_stack" value="Python" id="tech_python">
+                                    <label class="form-check-label" for="tech_python">Python</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="technology_stack" value="Java" id="tech_java">
+                                    <label class="form-check-label" for="tech_java">Java</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="technology_stack" value="C#" id="tech_csharp">
+                                    <label class="form-check-label" for="tech_csharp">C#</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="technology_stack" value="React" id="tech_react">
+                                    <label class="form-check-label" for="tech_react">React</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="technology_stack" value="Angular" id="tech_angular">
+                                    <label class="form-check-label" for="tech_angular">Angular</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="technology_stack" value="Vue.js" id="tech_vue">
+                                    <label class="form-check-label" for="tech_vue">Vue.js</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="technology_stack" value="PHP" id="tech_php">
+                                    <label class="form-check-label" for="tech_php">PHP</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="technology_stack" value="MySQL" id="tech_mysql">
+                                    <label class="form-check-label" for="tech_mysql">MySQL</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="technology_stack" value="PostgreSQL" id="tech_postgres">
+                                    <label class="form-check-label" for="tech_postgres">PostgreSQL</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="technology_stack" value="MongoDB" id="tech_mongo">
+                                    <label class="form-check-label" for="tech_mongo">MongoDB</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="technology_stack" value="Docker" id="tech_docker">
+                                    <label class="form-check-label" for="tech_docker">Docker</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('web_applications') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Applications
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create Application
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6><i class="fas fa-info-circle"></i> What happens next?</h6>
+                <ol class="mb-0">
+                    <li>Your application will be registered in the portal</li>
+                    <li>You'll be directed to the security questionnaire</li>
+                    <li>Complete the OWASP-based security assessment</li>
+                    <li>Receive detailed security recommendations</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,910 @@
+{% extends "base.html" %}
+
+{% block title %}Security Review Analysis - {{ review[12] }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('analyst_dashboard') }}">Analyst Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('analyst_security_assessment', app_id=review[1]) }}">{{ review[8] }} Assessment</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ questionnaire_name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Review Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h4 class="card-title mb-0">
+                                <i class="fas fa-shield-alt"></i> {{ questionnaire_name }}
+                            </h4>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge bg-light text-dark fs-6">
+                                Status: {{ review[7].replace('_', ' ').title() }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5 class="text-primary">Application Details</h5>
+                            <p class="mb-1"><strong>Name:</strong> {{ review[8] }}</p>
+                            <p class="mb-1"><strong>Description:</strong> {{ review[9] or 'No description provided' }}</p>
+                            <p class="mb-1"><strong>Technology Stack:</strong> {{ review[10] or 'Not specified' }}</p>
+                            <p class="mb-1"><strong>Environment:</strong> {{ review[11] or 'Not specified' }}</p>
+                            <p class="mb-1"><strong>Business Criticality:</strong> {{ review[12] or 'Not specified' }}</p>
+                            <p class="mb-0"><strong>Data Classification:</strong> {{ review[13] or 'Not specified' }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h5 class="text-secondary">Assessment Progress</h5>
+                            <div class="mb-2">
+                                <span class="badge bg-info me-1">{{ answered_questions }}</span> Answered
+                                <span class="badge bg-secondary me-1">{{ total_questions }}</span> Total
+                            </div>
+                            <div class="mb-2">
+                                <span class="badge bg-danger me-1">{{ findings|selectattr('severity', 'equalto', 'High')|list|length }}</span> High Risk
+                                <span class="badge bg-warning me-1">{{ findings|selectattr('severity', 'equalto', 'Medium')|list|length }}</span> Medium Risk
+                                <span class="badge bg-success">{{ findings|selectattr('severity', 'equalto', 'Low')|list|length }}</span> Low Risk
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-info" style="width: {{ (answered_questions/total_questions*100)|round(1) }}%"></div>
+                            </div>
+                            <small class="text-muted">{{ ((answered_questions/total_questions*100)|round(1)) }}% Complete</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Uploaded Documents Section -->
+                    {% if review[14] or review[15] or review[16] %}
+                    <hr class="my-4">
+                    <div class="row">
+                        <div class="col-12">
+                            <h5 class="text-primary">
+                                <i class="fas fa-file-alt"></i> Uploaded Documents
+                            </h5>
+                            <div class="row">
+                                {% if review[14] %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card border-info">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-sitemap fa-2x text-info mb-2"></i>
+                                            <h6 class="card-title">Logical Architecture</h6>
+                                            <a href="{{ url_for('download_file', filename=review[14]) }}" 
+                                               class="btn btn-outline-info btn-sm">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if review[15] %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card border-success">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-server fa-2x text-success mb-2"></i>
+                                            <h6 class="card-title">Physical Architecture</h6>
+                                            <a href="{{ url_for('download_file', filename=review[15]) }}" 
+                                               class="btn btn-outline-success btn-sm">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if review[16] %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card border-warning">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-file-alt fa-2x text-warning mb-2"></i>
+                                            <h6 class="card-title">Overview Document</h6>
+                                            <a href="{{ url_for('download_file', filename=review[16]) }}" 
+                                               class="btn btn-outline-warning btn-sm">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Questionnaire Review with Pagination -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-list-alt"></i> Detailed Questionnaire Review
+                            </h5>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge bg-primary" id="pagination-info">Page 1 of 1</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Pagination Controls (Top) -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <label for="questionsPerPage" class="form-label me-2">Questions per page:</label>
+                                <select class="form-select" id="questionsPerPage" style="width: auto;">
+                                    <option value="5">5</option>
+                                    <option value="10" selected>10</option>
+                                    <option value="20">20</option>
+                                    <option value="all">Show All</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <nav aria-label="Question pagination">
+                                <ul class="pagination pagination-sm justify-content-end mb-0" id="pagination-top">
+                                    <!-- Pagination buttons will be generated by JavaScript -->
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+
+                    <!-- Questions Container -->
+                    <div id="questions-container">
+                        <!-- Questions will be loaded here by JavaScript -->
+                    </div>
+
+                    <!-- Pagination Controls (Bottom) -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <nav aria-label="Question pagination">
+                                <ul class="pagination justify-content-center" id="pagination-bottom">
+                                    <!-- Pagination buttons will be generated by JavaScript -->
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Questions Data -->
+    <div id="questions-data" style="display: none;">
+        {% for category_key, category in questionnaire.items() %}
+            {% for question in category.questions %}
+                {% set response = responses.get(question.id, 'Not answered') %}
+                {% set comment = comments.get(question.id, '') %}
+                {% set screenshot = screenshots.get(question.id, '') %}
+                {% set stride_cats = OWASP_TO_STRIDE_MAPPING.get(category_key, []) %}
+                
+                <div class="question-data" 
+                     data-question-id="{{ question.id }}"
+                     data-category="{{ category.title }}"
+                     data-question="{{ question.question|e }}"
+                     data-description="{{ question.description|e }}"
+                     data-response="{{ response }}"
+                     data-comment="{{ comment|e }}"
+                     data-screenshot="{{ screenshot }}"
+                     data-stride-cats="{{ stride_cats|join(',') }}">
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    <!-- STRIDE Analysis Summary (if exists) -->
+    {% if stride_analysis %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-shield-virus"></i> STRIDE Analysis Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('save_stride_analysis', review_id=review[0]) }}">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="overall_risk_assessment" class="form-label">Overall Risk Assessment</label>
+                                    <select class="form-select" name="overall_risk_assessment" id="overall_risk_assessment" required>
+                                        <option value="">Select Risk Level</option>
+                                        <option value="Low">Low Risk</option>
+                                        <option value="Medium">Medium Risk</option>
+                                        <option value="High">High Risk</option>
+                                        <option value="Critical">Critical Risk</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="analyst_notes" class="form-label">Analyst Notes</label>
+                                    <textarea class="form-control" name="analyst_notes" id="analyst_notes" rows="3"
+                                            placeholder="Internal analyst notes..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="final_report" class="form-label">Executive Summary</label>
+                            <textarea class="form-control" name="final_report" id="final_report" rows="5" required
+                                    placeholder="Provide a comprehensive executive summary of the security assessment findings..."></textarea>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="final_recommendations" class="form-label">Final Recommendations</label>
+                            <textarea class="form-control" name="final_recommendations" id="final_recommendations" rows="6" required
+                                    placeholder="Provide detailed security recommendations based on STRIDE analysis..."></textarea>
+                        </div>
+                        
+                        {% if review[7] != 'completed' %}
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check-circle"></i> Finalize Security Review
+                            </button>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> This review has been completed and finalized.
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Navigation -->
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <a href="{{ url_for('analyst_dashboard') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables
+const reviewId = '{{ review[0] }}';
+let currentPage = 1;
+let questionsPerPage = 10;
+let allQuestions = [];
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    loadQuestionsData();
+    setupPagination();
+    displayQuestions();
+    
+    // Setup per-page selector
+    document.getElementById('questionsPerPage').addEventListener('change', function() {
+        questionsPerPage = this.value === 'all' ? allQuestions.length : parseInt(this.value);
+        currentPage = 1;
+        displayQuestions();
+        setupPagination();
+    });
+});
+
+// Load questions data from hidden div
+function loadQuestionsData() {
+    const questionElements = document.querySelectorAll('.question-data');
+    allQuestions = Array.from(questionElements).map(el => ({
+        id: el.dataset.questionId,
+        category: el.dataset.category,
+        question: el.dataset.question,
+        description: el.dataset.description,
+        response: el.dataset.response,
+        comment: el.dataset.comment,
+        screenshot: el.dataset.screenshot,
+        strideCats: el.dataset.strideCats.split(',').filter(cat => cat.length > 0)
+    }));
+}
+
+// Display questions for current page
+function displayQuestions() {
+    const container = document.getElementById('questions-container');
+    const startIndex = (currentPage - 1) * questionsPerPage;
+    const endIndex = questionsPerPage === allQuestions.length ? allQuestions.length : startIndex + questionsPerPage;
+    const questionsToShow = allQuestions.slice(startIndex, endIndex);
+    
+    container.innerHTML = '';
+    
+    if (questionsToShow.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">No questions to display.</div>';
+        return;
+    }
+    
+    questionsToShow.forEach((question, index) => {
+        const questionHTML = createQuestionHTML(question, startIndex + index + 1);
+        container.insertAdjacentHTML('beforeend', questionHTML);
+    });
+}
+
+// Create HTML for a single question
+function createQuestionHTML(question, questionNumber) {
+    const response = question.response;
+    const strideBadges = question.strideCats.map(cat => {
+        const categoryNames = {
+            'spoofing': 'Spoofing',
+            'tampering': 'Tampering', 
+            'repudiation': 'Repudiation',
+            'information_disclosure': 'Information Disclosure',
+            'denial_of_service': 'Denial of Service',
+            'elevation_of_privilege': 'Elevation of Privilege'
+        };
+        return `<span class="badge bg-info me-1 mb-1" title="STRIDE Category">
+                    <i class="fas fa-shield-alt me-1"></i>${categoryNames[cat] || cat}
+                </span>`;
+    }).join('');
+    
+    return `
+        <div class="question-detail-card mb-4 p-3 border rounded" data-question-id="${question.id}">
+            <div class="row">
+                <div class="col-lg-8">
+                    <!-- Question Header -->
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-secondary me-2">#${questionNumber}</span>
+                        <span class="badge bg-primary">${question.category}</span>
+                    </div>
+                    
+                    <!-- Question -->
+                    <h6 class="fw-bold text-primary mb-2">${question.question}</h6>
+                    ${question.description ? `<p class="text-muted small mb-3">${question.description}</p>` : ''}
+                    
+                    <!-- Response -->
+                    <div class="mb-3">
+                        <strong>User Response:</strong>
+                        ${getResponseBadge(response)}
+                    </div>
+                    
+                    <!-- Comment -->
+                    ${question.comment ? `
+                    <div class="mb-3">
+                        <strong>User Comment:</strong>
+                        <div class="alert alert-light border mt-2">
+                            <i class="fas fa-comment text-muted"></i>
+                            <em>${question.comment}</em>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <!-- Screenshot -->
+                    ${question.screenshot ? `
+                    <div class="mb-3">
+                        <strong>Supporting Screenshot:</strong>
+                        <div class="mt-2">
+                            <img src="/static/${question.screenshot}" 
+                                 class="img-thumbnail" style="max-width: 300px; max-height: 200px; cursor: pointer;" 
+                                 onclick="showScreenshot('${question.screenshot}', '${question.question}')">
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <div class="col-lg-4">
+                    <!-- STRIDE Analysis Panel -->
+                    <div class="stride-analysis-panel">
+                        <h6 class="fw-bold text-secondary mb-2">
+                            <i class="fas fa-shield-virus"></i> STRIDE Analysis
+                        </h6>
+                        
+                        <!-- STRIDE categories -->
+                        <div class="mb-3">
+                            <small class="text-muted"><strong>Related STRIDE Categories:</strong></small>
+                            <div class="mt-2">
+                                ${strideBadges || '<span class="badge bg-light text-dark">No direct STRIDE mapping</span>'}
+                            </div>
+                        </div>
+                        
+                        <!-- Risk Assessment -->
+                        <div class="mb-3">
+                            <small class="text-muted"><strong>Risk Assessment:</strong></small>
+                            <div class="mt-1">
+                                ${getRiskAssessment(response, question.id)}
+                            </div>
+                        </div>
+                        
+                        <!-- Security Finding Actions -->
+                        <div class="finding-actions">
+                            <strong class="text-dark mb-2 d-block">Analyst Actions:</strong>
+                            
+                            <!-- Mark as Finding Button -->
+                            <button class="btn btn-sm btn-outline-warning mb-2 w-100 mark-finding-btn" 
+                                    onclick="markAsFinding('${question.id}', '${question.question.replace(/'/g, "\\'")}', '${response}')">
+                                <i class="fas fa-flag"></i> Mark as Finding
+                            </button>
+                            
+                            <!-- Additional context -->
+                            <div class="text-center">
+                                <small class="text-muted">
+                                    ${getAnalystGuidance(response)}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Helper functions for generating HTML parts
+function getResponseBadge(response) {
+    const badges = {
+        'yes': '<span class="badge bg-success ms-2"><i class="fas fa-check-circle"></i> Yes</span>',
+        'partial': '<span class="badge bg-warning ms-2"><i class="fas fa-exclamation-triangle"></i> Partial</span>',
+        'no': '<span class="badge bg-danger ms-2"><i class="fas fa-times-circle"></i> No</span>'
+    };
+    return badges[response] || '<span class="badge bg-secondary ms-2"><i class="fas fa-question-circle"></i> Not Answered</span>';
+}
+
+function getRiskAssessment(response, questionId) {
+    // Check if analyst has marked a finding for this question
+    if (window.findingsByQuestionId && window.findingsByQuestionId[questionId]) {
+        const analystFinding = window.findingsByQuestionId[questionId];
+        // Use analyst's risk assessment
+        const riskClass = analystFinding.risk_level === 'High' ? 'danger' : 
+                         analystFinding.risk_level === 'Medium' ? 'warning' : 'success';
+        return `<span class="badge bg-${riskClass}">🔍 ${analystFinding.risk_level} Risk (Analyst)</span><small class="d-block text-${riskClass} mt-1"><i class="fas fa-user-shield"></i> Marked by security analyst</small>`;
+    }
+    
+    // Fall back to automatic assessment based on questionnaire response
+    const assessments = {
+        'no': '<span class="badge bg-danger">High Risk</span><small class="d-block text-danger mt-1"><i class="fas fa-exclamation-triangle"></i> Control not implemented</small>',
+        'partial': '<span class="badge bg-warning">Medium Risk</span><small class="d-block text-warning mt-1"><i class="fas fa-exclamation-triangle"></i> Partial implementation</small>',
+        'yes': '<span class="badge bg-success">Low Risk</span><small class="d-block text-success mt-1"><i class="fas fa-check-circle"></i> Control implemented</small>'
+    };
+    return assessments[response] || '<span class="badge bg-secondary">Unknown Risk</span><small class="d-block text-muted mt-1"><i class="fas fa-question-circle"></i> Response needed</small>';
+}
+
+function getAnalystGuidance(response) {
+    const guidance = {
+        'no': '<i class="fas fa-exclamation-triangle text-warning"></i> Recommend review',
+        'partial': '<i class="fas fa-exclamation-triangle text-warning"></i> Recommend review',
+        'yes': '<i class="fas fa-info-circle text-info"></i> May still need validation'
+    };
+    return guidance[response] || '<i class="fas fa-question-circle text-muted"></i> Needs clarification';
+}
+
+// Setup pagination controls
+function setupPagination() {
+    const totalPages = Math.ceil(allQuestions.length / questionsPerPage);
+    const topPagination = document.getElementById('pagination-top');
+    const bottomPagination = document.getElementById('pagination-bottom');
+    const paginationInfo = document.getElementById('pagination-info');
+    
+    // Update pagination info
+    paginationInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+    
+    // Generate pagination HTML
+    let paginationHTML = '';
+    
+    // Previous button
+    paginationHTML += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        </li>
+    `;
+    
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            paginationHTML += `
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>
+                </li>
+            `;
+        } else if (i === currentPage - 3 || i === currentPage + 3) {
+            paginationHTML += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+        }
+    }
+    
+    // Next button
+    paginationHTML += `
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </li>
+    `;
+    
+    topPagination.innerHTML = paginationHTML;
+    bottomPagination.innerHTML = paginationHTML;
+}
+
+// Change page
+function changePage(page) {
+    const totalPages = Math.ceil(allQuestions.length / questionsPerPage);
+    if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        displayQuestions();
+        setupPagination();
+        
+        // Scroll to top of questions
+        document.getElementById('questions-container').scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Show screenshot modal
+function showScreenshot(screenshot, questionText) {
+    const modalHTML = `
+        <div class="modal fade" id="screenshotModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Screenshot - ${questionText}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img src="/static/${screenshot}" class="img-fluid">
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal
+    const existingModal = document.getElementById('screenshotModal');
+    if (existingModal) existingModal.remove();
+    
+    // Add and show modal
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    const modal = new bootstrap.Modal(document.getElementById('screenshotModal'));
+    modal.show();
+}
+
+// Mark question as finding for STRIDE analysis
+function markAsFinding(questionId, questionText, response) {
+    const modalContent = `
+        <div class="modal fade" id="findingModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-flag text-warning"></i> Mark as Security Finding
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6 class="text-primary mb-3">Question:</h6>
+                        <p class="mb-3">${questionText}</p>
+                        
+                        <h6 class="text-warning mb-3">User Response: <span class="badge bg-${response === 'no' ? 'danger' : 'warning'}">${response.charAt(0).toUpperCase() + response.slice(1)}</span></h6>
+                        
+                        <hr>
+                        
+                        <h6 class="mb-3">STRIDE Threat Categories:</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" value="spoofing" id="stride_spoofing">
+                                    <label class="form-check-label" for="stride_spoofing">
+                                        <strong>Spoofing</strong> - Identity verification failures
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" value="tampering" id="stride_tampering">
+                                    <label class="form-check-label" for="stride_tampering">
+                                        <strong>Tampering</strong> - Data or code modification
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" value="repudiation" id="stride_repudiation">
+                                    <label class="form-check-label" for="stride_repudiation">
+                                        <strong>Repudiation</strong> - Denying actions or events
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" value="information_disclosure" id="stride_info">
+                                    <label class="form-check-label" for="stride_info">
+                                        <strong>Information Disclosure</strong> - Unauthorized data access
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" value="denial_of_service" id="stride_dos">
+                                    <label class="form-check-label" for="stride_dos">
+                                        <strong>Denial of Service</strong> - Service availability attacks
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" value="elevation_of_privilege" id="stride_elevation">
+                                    <label class="form-check-label" for="stride_elevation">
+                                        <strong>Elevation of Privilege</strong> - Unauthorized access escalation
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="mb-3">
+                            <label for="finding_description" class="form-label">Finding Description:</label>
+                            <textarea class="form-control" id="finding_description" rows="3" 
+                                    placeholder="Describe the security risk and potential impact..."></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="finding_recommendation" class="form-label">Recommendation:</label>
+                            <textarea class="form-control" id="finding_recommendation" rows="3" 
+                                    placeholder="Provide specific recommendations to address this finding..."></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="risk_level" class="form-label">Risk Level:</label>
+                            <select class="form-select" id="risk_level">
+                                <option value="High" ${response === 'no' ? 'selected' : ''}>High</option>
+                                <option value="Medium" ${response === 'partial' ? 'selected' : ''}>Medium</option>
+                                <option value="Low">Low</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-warning" onclick="saveFinding('${questionId}')">
+                            <i class="fas fa-save"></i> Save Finding
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if present
+    const existingModal = document.getElementById('findingModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalContent);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('findingModal'));
+    modal.show();
+}
+
+// Save finding with STRIDE analysis
+function saveFinding(questionId) {
+    const selectedStrides = [];
+    document.querySelectorAll('#findingModal input[type="checkbox"]:checked').forEach(cb => {
+        selectedStrides.push(cb.value);
+    });
+    
+    const findingData = {
+        question_id: questionId,
+        stride_categories: selectedStrides,
+        description: document.getElementById('finding_description').value,
+        recommendation: document.getElementById('finding_recommendation').value,
+        risk_level: document.getElementById('risk_level').value
+    };
+    
+    // Save to database via AJAX
+    fetch(`/analyst/review/${reviewId}/stride`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(findingData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal and show success message
+            bootstrap.Modal.getInstance(document.getElementById('findingModal')).hide();
+            
+            // Show success toast
+            showToast('Finding saved successfully!', 'success');
+            
+            // Mark the question as having a finding
+            const questionCard = document.querySelector(`[data-question-id="${questionId}"]`);
+            if (questionCard) {
+                questionCard.classList.add('finding-marked');
+                questionCard.querySelector('.mark-finding-btn').innerHTML = 
+                    '<i class="fas fa-check"></i> Finding Recorded';
+                questionCard.querySelector('.mark-finding-btn').classList.replace('btn-outline-warning', 'btn-success');
+            }
+        } else {
+            showToast('Error saving finding: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error saving finding', 'error');
+    });
+}
+
+// Show toast notification
+function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toast-container') || createToastContainer();
+    const toastId = 'toast-' + Date.now();
+    
+    const toastHTML = `
+        <div id="${toastId}" class="toast align-items-center text-bg-${type === 'success' ? 'success' : (type === 'error' ? 'danger' : 'info')} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : (type === 'error' ? 'exclamation-circle' : 'info-circle')} me-2"></i>
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+    const toast = new bootstrap.Toast(document.getElementById(toastId));
+    toast.show();
+    
+    // Auto-remove after hide
+    document.getElementById(toastId).addEventListener('hidden.bs.toast', function() {
+        this.remove();
+    });
+}
+
+// Create toast container if it doesn't exist
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '1055';
+    document.body.appendChild(container);
+    return container;
+}
+</script>
+
+<style>
+.alert-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.card {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+}
+
+.form-select, .form-control {
+    border-radius: 0.35rem;
+}
+
+.breadcrumb {
+    background-color: transparent;
+    padding: 0;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+}
+
+/* Custom styling for analyst review detail */
+.question-detail-card {
+    transition: all 0.3s ease;
+    background: #fafafa;
+}
+
+.question-detail-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.question-detail-card.finding-marked {
+    border-left: 4px solid #ffc107 !important;
+    background: #fff9e6;
+}
+
+.question-detail-card.finding-marked::before {
+    content: "⚠️ FINDING";
+    position: absolute;
+    top: -8px;
+    right: 10px;
+    background: #ffc107;
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    z-index: 10;
+}
+
+.stride-analysis-panel {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.finding-actions {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.img-thumbnail {
+    transition: transform 0.2s ease;
+}
+
+.img-thumbnail:hover {
+    transform: scale(1.05);
+}
+
+/* Pagination styling */
+.pagination-sm .page-link {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Enhanced tooltips for STRIDE categories */
+.badge[title]:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
+}
+</style>
+
+<script>
+// Mark existing findings when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Create lookup object for findings by question ID
+        window.findingsByQuestionId = {};
+        {% for finding in stride_analysis %}
+            {% if finding.question_id %}
+                window.findingsByQuestionId["{{ finding.question_id }}"] = {
+                    risk_level: "{{ finding.risk_level }}",
+                    threat_category: "{{ finding.threat_category }}",
+                    description: "{{ finding.threat_description }}"
+                };
+            {% endif %}
+        {% endfor %}
+        
+        // Get question IDs that have findings from the backend
+        const questionIdsWithFindings = new Set([
+            {% for finding in stride_analysis %}
+                {% if finding.question_id %}
+                    "{{ finding.question_id }}",
+                {% endif %}
+            {% endfor %}
+        ]);
+        
+        // Mark questions that have findings
+        questionIdsWithFindings.forEach(questionId => {
+            const questionCard = document.querySelector(`[data-question-id="${questionId}"]`);
+            if (questionCard) {
+                // Mark as having a finding
+                questionCard.classList.add('finding-marked');
+                
+                // Update the button
+                const markFindingBtn = questionCard.querySelector('.mark-finding-btn');
+                if (markFindingBtn) {
+                    markFindingBtn.innerHTML = '<i class="fas fa-check"></i> Finding Recorded';
+                    markFindingBtn.classList.remove('btn-outline-warning');
+                    markFindingBtn.classList.add('btn-success');
+                }
+            }
+        });
+        
+        console.log(`Marked ${questionIdsWithFindings.size} questions with existing findings`);
+    } catch (error) {
+        console.error('Error marking existing findings:', error);
+    }
+});
+</script>
+{% endblock %} 

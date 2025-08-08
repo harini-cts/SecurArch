@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Review Management - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-clipboard-check text-primary"></i> Review Management</h2>
+            <p class="text-muted">Manage security reviews and analyst assignments</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left-primary">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Reviews</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">{{ reviews|length }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-warning">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">
+                        {{ reviews|selectattr('status', 'in', ['submitted', 'in_review'])|list|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-success">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Completed</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">
+                        {{ reviews|selectattr('status', 'equalto', 'completed')|list|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-info">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Available Analysts</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">{{ analysts|length }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reviews Table -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">All Security Reviews</h6>
+        </div>
+        <div class="card-body">
+            {% if reviews %}
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Review ID</th>
+                            <th>Application</th>
+                            <th>Author</th>
+                            <th>Analyst</th>
+                            <th>Status</th>
+                            <th>Risk Score</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for review in reviews %}
+                        <tr>
+                            <td>{{ review.id[:8] }}...</td>
+                            <td>
+                                <strong>{{ review.app_name }}</strong>
+                                <br><small class="text-muted">{{ review.field_type|title }}</small>
+                            </td>
+                            <td>
+                                {{ review.author_first }} {{ review.author_last }}
+                                <br><small class="text-muted">{{ review.author_email }}</small>
+                            </td>
+                            <td>
+                                {% if review.analyst_first %}
+                                    {{ review.analyst_first }} {{ review.analyst_last }}
+                                    <br><small class="text-muted">{{ review.analyst_email }}</small>
+                                {% else %}
+                                    <span class="text-muted">Unassigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if review.status == 'draft' %}
+                                    <span class="badge bg-secondary">Draft</span>
+                                {% elif review.status == 'submitted' %}
+                                    <span class="badge bg-warning">Submitted</span>
+                                {% elif review.status == 'in_review' %}
+                                    <span class="badge bg-primary">In Review</span>
+                                {% elif review.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% else %}
+                                    <span class="badge bg-info">{{ review.status|title }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if review.risk_score %}
+                                    <span class="badge bg-{% if review.risk_score >= 8 %}danger{% elif review.risk_score >= 6 %}warning{% else %}success{% endif %}">
+                                        {{ review.risk_score }}/10
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ review.created_at[:10] if review.created_at else 'N/A' }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-primary" onclick="viewReviewDetails('{{ review.id }}')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if review.status in ['submitted', 'in_review'] %}
+                                    <button type="button" class="btn btn-outline-warning" onclick="reassignReview('{{ review.id }}')">
+                                        <i class="fas fa-user-edit"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
+                <h5>No Reviews Found</h5>
+                <p class="text-muted">No security reviews have been created yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Reassign Modal -->
+<div class="modal fade" id="reassignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reassign Review</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="reassignForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="analyst_id" class="form-label">Select Analyst</label>
+                        <select class="form-select" id="analyst_id" name="analyst_id" required>
+                            <option value="">Choose analyst...</option>
+                            {% for analyst in analysts %}
+                            <option value="{{ analyst.id }}">{{ analyst.first_name }} {{ analyst.last_name }} ({{ analyst.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason for Reassignment</label>
+                        <textarea class="form-control" id="reason" name="reason" rows="3" placeholder="Optional reason for reassignment..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Reassign Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Review Details Modal -->
+<div class="modal fade" id="reviewDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Review Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="reviewDetailsContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentReviewId = null;
+
+function reassignReview(reviewId) {
+    currentReviewId = reviewId;
+    document.getElementById('reassignForm').action = `/admin/reviews/${reviewId}/reassign`;
+    const modal = new bootstrap.Modal(document.getElementById('reassignModal'));
+    modal.show();
+}
+
+function viewReviewDetails(reviewId) {
+    // Find review in the current data
+    const reviews = {{ reviews|tojson }};
+    const review = reviews.find(r => r.id === reviewId);
+    
+    if (review) {
+        const content = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Review Information</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>ID:</strong></td><td>${review.id}</td></tr>
+                        <tr><td><strong>Application:</strong></td><td>${review.app_name}</td></tr>
+                        <tr><td><strong>Field Type:</strong></td><td>${review.field_type || 'N/A'}</td></tr>
+                        <tr><td><strong>Status:</strong></td><td>${review.status}</td></tr>
+                        <tr><td><strong>Risk Score:</strong></td><td>${review.risk_score || 'N/A'}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6>People</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>Author:</strong></td><td>${review.author_first} ${review.author_last}</td></tr>
+                        <tr><td><strong>Author Email:</strong></td><td>${review.author_email}</td></tr>
+                        <tr><td><strong>Analyst:</strong></td><td>${review.analyst_first ? review.analyst_first + ' ' + review.analyst_last : 'Unassigned'}</td></tr>
+                        <tr><td><strong>Analyst Email:</strong></td><td>${review.analyst_email || 'N/A'}</td></tr>
+                    </table>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12">
+                    <h6>Timeline</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>Created:</strong></td><td>${review.created_at || 'N/A'}</td></tr>
+                        <tr><td><strong>Last Updated:</strong></td><td>${review.updated_at || 'N/A'}</td></tr>
+                        <tr><td><strong>Analyst Reviewed:</strong></td><td>${review.analyst_reviewed_at || 'N/A'}</td></tr>
+                    </table>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('reviewDetailsContent').innerHTML = content;
+        const modal = new bootstrap.Modal(document.getElementById('reviewDetailsModal'));
+        modal.show();
+    }
+}
+</script>
+
+<style>
+.border-left-primary { border-left: 4px solid #4e73df !important; }
+.border-left-success { border-left: 4px solid #1cc88a !important; }
+.border-left-info { border-left: 4px solid #36b9cc !important; }
+.border-left-warning { border-left: 4px solid #f6c23e !important; }
+</style>
+{% endblock %} 

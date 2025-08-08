@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}Security Review Results - {{ application.name }} - Cognizant SecArch Portal{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Header Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4><i class="fas fa-chart-line"></i> Security Review Results</h4>
+                        <p class="mb-0 text-muted">Application: <strong>{{ application.name }}</strong></p>
+                    </div>
+                    <div class="text-end">
+                        {% if review.risk_score <= 1.5 %}
+                            <span class="badge bg-success fs-6">High Security</span>
+                        {% elif review.risk_score <= 2.5 %}
+                            <span class="badge bg-warning fs-6">Medium Security</span>
+                        {% else %}
+                            <span class="badge bg-danger fs-6">Low Security</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Completed Reviews Overview -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-check-circle"></i> Completed Security Reviews</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            {% if 'application_review' in review_types %}
+                            <div class="col-md-6">
+                                <div class="alert alert-success">
+                                    <i class="fas fa-code fa-2x mb-2"></i>
+                                    <h6>Application Security Review</h6>
+                                    <p class="mb-0">14 security categories completed</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if 'cloud_review' in review_types %}
+                            <div class="col-md-6">
+                                <div class="alert alert-success">
+                                    <i class="fas fa-cloud fa-2x mb-2"></i>
+                                    <h6>Cloud Security Review</h6>
+                                    <p class="mb-0">AWS, Azure, GCP platforms completed</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if review_types|length == 2 %}
+                        <div class="text-center mt-3">
+                            <span class="badge bg-success fs-6">✅ Complete Security Assessment - Both categories reviewed</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Overview -->
+        {% if findings %}
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h3>{{ findings|length }}</h3>
+                    <p>Security Findings</p>
+                    <small class="text-muted">From all reviews</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h3>{{ findings|selectattr('severity', 'equalto', 'High')|list|length }}</h3>
+                    <p>High Risk</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h3>{{ findings|selectattr('severity', 'equalto', 'Medium')|list|length }}</h3>
+                    <p>Medium Risk</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h3>{{ findings|selectattr('severity', 'equalto', 'Low')|list|length }}</h3>
+                    <p>Low Risk</p>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-clipboard-check fa-3x text-info"></i>
+                    </div>
+                    <h4><i class="fas fa-clock"></i> Pending Security Analyst Review</h4>
+                    <p class="mb-0">Your security questionnaire responses have been submitted successfully. A security analyst will review your responses and identify specific security findings. Please check back later for the detailed security analysis results.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Findings by Severity -->
+        {% if findings %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-exclamation-triangle"></i> Security Findings</h5>
+            </div>
+            <div class="card-body">
+                {% for finding in findings %}
+                <div class="question-item mb-3 {{ 'risk-high' if finding.severity == 'High' else ('risk-medium' if finding.severity == 'Medium' else 'risk-low') }}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6>{{ finding.title }}</h6>
+                            <div class="d-flex gap-2 mt-1">
+                                <span class="badge bg-{{ 'primary' if finding.source == 'analyst' else 'secondary' }}">
+                                    <i class="fas fa-{{ 'user-shield' if finding.source == 'analyst' else 'clipboard-list' }}"></i>
+                                    {{ 'Analyst Review' if finding.source == 'analyst' else 'Questionnaire' }}
+                                </span>
+                                {% if finding.stride_category %}
+                                <span class="badge bg-info">
+                                    <i class="fas fa-shield-alt"></i>
+                                    {{ finding.stride_category.replace('_', ' ').title() }}
+                                </span>
+                                {% endif %}
+                                <span class="badge bg-light text-dark">{{ finding.category }}</span>
+                            </div>
+                        </div>
+                        <span class="badge bg-{{ 'danger' if finding.severity == 'High' else ('warning' if finding.severity == 'Medium' else 'success') }}">
+                            {{ finding.severity }}
+                        </span>
+                    </div>
+                    <p class="text-muted">{{ finding.description }}</p>
+                    
+                    {% if finding.recommendation %}
+                    <div class="mt-2">
+                        <strong>Recommendation:</strong>
+                        <p class="mb-0">{{ finding.recommendation }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Security Recommendations -->
+        {% if recommendations %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-lightbulb"></i> Security Recommendations</h5>
+            </div>
+            <div class="card-body">
+                {% for rec in recommendations %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6>{{ rec.title }}</h6>
+                            <span class="badge bg-{{ 'danger' if rec.priority == 'High' else ('warning' if rec.priority == 'Medium' else 'info') }}">
+                                {{ rec.priority }} Priority
+                            </span>
+                        </div>
+                        <p class="card-text">{{ rec.description }}</p>
+                        {% if rec.implementation %}
+                        <div class="mt-2">
+                            <strong>Implementation:</strong>
+                            <p class="mb-0 text-muted">{{ rec.implementation }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Compliance Overview -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-shield-alt"></i> Security Compliance Overview</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Security Level Assessment</label>
+                            {% if review.risk_score <= 1.5 %}
+                                <div class="alert alert-success">
+                                    <i class="fas fa-shield-alt"></i> <strong>High Security Level</strong>
+                                    <p class="mb-0 mt-2">
+                                        Your application demonstrates strong security controls across multiple areas.
+                                    </p>
+                                </div>
+                            {% elif review.risk_score <= 2.5 %}
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-shield-alt"></i> <strong>Medium Security Level</strong>
+                                    <p class="mb-0 mt-2">
+                                        Your application has good security foundations with some areas for improvement.
+                                    </p>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-shield-alt"></i> <strong>Low Security Level</strong>
+                                    <p class="mb-0 mt-2">
+                                        Your application needs significant security improvements in multiple areas.
+                                    </p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Review Status</label>
+                            <div class="alert alert-info">
+                                <i class="fas fa-check-circle"></i> <strong>Assessment Complete</strong>
+                                <p class="mb-0 mt-2">
+                                    Security review completed successfully. Check recommendations below for improvement opportunities.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Review Summary -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-file-alt"></i> Review Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Review Date:</strong> {{ review.created_at[:10] if review.created_at else 'N/A' }}</p>
+                        <p><strong>Review Status:</strong> 
+                            <span class="badge bg-{{ 'success' if review.status == 'completed' else 'warning' }}">
+                                {{ review.status.title() }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Application Type:</strong> {{ application.technology_stack }}</p>
+                        <p><strong>Environment:</strong> {{ application.deployment_environment }}</p>
+                    </div>
+                </div>
+                
+                {% if review.summary %}
+                <hr>
+                <h6>Executive Summary</h6>
+                <p>{{ review.summary }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-between mb-4">
+            <a href="{{ url_for('web_applications') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Applications
+            </a>
+            
+            <div>
+                <button class="btn btn-outline-primary" onclick="exportReport()">
+                    <i class="fas fa-download"></i> Export Report
+                </button>
+                <a href="{{ url_for('web_questionnaire', app_id=application.id, retake='true') }}" class="btn btn-outline-warning">
+                    <i class="fas fa-redo"></i> Re-assess
+                </a>
+                <button class="btn btn-success" onclick="shareReport()">
+                    <i class="fas fa-share"></i> Share Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function exportReport() {
+    // Placeholder for export functionality
+    alert('Export functionality coming soon! Report will be available in PDF format.');
+}
+
+function shareReport() {
+    // Placeholder for share functionality
+    const url = window.location.href;
+    if (navigator.share) {
+        navigator.share({
+            title: 'Security Review Report - {{ application.name }}',
+            text: 'Security review completed with {{ findings|length }} findings identified',
+            url: url
+        });
+    } else {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Report URL copied to clipboard!');
+        });
+    }
+}
+
+// Print functionality
+function printReport() {
+    window.print();
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'p') {
+        e.preventDefault();
+        printReport();
+    }
+});
+</script>
+
+<style>
+.risk-high { 
+    border-left-color: var(--danger-color) !important; 
+    background-color: #fff5f5;
+}
+.risk-medium { 
+    border-left-color: var(--warning-color) !important; 
+    background-color: #fffbf0;
+}
+.risk-low { 
+    border-left-color: var(--success-color) !important; 
+    background-color: #f0fff4;
+}
+
+.stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 25px;
+    text-align: center;
+    margin-bottom: 20px;
+    transition: transform 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.stats-card h3 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+@media print {
+    .btn, .navbar, .footer {
+        display: none;
+    }
+}
+</style>
+{% endblock %} 

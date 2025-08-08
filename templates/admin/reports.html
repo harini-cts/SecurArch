@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}System Reports - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-chart-bar text-primary"></i> System Reports</h2>
+            <p class="text-muted">Generate comprehensive reports and analytics</p>
+        </div>
+    </div>
+
+    <!-- Report Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left-primary">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Users</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">{{ report_data.users.total or 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-success">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Applications</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">{{ report_data.applications.total or 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-info">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Reviews</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">{{ report_data.reviews.total or 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-warning">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Findings</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">{{ report_data.findings.total or 0 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Users Report -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Users by Role</h6>
+                </div>
+                <div class="card-body">
+                    {% if report_data.users.by_role %}
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Role</th>
+                                <th>Count</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for role, count in report_data.users.by_role.items() %}
+                            <tr>
+                                <td>{{ role|title }}</td>
+                                <td>{{ count }}</td>
+                                <td>
+                                    {% set percentage = (count / report_data.users.total * 100) if report_data.users.total > 0 else 0 %}
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar" style="width: {{ percentage }}%">{{ "%.1f"|format(percentage) }}%</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No user data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Applications Report -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">Applications by Status</h6>
+                </div>
+                <div class="card-body">
+                    {% if report_data.applications.by_status %}
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Count</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for status, count in report_data.applications.by_status.items() %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-{% if status == 'completed' %}success{% elif status == 'in_review' %}primary{% elif status == 'submitted' %}warning{% else %}secondary{% endif %}">
+                                        {{ status|title }}
+                                    </span>
+                                </td>
+                                <td>{{ count }}</td>
+                                <td>
+                                    {% set percentage = (count / report_data.applications.total * 100) if report_data.applications.total > 0 else 0 %}
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-{% if status == 'completed' %}success{% elif status == 'in_review' %}primary{% elif status == 'submitted' %}warning{% else %}secondary{% endif %}" style="width: {{ percentage }}%">
+                                            {{ "%.1f"|format(percentage) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No application data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Reviews Report -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">Reviews by Analyst</h6>
+                </div>
+                <div class="card-body">
+                    {% if report_data.reviews.by_analyst %}
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Analyst</th>
+                                <th>Reviews</th>
+                                <th>Workload</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for analyst, count in report_data.reviews.by_analyst.items() %}
+                            <tr>
+                                <td>{{ analyst }}</td>
+                                <td>{{ count }}</td>
+                                <td>
+                                    {% set percentage = (count / report_data.reviews.total * 100) if report_data.reviews.total > 0 else 0 %}
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-info" style="width: {{ percentage }}%">{{ "%.1f"|format(percentage) }}%</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No review data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Findings Report -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">Security Findings by Risk Level</h6>
+                </div>
+                <div class="card-body">
+                    {% if report_data.findings.by_risk_level %}
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Risk Level</th>
+                                <th>Count</th>
+                                <th>Distribution</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for risk_level, count in report_data.findings.by_risk_level.items() %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-{% if risk_level == 'High' %}danger{% elif risk_level == 'Medium' %}warning{% else %}success{% endif %}">
+                                        {{ risk_level }}
+                                    </span>
+                                </td>
+                                <td>{{ count }}</td>
+                                <td>
+                                    {% set percentage = (count / report_data.findings.total * 100) if report_data.findings.total > 0 else 0 %}
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-{% if risk_level == 'High' %}danger{% elif risk_level == 'Medium' %}warning{% else %}success{% endif %}" style="width: {{ percentage }}%">
+                                            {{ "%.1f"|format(percentage) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No findings data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Options -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Export Reports</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <p class="mb-3">Generate comprehensive reports for external analysis or compliance requirements.</p>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="includeUsers" checked>
+                                        <label class="form-check-label" for="includeUsers">User Statistics</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="includeApplications" checked>
+                                        <label class="form-check-label" for="includeApplications">Application Data</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="includeReviews" checked>
+                                        <label class="form-check-label" for="includeReviews">Review Analytics</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="includeFindings" checked>
+                                        <label class="form-check-label" for="includeFindings">Security Findings</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary" onclick="exportReport('pdf')">
+                                    <i class="fas fa-file-pdf"></i> Export as PDF
+                                </button>
+                                <button class="btn btn-success" onclick="exportReport('excel')">
+                                    <i class="fas fa-file-excel"></i> Export as Excel
+                                </button>
+                                <button class="btn btn-info" onclick="exportReport('csv')">
+                                    <i class="fas fa-file-csv"></i> Export as CSV
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function exportReport(format) {
+    const includeUsers = document.getElementById('includeUsers').checked;
+    const includeApplications = document.getElementById('includeApplications').checked;
+    const includeReviews = document.getElementById('includeReviews').checked;
+    const includeFindings = document.getElementById('includeFindings').checked;
+    
+    const sections = [];
+    if (includeUsers) sections.push('users');
+    if (includeApplications) sections.push('applications');
+    if (includeReviews) sections.push('reviews');
+    if (includeFindings) sections.push('findings');
+    
+    if (sections.length === 0) {
+        alert('Please select at least one section to include in the report.');
+        return;
+    }
+    
+    // Simulate export process
+    alert(`Generating ${format.toUpperCase()} report with sections: ${sections.join(', ')}\n\nNote: This is a demo. Actual export functionality is not implemented.`);
+}
+
+// Auto-refresh data every 30 seconds
+setTimeout(function() {
+    console.log('Auto-refreshing report data...');
+    // location.reload();
+}, 30000);
+</script>
+
+<style>
+.border-left-primary { border-left: 4px solid #4e73df !important; }
+.border-left-success { border-left: 4px solid #1cc88a !important; }
+.border-left-info { border-left: 4px solid #36b9cc !important; }
+.border-left-warning { border-left: 4px solid #f6c23e !important; }
+
+.progress {
+    background-color: #f8f9fc;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s;
+}
+</style>
+{% endblock %} 

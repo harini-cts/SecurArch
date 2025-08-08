@@ -1,0 +1,743 @@
+{% extends "base.html" %}
+
+{% block title %}Security Assessment - {{ application.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Progress Header -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="mb-0">
+                            <i class="fas fa-shield-alt text-primary"></i>
+                            Security Assessment
+                        </h2>
+                        <span class="badge bg-primary fs-6 px-3 py-2">
+                            {{ application.name }}
+                        </span>
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="progress mb-3" style="height: 8px;">
+                        <div class="progress-bar bg-primary" role="progressbar" 
+                             style="width: 0%" 
+                             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+                             id="progress-bar"></div>
+                    </div>
+                    
+                                         <div class="d-flex justify-content-between align-items-center">
+                         <small class="text-muted">
+                             <span id="current-section">1</span> of <span id="total-sections">14</span> sections
+                         </small>
+                         <small class="text-muted">
+                             <span id="progress-text">0%</span> navigation progress
+                         </small>
+                     </div>
+                                         <div class="mt-2">
+                        <small class="text-info" id="completion-progress">
+                            0/0 questions answered (0%)
+                        </small>
+                        <small class="text-muted ms-3" id="auto-save-status" style="display: none;">
+                            <i class="fas fa-save"></i> Draft saved
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Information -->
+            <div class="alert alert-info mb-4">
+                <h6><i class="fas fa-info-circle"></i> Flexible Assessment</h6>
+                <p class="mb-0">
+                    Navigate freely between sections and answer questions at your own pace. 
+                    You can skip questions and return to them later - no question is mandatory to proceed.
+                    <strong>Toggle off entire categories</strong> that don't apply to your application using the category switches.
+                </p>
+            </div>
+
+            <!-- Saved Progress Alert -->
+            {% if existing_responses and existing_responses|length > 0 %}
+            <div class="alert alert-success mb-4">
+                <h6><i class="fas fa-save"></i> Saved Progress Restored</h6>
+                <p class="mb-0">
+                    Welcome back! Your previous responses ({{ existing_responses|length }} questions) have been restored. 
+                    {% if saved_section > 0 %}You'll start from Section {{ saved_section + 1 }} where you left off.{% endif %}
+                </p>
+            </div>
+            {% endif %}
+            
+
+
+
+
+            <!-- Questionnaire Form -->
+            <form method="POST" enctype="multipart/form-data" id="questionnaireForm" action="{{ url_for('submit_questionnaire', app_id=application.id) }}">
+                <!-- Hidden fields -->
+                <input type="hidden" name="field_type" value="{{ field }}">
+                <input type="hidden" name="disabled_categories" id="disabled_categories" value="">
+                
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <!-- Section Container -->
+                        <div id="section-container">
+                            <!-- Sections will be populated by JavaScript -->
+                        </div>
+                        
+                        <!-- Navigation Buttons -->
+                        <div class="row mt-4">
+                            <div class="col-6">
+                                <button type="button" class="btn btn-outline-secondary" id="prev-btn" disabled>
+                                    <i class="fas fa-chevron-left"></i> Previous
+                                </button>
+                            </div>
+                            <div class="col-6 text-end">
+                                <button type="button" class="btn btn-primary" id="next-btn">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </button>
+                                <button type="submit" class="btn btn-success d-none" id="submit-btn">
+                                    <i class="fas fa-check"></i> Submit Assessment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Question Data -->
+<script type="application/json" id="questionnaire-data">
+{{ questionnaire | tojson }}
+</script>
+
+<!-- Existing Responses Data -->
+<script type="application/json" id="existing-responses">
+{{ existing_responses | tojson }}
+</script>
+<script type="application/json" id="existing-comments">
+{{ existing_comments | tojson }}
+</script>
+<script type="application/json" id="existing-screenshots">
+{{ existing_screenshots | tojson }}
+</script>
+<script type="application/json" id="saved-section">
+{{ saved_section | tojson }}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        const questionnaireData = JSON.parse(document.getElementById('questionnaire-data').textContent);
+        const existingResponses = JSON.parse(document.getElementById('existing-responses').textContent);
+        const existingComments = JSON.parse(document.getElementById('existing-comments').textContent);
+        const existingScreenshots = JSON.parse(document.getElementById('existing-screenshots').textContent);
+        const savedSection = JSON.parse(document.getElementById('saved-section').textContent);
+
+        const sections = Object.keys(questionnaireData);
+        
+        // DEBUG: Check if data is loaded correctly
+        console.log('✅ Questionnaire loaded. Sections:', sections.length);
+        
+        if (sections.length === 0) {
+            console.error('❌ No sections found in questionnaire data!', questionnaireData);
+            document.getElementById('section-container').innerHTML = '<div class="alert alert-danger">Error: No questionnaire sections found!</div>';
+            return;
+        }
+    // Ensure saved section is within bounds for current questionnaire
+    let currentSection = 0;
+    if (savedSection && savedSection < sections.length) {
+        currentSection = savedSection;
+    }
+    console.log(`📍 Starting from section ${currentSection} of ${sections.length}`);
+    let autoSaveTimeout;
+    
+    // Auto-save function
+    function autoSave() {
+        clearTimeout(autoSaveTimeout);
+        autoSaveTimeout = setTimeout(() => {
+            const responses = {};
+            const comments = {};
+            
+            // Collect all radio button responses across all sections (only from enabled categories)
+            sections.forEach(sectionKey => {
+                const section = questionnaireData[sectionKey];
+                const categoryEnabled = localStorage.getItem(`category_${sectionKey}`) !== 'false';
+                
+                if (!categoryEnabled) return; // Skip disabled categories
+                
+                section.questions.forEach(question => {
+                    // Check for radio button responses
+                    const radioButtons = document.querySelectorAll(`input[name="${question.id}"]:checked`);
+                    if (radioButtons.length > 0) {
+                        responses[question.id] = radioButtons[0].value;
+                    }
+                    
+                    // Check for comments
+                    const commentTextarea = document.getElementById(`${question.id}_comment`);
+                    if (commentTextarea && commentTextarea.value.trim()) {
+                        comments[question.id] = commentTextarea.value.trim();
+                    }
+                });
+            });
+            
+            // Update global variables with latest responses
+            Object.keys(responses).forEach(questionId => {
+                existingResponses[questionId] = responses[questionId];
+            });
+            Object.keys(comments).forEach(questionId => {
+                existingComments[questionId] = comments[questionId];
+            });
+            
+            // Only save if there are responses
+            if (Object.keys(responses).length > 0 || Object.keys(comments).length > 0) {
+                // Save draft with current section
+                fetch('{{ url_for("auto_save_questionnaire", app_id=application.id) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        responses: responses,
+                        comments: comments,
+                        screenshots: existingScreenshots,
+                        current_section: currentSection
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show auto-save indicator
+                        const status = document.getElementById('auto-save-status');
+                        status.style.display = 'inline';
+                        setTimeout(() => {
+                            status.style.display = 'none';
+                        }, 3000);
+                    }
+                })
+                .catch(error => console.log('Auto-save error:', error));
+            }
+        }, 2000); // Auto-save after 2 seconds of inactivity
+    }
+    
+    const sectionContainer = document.getElementById('section-container');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const submitBtn = document.getElementById('submit-btn');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const currentSectionSpan = document.getElementById('current-section');
+    const totalSectionsSpan = document.getElementById('total-sections');
+    
+    // Set total sections
+    totalSectionsSpan.textContent = sections.length;
+    
+    function populateCurrentSection() {
+        // Only populate responses for questions in the currently displayed section
+        const sectionKey = sections[currentSection];
+        const section = questionnaireData[sectionKey];
+        
+        section.questions.forEach(question => {
+            // Populate radio button responses for this section's questions
+            if (existingResponses[question.id]) {
+                const value = existingResponses[question.id];
+                const radioButton = document.getElementById(`${question.id}_${value}`);
+                if (radioButton) {
+                    radioButton.checked = true;
+                }
+            }
+            
+            // Populate comments for this section's questions
+            if (existingComments[question.id]) {
+                const comment = existingComments[question.id];
+                const textarea = document.getElementById(`${question.id}_comment`);
+                if (textarea) {
+                    textarea.value = comment;
+                }
+            }
+        });
+    }
+    
+    function populateAllSavedResponses() {
+        // Populate ALL saved responses across all sections for progress calculation
+        // This creates hidden form elements for responses not in the current section
+        Object.keys(existingResponses).forEach(questionId => {
+            const value = existingResponses[questionId];
+            // Check if the radio button exists in current DOM
+            let radioButton = document.getElementById(`${questionId}_${value}`);
+            
+            if (!radioButton) {
+                // If not in current section, create a hidden input to track the response
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = questionId;
+                hiddenInput.value = value;
+                hiddenInput.id = `${questionId}_${value}_hidden`;
+                document.body.appendChild(hiddenInput);
+            } else {
+                radioButton.checked = true;
+            }
+        });
+    }
+    
+    function updateProgress() {
+        const progress = Math.round(((currentSection + 1) / sections.length) * 100);
+        progressBar.style.width = progress + '%';
+        progressBar.setAttribute('aria-valuenow', progress);
+        progressText.textContent = progress + '%';
+        currentSectionSpan.textContent = currentSection + 1;
+    }
+    
+    function renderSection(sectionIndex) {
+        const sectionKey = sections[sectionIndex];
+        const section = questionnaireData[sectionKey];
+        
+
+        
+        // Check if category is enabled (default: true)
+        const categoryEnabled = localStorage.getItem(`category_${sectionKey}`) !== 'false';
+        
+        let html = `
+            <div class="section-header mb-4">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h3 class="text-primary mb-2">
+                            <i class="fas fa-clipboard-list"></i> ${section.title}
+                        </h3>
+                        <p class="text-muted mb-0">${section.description}</p>
+                    </div>
+                    <div class="col-auto d-flex align-items-center">
+                        <span class="badge bg-light text-dark border me-3">
+                            ${section.questions.length} questions
+                        </span>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input category-toggle" type="checkbox" 
+                                   id="toggle_${sectionKey}" 
+                                   ${categoryEnabled ? 'checked' : ''}>
+                            <label class="form-check-label fw-bold text-${categoryEnabled ? 'success' : 'muted'}" 
+                                   for="toggle_${sectionKey}" id="label_${sectionKey}">
+                                ${categoryEnabled ? 'Enabled' : 'Disabled'}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                ${!categoryEnabled ? `
+                <div class="alert alert-warning mb-3">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Category Disabled:</strong> This category is not applicable to your application and will be skipped during assessment.
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="questions-container ${categoryEnabled ? '' : 'category-disabled'}" style="${categoryEnabled ? '' : 'opacity: 0.5; pointer-events: none;'}">
+        `;
+        
+        section.questions.forEach((question, qIndex) => {
+            html += `
+                <div class="question-card card border-left-primary mb-4" style="border-left: 4px solid #007bff;">
+                    <div class="card-body">
+                        <div class="question-header mb-3">
+                            <h5 class="mb-1">
+                                ${question.question}
+                            </h5>
+                            ${question.description ? `<small class="text-muted">${question.description}</small>` : ''}
+                        </div>
+                        
+                        <div class="question-options mb-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" 
+                                               name="${question.id}" 
+                                               id="${question.id}_yes" 
+                                               value="yes">
+                                        <label class="form-check-label" for="${question.id}_yes">
+                                            <i class="fas fa-check-circle text-success"></i> <strong>Yes</strong>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" 
+                                               name="${question.id}" 
+                                               id="${question.id}_na" 
+                                               value="na">
+                                        <label class="form-check-label" for="${question.id}_na">
+                                            <i class="fas fa-minus-circle text-secondary"></i> <strong>N/A</strong>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" 
+                                               name="${question.id}" 
+                                               id="${question.id}_no" 
+                                               value="no">
+                                        <label class="form-check-label" for="${question.id}_no">
+                                            <i class="fas fa-times-circle text-danger"></i> <strong>No</strong>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Comment Field -->
+                        <div class="mb-3">
+                            <label for="${question.id}_comment" class="form-label">
+                                <i class="fas fa-comment"></i> Additional Comments (Optional)
+                            </label>
+                            <textarea class="form-control" id="${question.id}_comment" 
+                                    name="${question.id}_comment" rows="2" 
+                                    placeholder="Provide additional context, explanation, or details..."></textarea>
+                        </div>
+                        
+                        <!-- Screenshot Upload -->
+                        <div class="mb-3">
+                            <label for="${question.id}_screenshot" class="form-label">
+                                <i class="fas fa-camera"></i> Supporting Screenshot (Optional)
+                            </label>
+                            <input type="file" class="form-control" id="${question.id}_screenshot" 
+                                   name="${question.id}_screenshot" 
+                                   accept=".png,.jpg,.jpeg,.gif,.webp"
+                                   data-max-size="5242880">
+                            <div class="form-text">
+                                Accepted formats: PNG, JPG, GIF, WebP - Max 5MB
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        sectionContainer.innerHTML = html;
+        
+                          // Add fade-in animation
+        sectionContainer.style.opacity = '0';
+        setTimeout(() => {
+            sectionContainer.style.opacity = '1';
+            sectionContainer.style.transition = 'opacity 0.3s ease-in-out';
+            
+            // Add event listeners to radio buttons for real-time progress update and auto-save
+            document.querySelectorAll('input[type="radio"]').forEach(input => {
+                input.addEventListener('change', function() {
+                    updateProgressBasedOnAnswers();
+                    autoSave();
+                });
+            });
+            
+            // Add event listeners to comment textareas for auto-save
+            document.querySelectorAll('textarea').forEach(textarea => {
+                textarea.addEventListener('input', autoSave);
+                textarea.addEventListener('blur', autoSave);
+            });
+            
+            // Handle category toggle
+            const categoryToggle = document.querySelector('.category-toggle');
+            if (categoryToggle) {
+                categoryToggle.addEventListener('change', function() {
+                    const sectionKey = sections[currentSection];
+                    const isEnabled = this.checked;
+                    const label = document.getElementById(`label_${sectionKey}`);
+                    const questionsContainer = document.querySelector('.questions-container');
+                    
+                    // Save category state
+                    localStorage.setItem(`category_${sectionKey}`, isEnabled);
+                    
+                    // Update UI
+                    label.textContent = isEnabled ? 'Enabled' : 'Disabled';
+                    label.className = `form-check-label fw-bold text-${isEnabled ? 'success' : 'muted'}`;
+                    
+                    if (isEnabled) {
+                        questionsContainer.style.opacity = '1';
+                        questionsContainer.style.pointerEvents = 'auto';
+                        questionsContainer.classList.remove('category-disabled');
+                    } else {
+                        questionsContainer.style.opacity = '0.5';
+                        questionsContainer.style.pointerEvents = 'none';
+                        questionsContainer.classList.add('category-disabled');
+                        
+                        // Clear any answers in this category
+                        questionsContainer.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
+                            radio.checked = false;
+                        });
+                        questionsContainer.querySelectorAll('textarea').forEach(textarea => {
+                            textarea.value = '';
+                        });
+                    }
+                    
+                    // Re-render to show/hide warning
+                    renderSection(currentSection);
+                    
+                    // Update completion progress
+                    updateProgressBasedOnAnswers();
+                });
+            }
+            
+            // Update progress for any already selected answers
+            updateProgressBasedOnAnswers();
+            
+            // Populate saved responses for this section (with small delay to ensure DOM is ready)
+            setTimeout(() => {
+                populateCurrentSection();
+                // Update progress after populating responses
+                updateProgressBasedOnAnswers();
+            }, 100);
+        }, 100);
+    }
+    
+    function updateButtons() {
+        prevBtn.disabled = currentSection === 0;
+        
+        if (currentSection === sections.length - 1) {
+            nextBtn.classList.add('d-none');
+            submitBtn.classList.remove('d-none');
+        } else {
+            nextBtn.classList.remove('d-none');
+            submitBtn.classList.add('d-none');
+        }
+    }
+    
+         function updateProgressBasedOnAnswers() {
+         let totalQuestions = 0;
+         let answeredQuestions = 0;
+         let disabledCategories = 0;
+         
+         // Count all questions and answered questions across all sections
+         sections.forEach(sectionKey => {
+             const section = questionnaireData[sectionKey];
+             const categoryEnabled = localStorage.getItem(`category_${sectionKey}`) !== 'false';
+             
+             if (!categoryEnabled) {
+                 disabledCategories++;
+                 return; // Skip disabled categories
+             }
+             
+             section.questions.forEach(question => {
+                 totalQuestions++;
+                 // Check for answered questions across all sections, not just current one
+                 const inputs = document.querySelectorAll(`input[name="${question.id}"]:checked`);
+                 const hiddenInputs = document.querySelectorAll(`input[name="${question.id}"][type="hidden"]`);
+                 
+                 // Count as answered if there's either a checked radio button or a saved response
+                 if (inputs.length > 0 || hiddenInputs.length > 0 || existingResponses[question.id]) {
+                     answeredQuestions++;
+                 }
+             });
+         });
+         
+         // Update progress based on actual completion
+         const completionProgress = totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
+         
+         // Update the secondary progress indicator
+         const secondaryProgress = document.getElementById('completion-progress');
+         if (secondaryProgress) {
+             const categoryText = disabledCategories > 0 ? ` (${disabledCategories} categories disabled)` : '';
+             secondaryProgress.textContent = `${answeredQuestions}/${totalQuestions} questions answered (${completionProgress}%)${categoryText}`;
+         }
+         
+         // Debug log to verify the calculation
+         console.log(`Progress Update: ${answeredQuestions}/${totalQuestions} questions (${completionProgress}%), ${disabledCategories} categories disabled`);
+     }
+    
+    // Event Listeners
+         prevBtn.addEventListener('click', function() {
+         if (currentSection > 0) {
+             currentSection--;
+             renderSection(currentSection);
+             updateProgress();
+             updateButtons();
+             updateProgressBasedOnAnswers();
+             window.scrollTo({ top: 0, behavior: 'smooth' });
+         }
+     });
+    
+         nextBtn.addEventListener('click', function() {
+         if (currentSection < sections.length - 1) {
+             currentSection++;
+             renderSection(currentSection);
+             updateProgress();
+             updateButtons();
+             updateProgressBasedOnAnswers();
+             window.scrollTo({ top: 0, behavior: 'smooth' });
+         }
+     });
+    
+    // Handle form submission - collect ALL responses before submitting
+    const form = document.getElementById('questionnaireForm');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault(); // Prevent default submission
+        
+        // Collect ALL responses and comments from all sections
+        const allResponses = {};
+        const allComments = {};
+        
+        sections.forEach(sectionKey => {
+            const section = questionnaireData[sectionKey];
+            section.questions.forEach(question => {
+                // Check if this question was answered (from existingResponses or from current form state)
+                let response = existingResponses[question.id] || '';
+                let comment = existingComments[question.id] || '';
+                
+                // If this question is in the current section, get the latest value from the form
+                if (sectionKey === sections[currentSection]) {
+                    const radioButtons = document.querySelectorAll(`input[name="${question.id}"]:checked`);
+                    if (radioButtons.length > 0) {
+                        response = radioButtons[0].value;
+                    }
+                    
+                    const commentTextarea = document.getElementById(`${question.id}_comment`);
+                    if (commentTextarea && commentTextarea.value.trim()) {
+                        comment = commentTextarea.value.trim();
+                    }
+                }
+                
+                // Store response and comment if they exist
+                if (response) {
+                    allResponses[question.id] = response;
+                }
+                if (comment) {
+                    allComments[question.id] = comment;
+                }
+            });
+        });
+        
+        // Create hidden fields for all responses
+        Object.keys(allResponses).forEach(questionId => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = questionId;
+            input.value = allResponses[questionId];
+            form.appendChild(input);
+        });
+        
+        // Create hidden fields for all comments
+        Object.keys(allComments).forEach(questionId => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = questionId + '_comment';
+            input.value = allComments[questionId];
+            form.appendChild(input);
+        });
+        
+        // Now submit the form with all data
+        form.submit();
+    });
+    
+    // Function to update disabled categories hidden field
+    function updateDisabledCategories() {
+        const disabledCategories = [];
+        sections.forEach(sectionKey => {
+            const categoryEnabled = localStorage.getItem(`category_${sectionKey}`) !== 'false';
+            if (!categoryEnabled) {
+                disabledCategories.push(sectionKey);
+            }
+        });
+        document.getElementById('disabled_categories').value = JSON.stringify(disabledCategories);
+    }
+    
+    // Update disabled categories before form submission
+    document.getElementById('questionnaireForm').addEventListener('submit', function() {
+        updateDisabledCategories();
+    });
+    
+                 // Initialize - start from saved section or 0
+    populateAllSavedResponses(); // Load all saved responses first
+    renderSection(currentSection);
+    updateProgress();
+    updateButtons();
+    updateProgressBasedOnAnswers();
+    updateDisabledCategories();
+    
+    } catch (error) {
+        console.error('❌ JavaScript Error in questionnaire:', error);
+        document.getElementById('section-container').innerHTML = '<div class="alert alert-danger">Error loading questionnaire: ' + error.message + '</div>';
+    }
+});
+</script>
+
+<style>
+.border-left-primary {
+    border-left: 4px solid #007bff !important;
+}
+
+.question-card {
+    transition: all 0.3s ease;
+}
+
+.question-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+
+.form-check-input:checked {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.form-check-label {
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+.section-header {
+    border-bottom: 2px solid #f8f9fa;
+    padding-bottom: 1rem;
+}
+
+.progress {
+    border-radius: 10px;
+    background-color: #e9ecef;
+}
+
+.progress-bar {
+    border-radius: 10px;
+    transition: width 0.6s ease;
+}
+
+#section-container {
+    min-height: 400px;
+}
+
+.badge {
+    font-size: 0.875em;
+}
+
+.btn {
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    border: none;
+}
+
+.btn-success {
+    background: linear-gradient(45deg, #28a745, #1e7e34);
+    border: none;
+}
+
+.category-disabled {
+    transition: all 0.3s ease;
+}
+
+.category-toggle {
+    width: 3rem;
+    height: 1.5rem;
+}
+
+.category-toggle:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.form-switch .form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+</style>
+{% endblock %} 

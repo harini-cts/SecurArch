@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Application Management - Admin Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a></li>
+                    <li class="breadcrumb-item active">Application Management</li>
+                </ol>
+            </nav>
+            <h2><i class="fas fa-laptop-code text-info"></i> Application Management</h2>
+            <p class="text-muted">Manage system-wide applications and override statuses</p>
+        </div>
+    </div>
+
+    <!-- Applications Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-table"></i> All Applications ({{ applications|length }} total)
+                    </h6>
+                    <div>
+                        <button class="btn btn-success btn-sm" onclick="exportApplications()">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Application</th>
+                                    <th>Author</th>
+                                    <th>Status</th>
+                                    <th>Criticality</th>
+                                    <th>Reviews</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for app in applications %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <strong>{{ app.name }}</strong>
+                                            <br><small class="text-muted">{{ app.description[:60] }}...</small>
+                                            {% if app.technology_stack %}
+                                            <br><span class="badge bg-info">{{ app.technology_stack }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            {{ app.first_name }} {{ app.last_name }}
+                                            <br><small class="text-muted">{{ app.email }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if app.status == 'completed' %}bg-success{% elif app.status == 'in_review' %}bg-primary{% elif app.status == 'submitted' %}bg-warning{% elif app.status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ app.status|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if app.business_criticality == 'High' %}bg-danger{% elif app.business_criticality == 'Medium' %}bg-warning{% else %}bg-success{% endif %}">
+                                            {{ app.business_criticality or 'Medium' }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ app.review_count }}</span>
+                                        {% if app.last_review_date %}
+                                        <br><small class="text-muted">{{ app.last_review_date[:10] }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ app.created_at[:10] }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <!-- Status Change Dropdown -->
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-exchange-alt"></i> Status
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li><h6 class="dropdown-header">Change Status To:</h6></li>
+                                                    {% for status in ['draft', 'submitted', 'in_review', 'completed', 'rejected'] %}
+                                                    {% if status != app.status %}
+                                                    <li>
+                                                        <form method="POST" action="{{ url_for('admin_change_application_status', app_id=app.id) }}" style="display: inline;">
+                                                            <input type="hidden" name="status" value="{{ status }}">
+                                                            <button type="submit" class="dropdown-item" onclick="return confirm('Change status to {{ status }}?')">
+                                                                {{ status|title }}
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                    {% endif %}
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                            
+                                            <!-- View Button -->
+                                            <a href="{{ url_for('web_security_assessment', app_id=app.id) }}" class="btn btn-sm btn-outline-info" target="_blank">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            
+                                            <!-- Delete Button -->
+                                            <form method="POST" action="{{ url_for('admin_delete_application', app_id=app.id) }}" style="display: inline;">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                        onclick="return confirm('⚠️ WARNING: This will permanently delete the application &quot;{{ app.name }}&quot; and all related data including reviews and STRIDE analysis.\n\nThis action cannot be undone.\n\nAre you sure?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card border-left-primary">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Applications</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ applications|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-laptop-code fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-warning">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Reviews</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ applications|selectattr('status', 'equalto', 'submitted')|list|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-success">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Completed</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ applications|selectattr('status', 'equalto', 'completed')|list|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-danger">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">High Criticality</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ applications|selectattr('business_criticality', 'equalto', 'High')|list|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function exportApplications() {
+    // Simple implementation - redirect to export endpoint
+    window.location.href = '/admin/applications/export';
+}
+</script>
+
+<style>
+.border-left-primary { border-left: 4px solid #4e73df !important; }
+.border-left-success { border-left: 4px solid #1cc88a !important; }
+.border-left-warning { border-left: 4px solid #f6c23e !important; }
+.border-left-danger { border-left: 4px solid #e74a3b !important; }
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9fc;
+}
+</style>
+{% endblock %} 

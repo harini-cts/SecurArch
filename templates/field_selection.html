@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Select Security Review Field - Cognizant SecArch Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="text-center mb-4">
+            <h2><i class="fas fa-crosshairs"></i> Select Security Review Field</h2>
+            <p class="lead">Choose the type of security assessment for your applications</p>
+        </div>
+
+        <!-- Application Context -->
+        {% if application %}
+        <div class="alert alert-info mb-4">
+            <h6><i class="fas fa-info-circle"></i> Application Context</h6>
+            <p class="mb-0">You're about to start a security review for: <strong>{{ application.name }}</strong></p>
+        </div>
+        {% endif %}
+
+        <!-- Security Fields Grid -->
+        <div class="row">
+            <!-- Application Security Review (14 Categories) -->
+            <div class="col-md-6 col-lg-6 mb-4">
+                <div class="card h-100 field-card" onclick="selectField('application_review')">
+                    <div class="card-body text-center">
+                        <div class="field-icon mb-3">
+                            <i class="fas fa-shield-alt fa-4x text-primary"></i>
+                        </div>
+                        <h5 class="card-title">Application Security Review</h5>
+                        <p class="text-muted mb-3">Comprehensive OWASP-based security assessment covering <strong>14 security categories</strong> for application development</p>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="feature-stat">
+                                    <span class="stat-number">14</span>
+                                    <span class="stat-label">Categories</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="feature-stat">
+                                    <span class="stat-number">42</span>
+                                    <span class="stat-label">Questions</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="features-list mt-3">
+                            <small class="text-muted d-block">• Input Validation & Injection Prevention</small>
+                            <small class="text-muted d-block">• Authentication & Authorization</small>
+                            <small class="text-muted d-block">• Cryptographic Controls</small>
+                            <small class="text-muted d-block">• API Security & Data Protection</small>
+                            <small class="text-muted d-block">• And 10 more security domains...</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cloud Security Review (AWS, Azure, GCP) -->
+            <div class="col-md-6 col-lg-6 mb-4">
+                <div class="card h-100 field-card" onclick="selectField('cloud_review')">
+                    <div class="card-body text-center">
+                        <div class="field-icon mb-3">
+                            <i class="fas fa-cloud-upload-alt fa-4x text-info"></i>
+                        </div>
+                        <h5 class="card-title">Cloud Security Review</h5>
+                        <p class="text-muted mb-3">Comprehensive OWASP Cloud Top 10 based security assessment for <strong>AWS, Azure, and GCP</strong> infrastructure</p>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="feature-stat">
+                                    <span class="stat-number">3</span>
+                                    <span class="stat-label">Platforms</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="feature-stat">
+                                    <span class="stat-number">24</span>
+                                    <span class="stat-label">Questions</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="features-list mt-3">
+                            <div class="cloud-providers">
+                                <span class="badge bg-warning text-dark me-1">AWS</span>
+                                <span class="badge bg-primary text-white me-1">Azure</span>
+                                <span class="badge bg-success text-white">GCP</span>
+                            </div>
+                            <small class="text-muted d-block mt-2">• Identity & Access Management</small>
+                            <small class="text-muted d-block">• Network Security Configuration</small>
+                            <small class="text-muted d-block">• Data Protection & Encryption</small>
+                            <small class="text-muted d-block">• Security Monitoring & Compliance</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Section -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> Review Types</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Application Reviews (14 Categories):</strong>
+                            <p class="mb-0 small">Comprehensive security assessment covering all OWASP application security categories including authentication, authorization, cryptography, data protection, API security, and more.</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Cloud Configuration Reviews (3 Platforms):</strong>
+                            <p class="mb-0 small">OWASP Cloud Top 10 based assessments focusing on cloud-specific security controls, IAM configurations, network security, and data protection for AWS, Azure, or GCP.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Application Selection Section -->
+        {% if not application %}
+        <div class="card mt-5" id="application-selection" style="display: none;">
+            <div class="card-header">
+                <h5><i class="fas fa-laptop-code"></i> Select Application to Review</h5>
+            </div>
+            <div class="card-body">
+                <div class="row" id="applications-list">
+                    <!-- Applications will be loaded here -->
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="text-center mt-4">
+            <a href="{{ url_for('web_applications') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Applications
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedField = null;
+let selectedApplication = {% if application %}{{ application.id | tojson }}{% else %}null{% endif %};
+
+function selectField(fieldType) {
+    selectedField = fieldType;
+    
+    // Update visual selection
+    document.querySelectorAll('.field-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    event.currentTarget.classList.add('selected');
+    
+    if (selectedApplication) {
+        // If we have an application already, go directly to questionnaire
+        proceedToQuestionnaire();
+    } else {
+        // Show application selection
+        showApplicationSelection();
+    }
+}
+
+function showApplicationSelection() {
+    document.getElementById('application-selection').style.display = 'block';
+    
+    // Load applications (mock data for now)
+    const mockApplications = [
+        { id: '1', name: 'E-commerce Platform', description: 'Online shopping application', technology: 'React + Node.js' },
+        { id: '2', name: 'Mobile Banking App', description: 'Secure banking mobile application', technology: 'React Native' },
+        { id: '3', name: 'Payment API', description: 'RESTful payment processing API', technology: 'Python + FastAPI' }
+    ];
+    
+    const applicationsList = document.getElementById('applications-list');
+    applicationsList.innerHTML = '';
+    
+    mockApplications.forEach(app => {
+        const appCard = document.createElement('div');
+        appCard.className = 'col-md-4 mb-3';
+        appCard.innerHTML = `
+            <div class="card app-card" onclick="selectApplication('${app.id}', '${app.name}')">
+                <div class="card-body">
+                    <h6>${app.name}</h6>
+                    <p class="small text-muted">${app.description}</p>
+                    <small><strong>Tech:</strong> ${app.technology}</small>
+                </div>
+            </div>
+        `;
+        applicationsList.appendChild(appCard);
+    });
+    
+    // Scroll to application selection
+    document.getElementById('application-selection').scrollIntoView({ behavior: 'smooth' });
+}
+
+function selectApplication(appId, appName) {
+    selectedApplication = appId;
+    
+    // Update visual selection
+    document.querySelectorAll('.app-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    event.currentTarget.classList.add('selected');
+    
+    // Show proceed button
+    const proceedBtn = document.createElement('div');
+    proceedBtn.className = 'text-center mt-3';
+    proceedBtn.innerHTML = `
+        <button class="btn btn-success btn-lg" onclick="proceedToQuestionnaire()">
+            <i class="fas fa-clipboard-check"></i> Start ${getFieldDisplayName(selectedField)} for ${appName}
+        </button>
+    `;
+    
+    // Remove existing proceed button if any
+    const existingBtn = document.querySelector('.proceed-btn');
+    if (existingBtn) existingBtn.remove();
+    
+    proceedBtn.classList.add('proceed-btn');
+    document.getElementById('application-selection').appendChild(proceedBtn);
+}
+
+function proceedToQuestionnaire() {
+    if (!selectedField) {
+        alert('Please select a security review type first.');
+        return;
+    }
+    
+    if (!selectedApplication) {
+        alert('Please select an application to review.');
+        return;
+    }
+    
+    // Redirect to field-specific questionnaire
+    window.location.href = `/questionnaire/${selectedApplication}?field=${selectedField}`;
+}
+
+function getFieldDisplayName(field) {
+    const names = {
+        'application_review': 'Application Security Review',
+        'cloud_review': 'Cloud Security Review',
+        // Legacy field mappings for backward compatibility
+        'comprehensive_application': 'Application Security Review',
+        'cloud_aws': 'AWS Cloud Security',
+        'cloud_azure': 'Azure Cloud Security', 
+        'cloud_gcp': 'GCP Cloud Security',
+        'web_application': 'Web Application',
+        'mobile_application': 'Mobile Application'
+    };
+    return names[field] || field;
+}
+
+// Auto-select if coming from specific application
+document.addEventListener('DOMContentLoaded', function() {
+    {% if application %}
+    // If we have a specific application, highlight it
+    console.log('Pre-selected application: {{ application.name }}');
+    {% endif %}
+});
+</script>
+
+<style>
+.field-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+.field-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    border-color: #007bff;
+}
+
+.field-card.selected {
+    border-color: #28a745;
+    background-color: #f8f9fa;
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(40,167,69,0.2);
+}
+
+.feature-stat {
+    margin-bottom: 0.5rem;
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.features-list {
+    text-align: left;
+}
+
+.cloud-providers {
+    margin-bottom: 0.5rem;
+}
+
+.cloud-providers .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+}
+
+#application-selection {
+    display: none;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.app-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+.app-card:hover {
+    border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.app-card.selected {
+    border-color: #28a745;
+    background-color: #f8f9fa;
+}
+
+.btn-outline-primary:hover {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+.btn-outline-success:hover {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Cognizant SecArch Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="text-center mb-4">
+            <h2><i class="fas fa-rocket"></i> Welcome to Cognizant SecArch Portal!</h2>
+            <p class="lead">Let's get you set up for secure architecture reviews</p>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="progress">
+                    <div class="progress-bar" style="width: 25%">Step 1 of 4</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 1: Platform Overview -->
+        <div class="card mb-4" id="step1">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> Platform Overview</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-shield-alt"></i> OWASP Standards Integration</h6>
+                        <p>Our platform integrates with industry-standard OWASP frameworks including ASVS, Top 10, and SAMM to provide comprehensive security assessments.</p>
+                        
+                        <h6><i class="fas fa-users"></i> Expert Review Process</h6>
+                        <p>Your applications are reviewed by certified security professionals using proven methodologies and best practices.</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-chart-line"></i> Detailed Analytics</h6>
+                        <p>Get comprehensive reports with risk scores, compliance status, and actionable recommendations for improvement.</p>
+                        
+                        <h6><i class="fas fa-sync"></i> Continuous Monitoring</h6>
+                        <p>Track your security posture over time with regular assessments and trend analysis.</p>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button class="btn btn-primary" onclick="nextStep(2)">
+                        Get Started <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Security Questionnaire Overview -->
+        <div class="card mb-4 d-none" id="step2">
+            <div class="card-header">
+                <h5><i class="fas fa-clipboard-check"></i> Security Assessment Process</h5>
+            </div>
+            <div class="card-body">
+                <p>Our security assessment covers multiple categories based on OWASP standards:</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-lock"></i> Authentication & Authorization</h6>
+                            <p class="small text-muted">Multi-factor authentication, role-based access control, session management</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6><i class="fas fa-database"></i> Data Protection</h6>
+                            <p class="small text-muted">Encryption, data classification, privacy controls</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6><i class="fas fa-filter"></i> Input Validation</h6>
+                            <p class="small text-muted">SQL injection prevention, XSS protection, input sanitization</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-server"></i> Infrastructure Security</h6>
+                            <p class="small text-muted">Network security, server hardening, container security</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6><i class="fas fa-code"></i> Secure Development</h6>
+                            <p class="small text-muted">Code review, SAST/DAST, dependency management</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6><i class="fas fa-eye"></i> Logging & Monitoring</h6>
+                            <p class="small text-muted">Audit trails, incident response, security monitoring</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button class="btn btn-secondary me-2" onclick="prevStep(1)">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <button class="btn btn-primary" onclick="nextStep(3)">
+                        Continue <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Best Practices -->
+        <div class="card mb-4 d-none" id="step3">
+            <div class="card-header">
+                <h5><i class="fas fa-lightbulb"></i> Best Practices for Accurate Assessment</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-check-circle text-success"></i> Do:</h6>
+                        <ul>
+                            <li>Provide detailed and honest answers</li>
+                            <li>Include implementation details in comments</li>
+                            <li>Consult with your development team</li>
+                            <li>Review your security documentation</li>
+                            <li>Consider all deployment environments</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-times-circle text-danger"></i> Don't:</h6>
+                        <ul>
+                            <li>Guess if you're uncertain about implementation</li>
+                            <li>Overstate your security measures</li>
+                            <li>Skip questions that seem irrelevant</li>
+                            <li>Rush through the assessment</li>
+                            <li>Ignore partial implementations</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-4">
+                    <h6><i class="fas fa-info-circle"></i> Pro Tip</h6>
+                    <p class="mb-0">You can save your progress at any time and return later. The more detailed your responses, the more accurate and helpful your security recommendations will be.</p>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button class="btn btn-secondary me-2" onclick="prevStep(2)">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <button class="btn btn-primary" onclick="nextStep(4)">
+                        Almost Done <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Ready to Start -->
+        <div class="card mb-4 d-none" id="step4">
+            <div class="card-header">
+                <h5><i class="fas fa-flag-checkered"></i> Ready to Start!</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-4">
+                    <i class="fas fa-rocket fa-5x text-primary"></i>
+                </div>
+                
+                <h4>You're all set!</h4>
+                <p class="lead">Your account is now configured for security architecture reviews.</p>
+                
+                <div class="row mt-4">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-plus fa-2x text-success mb-2"></i>
+                                <h6>Add Application</h6>
+                                <p class="small">Register your first application for review</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-clipboard-check fa-2x text-warning mb-2"></i>
+                                <h6>Complete Assessment</h6>
+                                <p class="small">Answer security questionnaire</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                                <h6>Review Results</h6>
+                                <p class="small">Get recommendations and insights</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button class="btn btn-secondary me-2" onclick="prevStep(3)">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <a href="{{ url_for('web_dashboard') }}" class="btn btn-success btn-lg">
+                        <i class="fas fa-home"></i> Go to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function nextStep(step) {
+    // Hide all steps
+    for (let i = 1; i <= 4; i++) {
+        document.getElementById('step' + i).classList.add('d-none');
+    }
+    
+    // Show target step
+    document.getElementById('step' + step).classList.remove('d-none');
+    
+    // Update progress
+    const progress = (step / 4) * 100;
+    document.querySelector('.progress-bar').style.width = progress + '%';
+    document.querySelector('.progress-bar').textContent = `Step ${step} of 4`;
+    
+    // Scroll to top
+    window.scrollTo(0, 0);
+}
+
+function prevStep(step) {
+    nextStep(step);
+}
+
+// Auto-advance for demo (remove in production)
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-complete onboarding if this is a returning user
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('auto') === 'complete') {
+        setTimeout(() => {
+            window.location.href = "{{ url_for('web_dashboard') }}";
+        }, 1000);
+    }
+});
+</script>
+
+<style>
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.progress {
+    height: 8px;
+}
+
+.alert {
+    border: none;
+    border-radius: 10px;
+}
+
+.fa-5x {
+    color: var(--primary-color);
+}
+</style>
+{% endblock %} 

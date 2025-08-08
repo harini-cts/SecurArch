@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}System Settings - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-cog text-primary"></i> System Settings</h2>
+            <p class="text-muted">Configure system-wide settings and preferences</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Security Settings -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Security Settings</h6>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Password Policy</label>
+                                    <select class="form-select">
+                                        <option selected>Strong (8+ chars, mixed case, numbers, symbols)</option>
+                                        <option>Medium (8+ chars, mixed case, numbers)</option>
+                                        <option>Basic (6+ chars)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Session Timeout (minutes)</label>
+                                    <input type="number" class="form-control" value="60" min="5" max="480">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Max Login Attempts</label>
+                                    <input type="number" class="form-control" value="5" min="3" max="10">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Account Lockout Duration (minutes)</label>
+                                    <input type="number" class="form-control" value="15" min="5" max="120">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="requireMFA" checked>
+                            <label class="form-check-label" for="requireMFA">
+                                Require Multi-Factor Authentication for Admin Users
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="auditLogging" checked>
+                            <label class="form-check-label" for="auditLogging">
+                                Enable Audit Logging
+                            </label>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Application Settings -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Application Settings</h6>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Default Review Assignment</label>
+                                    <select class="form-select">
+                                        <option selected>Round Robin</option>
+                                        <option>Load Balanced</option>
+                                        <option>Manual Assignment</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Auto-assign Reviews</label>
+                                    <select class="form-select">
+                                        <option selected>Enabled</option>
+                                        <option>Disabled</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Review SLA (days)</label>
+                                    <input type="number" class="form-control" value="5" min="1" max="30">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">High Priority SLA (days)</label>
+                                    <input type="number" class="form-control" value="2" min="1" max="14">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="enableNotifications" checked>
+                            <label class="form-check-label" for="enableNotifications">
+                                Enable Email Notifications
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="enableSLAAlerts" checked>
+                            <label class="form-check-label" for="enableSLAAlerts">
+                                Enable SLA Breach Alerts
+                            </label>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- System Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">System Information</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td><strong>Version:</strong></td>
+                            <td>SecureArch Portal v2.0</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Database:</strong></td>
+                            <td>SQLite</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Server:</strong></td>
+                            <td>Flask Development</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Last Backup:</strong></td>
+                            <td>N/A</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Uptime:</strong></td>
+                            <td>N/A</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">System Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="alert('Database backup feature coming soon!')">
+                            <i class="fas fa-database"></i> Backup Database
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="alert('Cache clear feature coming soon!')">
+                            <i class="fas fa-broom"></i> Clear Cache
+                        </button>
+                        <button class="btn btn-outline-info" onclick="alert('System maintenance feature coming soon!')">
+                            <i class="fas fa-wrench"></i> Maintenance Mode
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="confirmRestart()">
+                            <i class="fas fa-redo"></i> Restart Application
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Changes -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">Recent Changes</h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <small class="text-muted">Today</small>
+                            <p class="mb-1">Unified dashboard implemented</p>
+                        </div>
+                        <div class="timeline-item">
+                            <small class="text-muted">Yesterday</small>
+                            <p class="mb-1">Admin navigation reorganized</p>
+                        </div>
+                        <div class="timeline-item">
+                            <small class="text-muted">2 days ago</small>
+                            <p class="mb-1">Role-based architecture implemented</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Settings -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body text-center">
+                    <button class="btn btn-primary btn-lg" onclick="saveSettings()">
+                        <i class="fas fa-save"></i> Save All Settings
+                    </button>
+                    <button class="btn btn-secondary btn-lg ms-2" onclick="resetSettings()">
+                        <i class="fas fa-undo"></i> Reset to Defaults
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function saveSettings() {
+    // Simulate saving settings
+    alert('Settings saved successfully!\n\nNote: This is a demo. Actual settings persistence is not implemented.');
+}
+
+function resetSettings() {
+    if (confirm('Are you sure you want to reset all settings to defaults?')) {
+        alert('Settings reset to defaults.\n\nNote: This is a demo. Page will reload to show reset values.');
+        location.reload();
+    }
+}
+
+function confirmRestart() {
+    if (confirm('Are you sure you want to restart the application?\n\nThis will temporarily disconnect all users.')) {
+        alert('Application restart initiated.\n\nNote: This is a demo. Actual restart is not implemented.');
+    }
+}
+</script>
+
+<style>
+.timeline-item {
+    border-left: 3px solid #e3e6f0;
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 0.5rem;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #4e73df;
+}
+</style>
+{% endblock %} 

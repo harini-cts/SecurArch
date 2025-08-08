@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Analyst - Security Assessment - Cognizant SecArch Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('analyst_dashboard') }}">Analyst Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Security Assessment</li>
+            </ol>
+        </nav>
+
+        <div class="text-center mb-4">
+            <h2><i class="fas fa-shield-alt"></i> Security Assessment Review</h2>
+            <p class="lead">Analyze submitted security reviews by category</p>
+        </div>
+
+        <!-- Application Context -->
+        <div class="alert alert-info mb-4">
+            <h6><i class="fas fa-info-circle"></i> Application: {{ application.name }}</h6>
+            <p class="mb-0">{{ application.description }}</p>
+        </div>
+
+        <!-- Progress Overview -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        {% if app_review_completed %}
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <h5>Application Review</h5>
+                            <span class="badge bg-success">Submitted</span>
+                        {% else %}
+                            <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                            <h5>Application Review</h5>
+                            <span class="badge bg-warning">Not Submitted</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        {% if cloud_review_completed %}
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <h5>Cloud Review</h5>
+                            <span class="badge bg-success">Submitted</span>
+                        {% else %}
+                            <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                            <h5>Cloud Review</h5>
+                            <span class="badge bg-warning">Not Submitted</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Cards -->
+        <div class="row mb-4">
+            <!-- Application Security Review Card -->
+            <div class="col-md-6 mb-4">
+                <div class="card category-card h-100 border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-code"></i> Application Security Review
+                        </h5>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <p class="card-text mb-3">
+                            Comprehensive OWASP-based security assessment covering application development security practices.
+                        </p>
+                        
+                        <!-- Statistics -->
+                        <div class="row text-center mb-3">
+                            <div class="col-4">
+                                <div class="feature-stat">
+                                    <span class="stat-number">14</span>
+                                    <span class="stat-label">Categories</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="feature-stat">
+                                    <span class="stat-number">42</span>
+                                    <span class="stat-label">Questions</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="feature-stat">
+                                    <span class="stat-number">OWASP</span>
+                                    <span class="stat-label">Based</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Features -->
+                        <div class="features-list mb-3">
+                            <small class="text-muted">
+                                <i class="fas fa-check text-success"></i> Input Validation & Injection Prevention<br>
+                                <i class="fas fa-check text-success"></i> Authentication & Identity Management<br>
+                                <i class="fas fa-check text-success"></i> Session Management & Authorization<br>
+                                <i class="fas fa-check text-success"></i> Data Protection & Cryptography<br>
+                                <i class="fas fa-check text-success"></i> Error Handling & Logging<br>
+                                <i class="fas fa-plus text-muted"></i> 9 more categories...
+                            </small>
+                        </div>
+
+                        <!-- Action Button -->
+                        <div class="mt-auto">
+                            {% if app_review_completed %}
+                                <a href="{{ url_for('analyst_review_detail', review_id=app_review_id) }}" class="btn btn-success btn-lg w-100">
+                                    <i class="fas fa-eye"></i> Review Analysis
+                                </a>
+                            {% else %}
+                                <button class="btn btn-outline-secondary btn-lg w-100" disabled>
+                                    <i class="fas fa-clock"></i> Waiting for Submission
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cloud Security Review Card -->
+            <div class="col-md-6 mb-4">
+                <div class="card category-card h-100 border-info">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-cloud"></i> Cloud Security Review
+                        </h5>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <p class="card-text mb-3">
+                            OWASP Cloud Top 10 based security assessment for cloud infrastructure across major platforms.
+                        </p>
+                        
+                        <!-- Statistics -->
+                        <div class="row text-center mb-3">
+                            <div class="col-4">
+                                <div class="feature-stat">
+                                    <span class="stat-number">3</span>
+                                    <span class="stat-label">Platforms</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="feature-stat">
+                                    <span class="stat-number">24</span>
+                                    <span class="stat-label">Questions</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="feature-stat">
+                                    <span class="stat-number">Cloud</span>
+                                    <span class="stat-label">Focus</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cloud Providers -->
+                        <div class="cloud-providers text-center mb-3">
+                            <span class="badge bg-warning text-dark me-1">AWS</span>
+                            <span class="badge bg-primary me-1">Azure</span>
+                            <span class="badge bg-success">GCP</span>
+                        </div>
+
+                        <!-- Features -->
+                        <div class="features-list mb-3">
+                            <small class="text-muted">
+                                <i class="fas fa-check text-success"></i> IAM & Identity Management<br>
+                                <i class="fas fa-check text-success"></i> Network Security & VPC Configuration<br>
+                                <i class="fas fa-check text-success"></i> Data Encryption & Key Management<br>
+                                <i class="fas fa-check text-success"></i> Monitoring & Threat Detection<br>
+                                <i class="fas fa-check text-success"></i> Compliance & Governance
+                            </small>
+                        </div>
+
+                        <!-- Action Button -->
+                        <div class="mt-auto">
+                            {% if cloud_review_completed %}
+                                <a href="{{ url_for('analyst_review_detail', review_id=cloud_review_id) }}" class="btn btn-success btn-lg w-100">
+                                    <i class="fas fa-eye"></i> Review Analysis
+                                </a>
+                            {% else %}
+                                <button class="btn btn-outline-secondary btn-lg w-100" disabled>
+                                    <i class="fas fa-clock"></i> Waiting for Submission
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overall Status -->
+        {% if app_review_completed and cloud_review_completed %}
+        <div class="alert alert-success text-center">
+            <h5><i class="fas fa-check-circle"></i> Both Reviews Submitted!</h5>
+            <p class="mb-0">Both Application Review and Cloud Review have been submitted and are ready for analysis.</p>
+        </div>
+        {% else %}
+        <div class="alert alert-warning text-center">
+            <h6><i class="fas fa-exclamation-triangle"></i> Waiting for Complete Submission</h6>
+            <p class="mb-0">Some security reviews are still pending submission by the application owner.</p>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="text-center mt-4">
+            <a href="{{ url_for('analyst_dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Analyst Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.category-card {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.category-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.feature-stat {
+    margin-bottom: 0.5rem;
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.7rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.features-list {
+    text-align: left;
+}
+
+.cloud-providers .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}Security Assessment - Cognizant SecArch Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="text-center mb-4">
+            <h2><i class="fas fa-shield-alt"></i> Security Assessment</h2>
+            <p class="lead">Complete both categories to submit your security review</p>
+        </div>
+
+        <!-- Application Context -->
+        <div class="alert alert-info mb-4">
+            <h6><i class="fas fa-info-circle"></i> Application: {{ application.name }}</h6>
+            <p class="mb-0">{{ application.description }}</p>
+        </div>
+
+        <!-- Progress Overview -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        {% if app_review_completed %}
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <h5>Application Review</h5>
+                            <span class="badge bg-success">Completed</span>
+                        {% else %}
+                            <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                            <h5>Application Review</h5>
+                            <span class="badge bg-warning">Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        {% if cloud_review_completed %}
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <h5>Cloud Review</h5>
+                            <span class="badge bg-success">Completed</span>
+                        {% else %}
+                            <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                            <h5>Cloud Review</h5>
+                            <span class="badge bg-warning">Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Assessment Categories -->
+        <div class="row">
+            <!-- Application Review Category -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 category-card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-desktop"></i> Application Review</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Comprehensive OWASP-based security assessment covering 14 security categories for application development.</p>
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <div class="feature-stat">
+                                    <span class="stat-number">14</span>
+                                    <span class="stat-label">Categories</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="feature-stat">
+                                    <span class="stat-number">42</span>
+                                    <span class="stat-label">Questions</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="features-list mb-3">
+                            <small>
+                                <strong>Categories include:</strong><br>
+                                • Authentication & Authorization<br>
+                                • Input Validation & Injection Prevention<br>
+                                • Cryptography & Data Protection<br>
+                                • API Security & Integration<br>
+                                • And 10 more security areas...
+                            </small>
+                        </div>
+
+                        {% if app_review_status == 'completed' %}
+                            <button class="btn btn-outline-success w-100" disabled>
+                                <i class="fas fa-check"></i> Review Completed
+                            </button>
+                        {% elif app_review_status == 'pending_analyst' %}
+                            <button class="btn btn-outline-warning w-100" disabled>
+                                <i class="fas fa-clock"></i> Pending with Security Analyst
+                            </button>
+                        {% elif user_role in ['security_analyst', 'admin'] %}
+                            <!-- Only analysts can start reviews -->
+                            <a href="{{ url_for('web_questionnaire', app_id=application.id, field='application_review') }}" class="btn btn-primary w-100">
+                                <i class="fas fa-play"></i> Start Application Review
+                            </a>
+                        {% else %}
+                            <!-- Regular users see submit for review button -->
+                            <button class="btn btn-outline-secondary w-100" onclick="submitForReview('application_review')">
+                                <i class="fas fa-paper-plane"></i> Submit for Review
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cloud Review Category -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 category-card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-cloud"></i> Cloud Review</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">OWASP Cloud Top 10 based security assessment for AWS, Azure, and GCP infrastructure and services.</p>
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <div class="feature-stat">
+                                    <span class="stat-number">3</span>
+                                    <span class="stat-label">Platforms</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="feature-stat">
+                                    <span class="stat-number">24</span>
+                                    <span class="stat-label">Questions</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="cloud-providers mb-3">
+                            <span class="badge bg-warning text-dark me-1">AWS</span>
+                            <span class="badge bg-primary me-1">Azure</span>
+                            <span class="badge bg-danger">GCP</span>
+                        </div>
+
+                        <div class="features-list mb-3">
+                            <small>
+                                <strong>Areas include:</strong><br>
+                                • Identity & Access Management<br>
+                                • Network Security & Configuration<br>
+                                • Data Protection & Encryption<br>
+                                • Cloud-specific vulnerabilities<br>
+                            </small>
+                        </div>
+
+                        {% if cloud_review_status == 'completed' %}
+                            <button class="btn btn-outline-success w-100" disabled>
+                                <i class="fas fa-check"></i> Review Completed
+                            </button>
+                        {% elif cloud_review_status == 'pending_analyst' %}
+                            <button class="btn btn-outline-warning w-100" disabled>
+                                <i class="fas fa-clock"></i> Pending with Security Analyst
+                            </button>
+                        {% elif user_role in ['security_analyst', 'admin'] %}
+                            <!-- Only analysts can start reviews -->
+                            <a href="{{ url_for('web_questionnaire', app_id=application.id, field='cloud_review') }}" class="btn btn-info w-100">
+                                <i class="fas fa-play"></i> Start Cloud Review
+                            </a>
+                        {% else %}
+                            <!-- Regular users see submit for review button -->
+                            <button class="btn btn-outline-secondary w-100" onclick="submitForReview('cloud_review')">
+                                <i class="fas fa-paper-plane"></i> Submit for Review
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Section -->
+        {% if app_review_status == 'completed' and cloud_review_status == 'completed' %}
+        <div class="alert alert-success text-center">
+            <h5><i class="fas fa-check-circle"></i> Security Assessment Complete!</h5>
+            <p class="mb-3">Both Application Review and Cloud Review have been completed by our Security Analysts.</p>
+            <a href="{{ url_for('web_review_results', app_id=application.id) }}" class="btn btn-success btn-lg">
+                <i class="fas fa-chart-line"></i> View Security Report
+            </a>
+        </div>
+        {% elif app_review_status == 'pending_analyst' or cloud_review_status == 'pending_analyst' %}
+        <div class="alert alert-info text-center">
+            <h5><i class="fas fa-clock"></i> Security Review in Progress</h5>
+            <p class="mb-0">Your application has been submitted for security review. Our analysts will complete the assessment and provide detailed findings.</p>
+        </div>
+        {% elif user_role in ['security_analyst', 'admin'] %}
+        <div class="alert alert-primary text-center">
+            <h5><i class="fas fa-microscope"></i> Analyst Assessment</h5>
+            <p class="mb-0">As a Security Analyst, you can perform detailed security reviews for this application.</p>
+        </div>
+        {% else %}
+        <div class="alert alert-warning text-center">
+            <h5><i class="fas fa-paper-plane"></i> Submit for Security Review</h5>
+            <p class="mb-0">Submit your application for professional security assessment by our certified analysts.</p>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="text-center mt-4">
+            <a href="{{ url_for('web_applications') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Applications
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.category-card {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.category-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.feature-stat {
+    margin-bottom: 0.5rem;
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.7rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.features-list {
+    text-align: left;
+}
+
+.cloud-providers .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+}
+</style>
+
+<script>
+function submitForReview(reviewType) {
+    if (confirm('Submit this application for security review? Our analysts will assess the application and provide detailed security findings.')) {
+        // Create a placeholder review submission
+        fetch('/submit-for-review', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                app_id: '{{ application.id }}',
+                review_type: reviewType
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Application submitted for security review! You will be notified when the assessment is complete.');
+                location.reload();
+            } else {
+                alert('Error submitting for review: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error submitting for review. Please try again.');
+        });
+    }
+}
+</script>
+{% endblock %} 
