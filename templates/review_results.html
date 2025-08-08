@@ -14,7 +14,9 @@
                         <p class="mb-0 text-muted">Application: <strong>{{ application.name }}</strong></p>
                     </div>
                     <div class="text-end">
-                        {% if review.risk_score <= 1.5 %}
+                        {% if review.risk_score is none %}
+                            <span class="badge bg-secondary fs-6">Pending Review</span>
+                        {% elif review.risk_score <= 1.5 %}
                             <span class="badge bg-success fs-6">High Security</span>
                         {% elif review.risk_score <= 2.5 %}
                             <span class="badge bg-warning fs-6">Medium Security</span>
@@ -191,7 +193,14 @@
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Security Level Assessment</label>
-                            {% if review.risk_score <= 1.5 %}
+                            {% if review.risk_score is none %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-clock"></i> <strong>Review Pending</strong>
+                                    <p class="mb-0 mt-2">
+                                        Your security assessment is currently being reviewed by our analysts.
+                                    </p>
+                                </div>
+                            {% elif review.risk_score <= 1.5 %}
                                 <div class="alert alert-success">
                                     <i class="fas fa-shield-alt"></i> <strong>High Security Level</strong>
                                     <p class="mb-0 mt-2">
