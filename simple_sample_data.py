@@ -5,6 +5,8 @@ Updates existing applications to have different statuses for dashboard demo
 """
 
 import sqlite3
+import uuid
+from datetime import datetime, timedelta
 
 def get_db():
     """Get database connection"""
@@ -58,5 +60,63 @@ def update_application_statuses():
     finally:
         conn.close()
 
+def add_security_reviews():
+    """Add security reviews for completed applications"""
+    conn = get_db()
+    
+    try:
+        # Get demo analyst
+        analyst = conn.execute('SELECT id FROM users WHERE email = ?', ('analyst@demo.com',)).fetchone()
+        if not analyst:
+            print("Demo analyst not found!")
+            return
+        
+        analyst_id = analyst['id']
+        print(f"Found analyst: {analyst_id}")
+        
+        # Get completed applications
+        completed_apps = conn.execute('''
+            SELECT * FROM applications WHERE status = 'completed'
+        ''').fetchall()
+        
+        print(f"Found {len(completed_apps)} completed applications.")
+        
+        for app in completed_apps:
+            # Check if review already exists
+            existing = conn.execute('SELECT id FROM security_reviews WHERE application_id = ?', (app['id'],)).fetchone()
+            if existing:
+                print(f"Review already exists for {app['name']}")
+                continue
+                
+            review_id = str(uuid.uuid4())
+            created_at = (datetime.now() - timedelta(days=2)).isoformat()
+            
+            conn.execute('''
+                INSERT INTO security_reviews (
+                    id, application_id, analyst_id, status, field_type,
+                    questionnaire_responses, additional_comments, risk_score,
+                    author_id, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                review_id, app['id'], analyst_id, 'completed', 'comprehensive',
+                '{"security_assessment": "Comprehensive review completed", "owasp_compliance": "Level 2"}',
+                f"Security review completed for {app['name']}. Application meets security requirements with moderate risk score.",
+                6.5, analyst_id, created_at
+            ))
+            
+            print(f"✅ Created security review for: {app['name']}")
+        
+        conn.commit()
+        print("\n🎉 Security reviews created successfully!")
+        print("🔄 The analyst dashboard should now show completed reviews!")
+        
+    except Exception as e:
+        print(f"Error creating security reviews: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
 if __name__ == '__main__':
-    update_application_statuses() 
+    update_application_statuses()
+    print("\n" + "="*50)
+    add_security_reviews() 
