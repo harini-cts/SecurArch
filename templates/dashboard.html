@@ -283,7 +283,7 @@
                 <div class="stats-card border-left-primary">
                     <div class="card-body text-center">
                         <i class="fas fa-laptop-code fa-2x mb-2 text-primary"></i>
-                        <h3>{{ app_stats.total }}</h3>
+                        <h3>{{ app_stats.total | default(0) }}</h3>
                         <p>Total Applications</p>
                     </div>
                 </div>
@@ -292,7 +292,7 @@
                 <div class="stats-card border-left-warning">
                     <div class="card-body text-center">
                         <i class="fas fa-clock fa-2x mb-2 text-warning"></i>
-                        <h3>{{ app_stats.submitted + app_stats.in_review }}</h3>
+                        <h3>{{ (app_stats.submitted | default(0)) + (app_stats.in_review | default(0)) }}</h3>
                         <p>Under Review</p>
                     </div>
                 </div>
@@ -301,7 +301,7 @@
                 <div class="stats-card border-left-success">
                     <div class="card-body text-center">
                         <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
-                        <h3>{{ app_stats.completed }}</h3>
+                        <h3>{{ app_stats.completed | default(0) }}</h3>
                         <p>Completed</p>
                     </div>
                 </div>
@@ -310,7 +310,7 @@
                 <div class="stats-card border-left-secondary">
                     <div class="card-body text-center">
                         <i class="fas fa-edit fa-2x mb-2 text-secondary"></i>
-                        <h3>{{ app_stats.draft }}</h3>
+                        <h3>{{ app_stats.draft | default(0) }}</h3>
                         <p>Drafts</p>
                     </div>
                 </div>

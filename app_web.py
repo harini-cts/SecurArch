@@ -1246,14 +1246,14 @@ def web_dashboard():
             ORDER BY created_at DESC
         ''', (user_id,)).fetchall()
         
-        # Get application statistics
+        # Get application statistics with safe defaults
         app_stats = {
-            'total': len(user_applications),
-            'draft': len([app for app in user_applications if app['status'] == 'draft']),
-            'submitted': len([app for app in user_applications if app['status'] == 'submitted']),
-            'in_review': len([app for app in user_applications if app['status'] == 'in_review']),
-            'completed': len([app for app in user_applications if app['status'] == 'completed']),
-            'rejected': len([app for app in user_applications if app['status'] == 'rejected'])
+            'total': len(user_applications) if user_applications else 0,
+            'draft': len([app for app in user_applications if app.get('status') == 'draft']) if user_applications else 0,
+            'submitted': len([app for app in user_applications if app.get('status') == 'submitted']) if user_applications else 0,
+            'in_review': len([app for app in user_applications if app.get('status') == 'in_review']) if user_applications else 0,
+            'completed': len([app for app in user_applications if app.get('status') == 'completed']) if user_applications else 0,
+            'rejected': len([app for app in user_applications if app.get('status') == 'rejected']) if user_applications else 0
         }
         
         # Get recent activity
@@ -1266,6 +1266,10 @@ def web_dashboard():
         ''', (user_id,)).fetchall()
         
         conn.close()
+        
+        # Debug: Print app_stats to console
+        print(f"DEBUG: app_stats = {app_stats}")
+        
         return render_template('dashboard.html', 
                              role='user',
                              applications=user_applications,
