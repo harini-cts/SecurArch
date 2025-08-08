@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Complete Review - {{ review.app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('web_dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('analyst_reviews') }}">My Reviews</a></li>
+                    <li class="breadcrumb-item active">Complete Review</li>
+                </ol>
+            </nav>
+            <h2><i class="fas fa-clipboard-check text-success"></i> Complete Security Review</h2>
+            <p class="text-muted">Finalize the security review for <strong>{{ review.app_name }}</strong></p>
+        </div>
+    </div>
+
+    <!-- Application Summary -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i> Application Overview
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>Application:</strong> {{ review.app_name }}<br>
+                            <strong>Author:</strong> {{ review.first_name }} {{ review.last_name }}<br>
+                            <strong>Email:</strong> {{ review.email }}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Review Type:</strong> 
+                            {% if review.field_type == 'application_review' %}
+                                <span class="badge" style="background-color: #007bff; color: white;">Application Review</span>
+                            {% else %}
+                                <span class="badge" style="background-color: #17a2b8; color: white;">Cloud Review</span>
+                            {% endif %}<br>
+                            <strong>Business Criticality:</strong> 
+                            <span class="badge {% if review.business_criticality == 'critical' %}bg-danger{% elif review.business_criticality == 'high' %}bg-warning{% else %}bg-info{% endif %}">
+                                {{ review.business_criticality|title }}
+                            </span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Technology Stack:</strong> {{ review.technology_stack or 'Not specified' }}<br>
+                            <strong>Review Status:</strong> 
+                            <span class="badge" style="background-color: #17a2b8; color: white;">{{ review.review_status|title }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Summary -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-left-primary">
+                <div class="card-body text-center">
+                    <h3 class="text-primary">{{ total_findings }}</h3>
+                    <p class="text-muted mb-0">Total Security Findings</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-left-warning">
+                <div class="card-body text-center">
+                    <h3 class="text-warning">{{ high_risk_findings }}</h3>
+                    <p class="text-muted mb-0">High Risk Findings</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-left-danger">
+                <div class="card-body text-center">
+                    <h3 class="text-danger">{{ critical_findings }}</h3>
+                    <p class="text-muted mb-0">Critical Findings</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Completion Form -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-check-circle"></i> Finalize Review
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('finalize_review', review_id=review.review_id) }}">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="overall_risk_assessment" class="form-label">Overall Risk Assessment <span class="text-danger">*</span></label>
+                                    <select class="form-select" name="overall_risk" id="overall_risk_assessment" required>
+                                        <option value="">Select Risk Level</option>
+                                        <option value="Low">Low Risk</option>
+                                        <option value="Medium">Medium Risk</option>
+                                        <option value="High">High Risk</option>
+                                        <option value="Critical">Critical Risk</option>
+                                    </select>
+                                    <small class="text-muted">Select the overall risk level based on your analysis</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="analyst_notes" class="form-label">Internal Analyst Notes</label>
+                                    <textarea class="form-control" name="analyst_notes" id="analyst_notes" rows="3"
+                                            placeholder="Internal notes for future reference (not visible to users)..."></textarea>
+                                    <small class="text-muted">Optional: Internal notes for analyst records</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="final_report" class="form-label">Executive Summary <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="final_report" id="final_report" rows="5" required
+                                    placeholder="Provide a comprehensive executive summary of the security assessment findings..."></textarea>
+                            <small class="text-muted">This summary will be included in the final report sent to the application author</small>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="final_recommendations" class="form-label">Security Recommendations <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="final_recommendations" id="final_recommendations" rows="6" required
+                                    placeholder="Provide detailed security recommendations based on your analysis..."></textarea>
+                            <small class="text-muted">Specific, actionable recommendations for improving the application's security posture</small>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <a href="{{ url_for('analyst_reviews') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left"></i> Back to Reviews
+                                </a>
+                                <a href="{{ url_for('analyst_review_detail', review_id=review.review_id) }}" class="btn btn-outline-info">
+                                    <i class="fas fa-eye"></i> View Details
+                                </a>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-check-circle"></i> Complete & Close Review
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STRIDE Findings Summary (if any) -->
+    {% if stride_analysis %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-shield-virus text-warning"></i> Security Findings Summary
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th>Risk Level</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for finding in stride_analysis[:10] %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ finding.threat_category|upper }}</span>
+                                    </td>
+                                    <td>{{ finding.threat_description[:100] }}{% if finding.threat_description|length > 100 %}...{% endif %}</td>
+                                    <td>
+                                        <span class="badge {% if finding.risk_level == 'Critical' %}bg-danger{% elif finding.risk_level == 'High' %}bg-warning{% else %}bg-info{% endif %}">
+                                            {{ finding.risk_level }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ finding.mitigation_status|title }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% if stride_analysis|length > 10 %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">
+                                        <em>... and {{ stride_analysis|length - 10 }} more findings</em>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.border-left-primary {
+    border-left: 4px solid #007bff !important;
+}
+.border-left-warning {
+    border-left: 4px solid #ffc107 !important;
+}
+.border-left-danger {
+    border-left: 4px solid #dc3545 !important;
+}
+.card {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+}
+</style>
+{% endblock %} 

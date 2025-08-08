@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}My Reviews - Analyst Dashboard{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-clipboard-check text-primary"></i> My Security Reviews</h2>
+            <p class="text-muted">Review and analyze assigned security assessments</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-left-primary">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Reviews</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">{{ reviews|length }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-left-warning">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">In Progress</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">
+                        {{ reviews|selectattr('review_status', 'in', ['submitted', 'in_review'])|list|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-left-success">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Completed</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">
+                        {{ reviews|selectattr('review_status', 'equalto', 'completed')|list|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reviews Table -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list"></i> Assigned Reviews
+            </h6>
+        </div>
+        <div class="card-body">
+            {% if reviews %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Application</th>
+                            <th>Review Type</th>
+                            <th>Author</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for review in reviews %}
+                        <tr>
+                            <td>
+                                <strong>{{ review.app_name }}</strong>
+                                <br>
+                                <small class="text-muted">ID: {{ review.id[:8] }}...</small>
+                            </td>
+                            <td>
+                                {% if review.field_type == 'application_review' %}
+                                    <span class="badge" style="background-color: #007bff; color: white; font-weight: bold;">Application Review</span>
+                                {% elif review.field_type == 'cloud_review' %}
+                                    <span class="badge" style="background-color: #17a2b8; color: white; font-weight: bold;">Cloud Review</span>
+                                {% else %}
+                                    <span class="badge" style="background-color: #6c757d; color: white; font-weight: bold;">{{ review.field_type|title }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div>{{ review.first_name }} {{ review.last_name }}</div>
+                                <small class="text-muted">{{ review.email }}</small>
+                            </td>
+                            <td>
+                                {% if review.review_status == 'submitted' %}
+                                    <span class="badge" style="background-color: #ffc107; color: #212529; font-weight: bold;">Pending Review</span>
+                                {% elif review.review_status == 'in_review' %}
+                                    <span class="badge" style="background-color: #17a2b8; color: white; font-weight: bold;">In Review</span>
+                                {% elif review.review_status == 'completed' %}
+                                    <span class="badge" style="background-color: #28a745; color: white; font-weight: bold;">Completed</span>
+                                {% else %}
+                                    <span class="badge" style="background-color: #6c757d; color: white; font-weight: bold;">{{ review.review_status|title }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ review.review_created[:16].replace('T', ' ') if review.review_created else 'N/A' }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('analyst_review_detail', review_id=review.review_id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> Review
+                                    </a>
+                                    {% if review.review_status in ['submitted', 'in_review'] %}
+                                    <a href="{{ url_for('review_completion_page', review_id=review.review_id) }}" 
+                                       class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-clipboard-check"></i> Complete
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="fas fa-clipboard-list fa-3x text-muted"></i>
+                </div>
+                <h5 class="text-muted">No Reviews Assigned</h5>
+                <p class="text-muted">You don't have any security reviews assigned yet.</p>
+                <a href="{{ url_for('web_dashboard') }}" class="btn btn-primary">
+                    <i class="fas fa-tachometer-alt"></i> Back to Dashboard
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

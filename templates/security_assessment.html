@@ -18,7 +18,7 @@
 
         <!-- Progress Overview -->
         <div class="row mb-4">
-            <div class="col-md-6">
+            <div class="{% if cloud_review_required %}col-md-6{% else %}col-md-8 offset-md-2{% endif %}">
                 <div class="card">
                     <div class="card-body text-center">
                         {% if app_review_completed %}
@@ -33,6 +33,7 @@
                     </div>
                 </div>
             </div>
+            {% if cloud_review_required %}
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-body text-center">
@@ -41,19 +42,29 @@
                             <h5>Cloud Review</h5>
                             <span class="badge bg-success">Completed</span>
                         {% else %}
-                            <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                            <i class="fas fa-cloud fa-3x text-info mb-3"></i>
                             <h5>Cloud Review</h5>
-                            <span class="badge bg-warning">Pending</span>
+                            <span class="badge bg-info">Required</span>
+                            {% if cloud_providers %}
+                            <div class="mt-2">
+                                {% for provider in cloud_providers %}
+                                {% if provider %}
+                                <span class="badge bg-secondary me-1">{{ provider }}</span>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
 
         <!-- Security Assessment Categories -->
         <div class="row">
             <!-- Application Review Category -->
-            <div class="col-md-6 mb-4">
+            <div class="{% if cloud_review_required %}col-md-6{% else %}col-md-8 offset-md-2{% endif %} mb-4">
                 <div class="card h-100 category-card">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="fas fa-desktop"></i> Application Review</h5>
@@ -101,16 +112,17 @@
                                 <i class="fas fa-play"></i> Start Application Review
                             </a>
                         {% else %}
-                            <!-- Regular users see submit for review button -->
-                            <button class="btn btn-outline-secondary w-100" onclick="submitForReview('application_review')">
-                                <i class="fas fa-paper-plane"></i> Submit for Review
-                            </button>
+                            <!-- Regular users start questionnaire -->
+                            <a href="{{ url_for('web_questionnaire', app_id=application.id, field='application_review') }}" class="btn btn-primary w-100">
+                                <i class="fas fa-play"></i> Start Application Review
+                            </a>
                         {% endif %}
                     </div>
                 </div>
             </div>
 
             <!-- Cloud Review Category -->
+            {% if cloud_review_required %}
             <div class="col-md-6 mb-4">
                 <div class="card h-100 category-card">
                     <div class="card-header bg-info text-white">
@@ -164,26 +176,33 @@
                                 <i class="fas fa-play"></i> Start Cloud Review
                             </a>
                         {% else %}
-                            <!-- Regular users see submit for review button -->
-                            <button class="btn btn-outline-secondary w-100" onclick="submitForReview('cloud_review')">
-                                <i class="fas fa-paper-plane"></i> Submit for Review
-                            </button>
+                            <!-- Regular users start cloud questionnaire -->
+                            <a href="{{ url_for('web_questionnaire', app_id=application.id, field='cloud_review') }}" class="btn btn-info w-100">
+                                <i class="fas fa-play"></i> Start Cloud Review
+                            </a>
                         {% endif %}
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
 
         <!-- Submit Section -->
-        {% if app_review_status == 'completed' and cloud_review_status == 'completed' %}
+        {% if app_review_status == 'completed' and (not cloud_review_required or cloud_review_status == 'completed') %}
         <div class="alert alert-success text-center">
             <h5><i class="fas fa-check-circle"></i> Security Assessment Complete!</h5>
-            <p class="mb-3">Both Application Review and Cloud Review have been completed by our Security Analysts.</p>
+            <p class="mb-3">
+                {% if cloud_review_required %}
+                Both Application Review and Cloud Review have been completed by our Security Analysts.
+                {% else %}
+                Application Review has been completed by our Security Analysts.
+                {% endif %}
+            </p>
             <a href="{{ url_for('web_review_results', app_id=application.id) }}" class="btn btn-success btn-lg">
                 <i class="fas fa-chart-line"></i> View Security Report
             </a>
         </div>
-        {% elif app_review_status == 'pending_analyst' or cloud_review_status == 'pending_analyst' %}
+        {% elif app_review_status == 'pending_analyst' or (cloud_review_required and cloud_review_status == 'pending_analyst') %}
         <div class="alert alert-info text-center">
             <h5><i class="fas fa-clock"></i> Security Review in Progress</h5>
             <p class="mb-0">Your application has been submitted for security review. Our analysts will complete the assessment and provide detailed findings.</p>
@@ -194,9 +213,9 @@
             <p class="mb-0">As a Security Analyst, you can perform detailed security reviews for this application.</p>
         </div>
         {% else %}
-        <div class="alert alert-warning text-center">
-            <h5><i class="fas fa-paper-plane"></i> Submit for Security Review</h5>
-            <p class="mb-0">Submit your application for professional security assessment by our certified analysts.</p>
+        <div class="alert alert-primary text-center">
+            <h5><i class="fas fa-clipboard-check"></i> Complete Security Assessment</h5>
+            <p class="mb-0">Complete the security questionnaires above to assess your application's security posture.</p>
         </div>
         {% endif %}
 

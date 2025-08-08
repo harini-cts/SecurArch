@@ -231,10 +231,10 @@ def create_demo_users(conn):
         conn.execute('''
             INSERT INTO users (
                 id, email, password_hash, first_name, last_name, role, 
-                organization_name, onboarding_completed, email_verified
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                organization_name, onboarding_completed
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (demo_user_id, 'admin@demo.com', demo_password_hash, 'Demo', 'User', 
-              'user', 'SecureArch Corp', 1, 1))
+              'user', 'SecureArch Corp', 1))
         
         logger.info("Created demo user: admin@demo.com")
     
@@ -247,10 +247,10 @@ def create_demo_users(conn):
         conn.execute('''
             INSERT INTO users (
                 id, email, password_hash, first_name, last_name, role, 
-                organization_name, job_title, onboarding_completed, email_verified
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                organization_name, job_title, onboarding_completed
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (analyst_user_id, 'analyst@demo.com', analyst_password_hash, 'Security', 'Analyst', 
-              'security_analyst', 'SecureArch Corp', 'Senior Security Analyst', 1, 1))
+              'security_analyst', 'SecureArch Corp', 'Senior Security Analyst', 1))
         
         logger.info("Created demo analyst: analyst@demo.com")
 

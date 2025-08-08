@@ -64,7 +64,7 @@
                     </div>
                     <div class="card-footer">
                         <div class="d-flex gap-2 mb-2">
-                            {% if app.review_status and app.status != 'draft' %}
+                            {% if app.status == 'completed' and app.review_status %}
                                 <a href="{{ url_for('web_review_results', app_id=app.id) }}" class="btn btn-outline-primary btn-sm flex-fill">
                                     <i class="fas fa-chart-line"></i> View Results
                                 </a>
@@ -72,9 +72,21 @@
                                 <a href="{{ url_for('web_security_assessment', app_id=app.id) }}" class="btn btn-outline-success btn-sm flex-fill">
                                     <i class="fas fa-clipboard-check"></i> Start Assessment
                                 </a>
+                            {% elif app.status == 'submitted' %}
+                                <span class="btn btn-outline-secondary btn-sm flex-fill disabled">
+                                    <i class="fas fa-clock"></i> Awaiting Review
+                                </span>
+                            {% elif app.status == 'in_review' %}
+                                <span class="btn btn-outline-info btn-sm flex-fill disabled">
+                                    <i class="fas fa-search"></i> Under Review
+                                </span>
+                            {% elif app.status == 'rejected' %}
+                                <a href="{{ url_for('web_security_assessment', app_id=app.id) }}" class="btn btn-outline-warning btn-sm flex-fill">
+                                    <i class="fas fa-edit"></i> Revise & Resubmit
+                                </a>
                             {% else %}
                                 <a href="{{ url_for('web_security_assessment', app_id=app.id) }}" class="btn btn-outline-success btn-sm flex-fill">
-                                    <i class="fas fa-clipboard-check"></i> Start Review
+                                    <i class="fas fa-clipboard-check"></i> Continue Assessment
                                 </a>
                             {% endif %}
                             {% if app.status == 'draft' %}

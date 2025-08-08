@@ -38,7 +38,7 @@
                                     <i class="fas fa-tachometer-alt"></i> Dashboard
                                 </a>
                             {% elif session.user_role == 'security_analyst' %}
-                                <a class="nav-link" href="{{ url_for('analyst.dashboard') }}">
+                                <a class="nav-link" href="{{ url_for('web_dashboard') }}">
                                     <i class="fas fa-tachometer-alt"></i> Dashboard
                                 </a>
                             {% else %}
@@ -48,10 +48,13 @@
                             {% endif %}
                         </li>
                         
+                        <!-- Analyst Reviews Tab (Top Level) - Right after Dashboard -->
+                        <!-- Reviews tab is now in the correct base.html template -->
+                        
                         <!-- User Role Navigation -->
                         {% if session.user_role in ['user', 'admin'] %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('user.applications') }}">
+                            <a class="nav-link" href="{{ url_for('web_applications') }}">
                                 <i class="fas fa-laptop-code"></i> My Applications
                             </a>
                         </li>
@@ -64,10 +67,10 @@
                                 <i class="fas fa-microscope text-warning"></i> Analyst
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ url_for('analyst.dashboard') }}">
+                                <li><a class="dropdown-item" href="{{ url_for('web_dashboard') }}">
                                     <i class="fas fa-tachometer-alt"></i> Analyst Dashboard
                                 </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('analyst.reviews') }}">
+                                <li><a class="dropdown-item" href="{{ url_for('analyst_reviews') }}">
                                     <i class="fas fa-clipboard-check"></i> My Reviews
                                 </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('analyst.workload') }}">
@@ -208,7 +211,7 @@
                         <a href="#" class="text-light"><i class="fab fa-linkedin"></i></a>
                         <a href="#" class="text-light"><i class="fas fa-envelope"></i></a>
                     </div>
-                    <small class="text-muted">© 2024 SecureArch Portal. All rights reserved.</small>
+                    <small class="text-muted">© 2025 SecureArch Portal. All rights reserved.</small>
                 </div>
             </div>
         </div>

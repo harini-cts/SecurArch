@@ -73,7 +73,8 @@ def dashboard():
         'findings_stats': {row['risk_level']: row['count'] for row in findings_stats}
     }
     
-    return render_template('admin/dashboard.html', 
+    return render_template('dashboard.html', 
+                         role='admin',
                          stats=stats, 
                          recent_applications=recent_applications)
 

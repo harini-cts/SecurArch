@@ -23,12 +23,10 @@
                                 <label for="deployment_environment" class="form-label">Deployment Environment *</label>
                                 <select class="form-control" id="deployment_environment" name="deployment_environment" required>
                                     <option value="">Select Environment</option>
-                                    <option value="Development">Development</option>
-                                    <option value="Testing">Testing</option>
-                                    <option value="Staging">Staging</option>
-                                    <option value="Production">Production</option>
-                                    <option value="Cloud">Cloud</option>
-                                    <option value="Hybrid">Hybrid</option>
+                                    <option value="development">Development</option>
+                                    <option value="staging">Staging</option>
+                                    <option value="production">Production</option>
+                                    <option value="hybrid">Hybrid</option>
                                 </select>
                             </div>
                         </div>
@@ -45,10 +43,10 @@
                                 <label for="business_criticality" class="form-label">Business Criticality <span class="text-danger">*</span></label>
                                 <select class="form-select" id="business_criticality" name="business_criticality" required>
                                     <option value="">Choose...</option>
-                                    <option value="critical">Critical</option>
-                                    <option value="high">High</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="low">Low</option>
+                                    <option value="Critical">Critical</option>
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
                                 </select>
                             </div>
                         </div>
@@ -101,6 +99,66 @@
                                data-max-size="10485760">
                         <div class="form-text">
                             Accepted formats: PDF, Word (.doc, .docx), Text (.txt), Markdown (.md) - Max 10MB
+                        </div>
+                    </div>
+
+                    <!-- Cloud Review Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5><i class="fas fa-cloud"></i> Cloud Infrastructure</h5>
+                            <p class="text-muted">Specify if your application uses cloud services that require additional security review</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Cloud Review Required?</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="cloud_review_required" value="yes" id="cloud_yes" onchange="toggleCloudProviders()">
+                                    <label class="form-check-label" for="cloud_yes">
+                                        <i class="fas fa-cloud"></i> Yes - Application uses cloud services
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="cloud_review_required" value="no" id="cloud_no" onchange="toggleCloudProviders()" checked>
+                                    <label class="form-check-label" for="cloud_no">
+                                        <i class="fas fa-server"></i> No - On-premises or no cloud services
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="cloudProvidersSection" class="mb-3" style="display: none;">
+                        <label class="form-label">Cloud Providers (Select all that apply)</label>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="cloud_providers" value="AWS" id="cloud_aws">
+                                    <label class="form-check-label" for="cloud_aws">
+                                        <i class="fab fa-aws"></i> Amazon Web Services (AWS)
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="cloud_providers" value="Azure" id="cloud_azure">
+                                    <label class="form-check-label" for="cloud_azure">
+                                        <i class="fab fa-microsoft"></i> Microsoft Azure
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="cloud_providers" value="GCP" id="cloud_gcp">
+                                    <label class="form-check-label" for="cloud_gcp">
+                                        <i class="fab fa-google"></i> Google Cloud Platform
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -192,4 +250,38 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleCloudProviders() {
+    const cloudYes = document.getElementById('cloud_yes');
+    const cloudProvidersSection = document.getElementById('cloudProvidersSection');
+    
+    if (cloudYes.checked) {
+        cloudProvidersSection.style.display = 'block';
+    } else {
+        cloudProvidersSection.style.display = 'none';
+        // Uncheck all cloud provider checkboxes when hiding
+        const cloudCheckboxes = document.querySelectorAll('input[name="cloud_providers"]');
+        cloudCheckboxes.forEach(cb => cb.checked = false);
+    }
+}
+
+// File size validation
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInputs = document.querySelectorAll('input[type="file"][data-max-size]');
+    
+    fileInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            const maxSize = parseInt(this.getAttribute('data-max-size'));
+            const file = this.files[0];
+            
+            if (file && file.size > maxSize) {
+                alert('File size exceeds 10MB limit. Please choose a smaller file.');
+                this.value = '';
+            }
+        });
+    });
+});
+</script>
+
 {% endblock %} 

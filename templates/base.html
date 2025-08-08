@@ -567,6 +567,15 @@
                             </a>
                         </li>
                         
+                        <!-- Reviews Tab (for analysts and admins) -->
+                        {% if session.user_role in ['security_analyst', 'admin'] %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('analyst_reviews') }}">
+                                <i class="fas fa-clipboard-check"></i> Reviews
+                            </a>
+                        </li>
+                        {% endif %}
+                        
                         <!-- User Applications (for regular users only) -->
                         {% if session.user_role == 'user' %}
                         <li class="nav-item">
@@ -711,7 +720,7 @@
     <!-- Footer -->
     <div class="footer">
         <div class="container">
-            <p>&copy; 2024 Cognizant SecArch Portal - Enterprise Security Architecture Review Platform</p>
+            <p>&copy; 2025 Cognizant SecArch Portal - Enterprise Security Architecture Review Platform</p>
             <p>Powered by OWASP Standards | Built with Flask & Bootstrap</p>
         </div>
     </div>

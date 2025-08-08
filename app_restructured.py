@@ -3,11 +3,14 @@ SecureArch Portal - Restructured Application
 Role-based Flask application with blueprints for better organization
 """
 
-from flask import Flask, session, redirect, url_for
-from werkzeug.security import generate_password_hash
+import os
 import sqlite3
 import uuid
 from datetime import datetime
+from flask import Flask, session, redirect, url_for, send_from_directory, request, flash
+from flask_cors import CORS
+from werkzeug.security import generate_password_hash
+from werkzeug.utils import secure_filename
 
 # Import blueprints
 from app.blueprints.auth import auth_bp
@@ -15,16 +18,93 @@ from app.blueprints.user import user_bp
 from app.blueprints.analyst import analyst_bp
 from app.blueprints.admin import admin_bp
 
+# Import shared modules
+from app.database import get_db, init_db
+from app.workflow import workflow_engine
+
 def create_app():
     """Application factory function"""
     app = Flask(__name__)
     app.secret_key = 'dev-secret-key-change-in-production'
+    
+    # Configuration
+    app.config['SECRET_KEY'] = 'dev-secret-key-change-in-production'
+    app.config['JWT_SECRET'] = 'jwt-secret-change-in-production'
+    
+    # Configure file uploads
+    UPLOAD_FOLDER = 'uploads'
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    ALLOWED_EXTENSIONS = {
+        'architecture': {'pdf', 'png', 'jpg', 'jpeg', 'svg', 'vsdx', 'drawio'},
+        'document': {'pdf', 'doc', 'docx', 'txt', 'md'}
+    }
+    
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+    app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
+    app.config['ALLOWED_EXTENSIONS'] = ALLOWED_EXTENSIONS
+    
+    # Create uploads directory if it doesn't exist
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    os.makedirs(os.path.join(UPLOAD_FOLDER, 'architecture'), exist_ok=True)
+    os.makedirs(os.path.join(UPLOAD_FOLDER, 'documents'), exist_ok=True)
+    
+    # Enable CORS
+    CORS(app, origins=['http://localhost:3000', 'http://localhost:5000', 'http://127.0.0.1:5000'])
+    
+    # Initialize database within application context
+    with app.app_context():
+        init_db()
     
     # Register blueprints
     app.register_blueprint(auth_bp)
     app.register_blueprint(user_bp)
     app.register_blueprint(analyst_bp)
     app.register_blueprint(admin_bp)
+    
+    # Health check endpoint
+    @app.route('/health')
+    def health_check():
+        """Health check endpoint"""
+        return {'status': 'healthy', 'version': '1.0.0', 'timestamp': datetime.now().isoformat()}
+    
+    # File download endpoint
+    @app.route('/download/<path:filename>')
+    def download_file(filename):
+        """Download uploaded files (architecture diagrams, documents)"""
+        try:
+            # Security check: only allow downloading files from uploads directory
+            uploads_base = os.path.join(app.root_path, 'uploads')
+            
+            # Handle both full paths and just filenames
+            if filename.startswith('uploads'):
+                # Full path stored in database (e.g., uploads\architecture\file.png)
+                relative_path = filename.replace('uploads\\', '').replace('uploads/', '')
+                file_path = os.path.join(uploads_base, relative_path)
+                directory = os.path.dirname(file_path)
+                just_filename = os.path.basename(file_path)
+            else:
+                # Just filename
+                file_path = os.path.join(uploads_base, secure_filename(filename))
+                directory = uploads_base
+                just_filename = secure_filename(filename)
+            
+            # Verify file exists
+            if not os.path.exists(file_path):
+                flash('File not found.', 'error')
+                return redirect(request.referrer or url_for('auth.home'))
+            
+            # Additional security: verify the file is within uploads directory (prevent path traversal)
+            real_uploads = os.path.realpath(uploads_base)
+            real_file = os.path.realpath(file_path)
+            if not real_file.startswith(real_uploads):
+                flash('Access denied.', 'error')
+                return redirect(request.referrer or url_for('auth.home'))
+            
+            return send_from_directory(directory, just_filename, as_attachment=True)
+        
+        except Exception as e:
+            flash(f'Error downloading file: {str(e)}', 'error')
+            return redirect(request.referrer or url_for('auth.home'))
     
     # Legacy route redirects for backward compatibility
     @app.route('/dashboard')
@@ -46,226 +126,60 @@ def create_app():
         """Redirect to user applications"""
         return redirect(url_for('user.applications'))
     
+    @app.route('/login')
+    def legacy_login():
+        """Redirect to auth login"""
+        return redirect(url_for('auth.login'))
+    
+    @app.route('/logout')
+    def legacy_logout():
+        """Redirect to auth logout"""
+        return redirect(url_for('auth.logout'))
+    
+    @app.route('/register')
+    def legacy_register():
+        """Redirect to auth register"""
+        return redirect(url_for('auth.register'))
+    
+    @app.route('/onboarding')
+    def legacy_onboarding():
+        """Redirect to auth onboarding"""
+        return redirect(url_for('auth.onboarding'))
+    
+    @app.route('/profile')
+    def legacy_profile():
+        """Redirect to user profile"""
+        return redirect(url_for('user.profile'))
+    
+    # Additional legacy redirects for analyst and admin
     @app.route('/analyst/dashboard')
     def legacy_analyst_dashboard():
-        """Redirect to new analyst dashboard"""
+        """Redirect to analyst dashboard"""
         return redirect(url_for('analyst.dashboard'))
     
-    # API routes for notifications (keeping for compatibility)
-    @app.route('/api/notifications')
-    def api_notifications():
-        """Get notifications for current user"""
-        from flask import request, jsonify
-        
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-        
-        limit = int(request.args.get('limit', 15))
-        user_role = session.get('user_role', 'user')
-        
-        # Mock notifications for now
-        notifications = [
-            {
-                'id': str(uuid.uuid4()),
-                'message': 'Welcome to SecureArch Portal!',
-                'read': False,
-                'created_at': datetime.now().isoformat()
-            }
-        ]
-        
-        return jsonify({'notifications': notifications})
-    
-    @app.route('/api/notifications/unread-count')
-    def api_notification_count():
-        """Get unread notification count"""
-        from flask import jsonify
-        
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-        
-        # Mock count for now
-        return jsonify({'count': 0})
-    
-    @app.route('/api/notifications/<notification_id>/read', methods=['POST'])
-    def api_mark_notification_read(notification_id):
-        """Mark notification as read"""
-        from flask import jsonify
-        
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-        
-        return jsonify({'success': True})
-    
-    @app.route('/api/notifications/mark-all-read', methods=['POST'])
-    def api_mark_all_read():
-        """Mark all notifications as read"""
-        from flask import jsonify
-        
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-        
-        return jsonify({'success': True})
+    @app.route('/admin/dashboard')
+    def legacy_admin_dashboard():
+        """Redirect to admin dashboard"""
+        return redirect(url_for('admin.dashboard'))
     
     return app
 
-def get_db():
-    """Get database connection"""
-    conn = sqlite3.connect('securearch_portal.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def init_db():
-    """Initialize database with tables"""
-    conn = get_db()
-    
-    # Users table with additional fields
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id TEXT PRIMARY KEY,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            first_name TEXT NOT NULL,
-            last_name TEXT NOT NULL,
-            role TEXT DEFAULT 'user',
-            organization_name TEXT,
-            job_title TEXT,
-            experience_level TEXT,
-            interests TEXT,
-            onboarding_completed BOOLEAN DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_login_at TIMESTAMP,
-            is_active BOOLEAN DEFAULT 1
-        )
-    ''')
-    
-    # Applications table
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS applications (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            description TEXT,
-            technology_stack TEXT,
-            deployment_environment TEXT,
-            business_criticality TEXT,
-            data_classification TEXT,
-            author_id TEXT,
-            status TEXT DEFAULT 'draft',
-            logical_architecture_file TEXT,
-            physical_architecture_file TEXT,
-            overview_document_file TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (author_id) REFERENCES users (id)
-        )
-    ''')
-    
-    # Security Reviews table
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS security_reviews (
-            id TEXT PRIMARY KEY,
-            application_id TEXT,
-            field_type TEXT,
-            answers TEXT,
-            status TEXT DEFAULT 'draft',
-            analyst_id TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (application_id) REFERENCES applications (id),
-            FOREIGN KEY (analyst_id) REFERENCES users (id)
-        )
-    ''')
-    
-    # STRIDE Analysis table
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS stride_analysis (
-            id TEXT PRIMARY KEY,
-            review_id TEXT,
-            threat_category TEXT,
-            threat_description TEXT,
-            risk_level TEXT,
-            mitigation_strategy TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (review_id) REFERENCES security_reviews (id)
-        )
-    ''')
-    
-    # Notifications table
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS notifications (
-            id TEXT PRIMARY KEY,
-            user_id TEXT,
-            application_id TEXT,
-            message TEXT,
-            read BOOLEAN DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id),
-            FOREIGN KEY (application_id) REFERENCES applications (id)
-        )
-    ''')
-    
-    # Audit logs table
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS audit_logs (
-            id TEXT PRIMARY KEY,
-            user_id TEXT,
-            action TEXT,
-            details TEXT,
-            ip_address TEXT,
-            user_agent TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    ''')
-    
-    # Create demo users if not exists
-    existing_demo = conn.execute('SELECT id FROM users WHERE email = ?', ('user@demo.com',)).fetchone()
-    if not existing_demo:
-        demo_user_id = str(uuid.uuid4())
-        demo_password_hash = generate_password_hash('password123')
-        conn.execute('''
-            INSERT INTO users (id, email, password_hash, first_name, last_name, role, organization_name, onboarding_completed)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (demo_user_id, 'user@demo.com', demo_password_hash, 'John', 'User', 'user', 'SecureArch Corp', 1))
-    
-    # Create demo Security Analyst if not exists
-    existing_analyst = conn.execute('SELECT id FROM users WHERE email = ?', ('analyst@demo.com',)).fetchone()
-    if not existing_analyst:
-        analyst_user_id = str(uuid.uuid4())
-        analyst_password_hash = generate_password_hash('analyst123')
-        conn.execute('''
-            INSERT INTO users (id, email, password_hash, first_name, last_name, role, organization_name, job_title, onboarding_completed)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (analyst_user_id, 'analyst@demo.com', analyst_password_hash, 'Security', 'Analyst', 'security_analyst', 'SecureArch Corp', 'Senior Security Analyst', 1))
-    
-    # Create demo Admin if not exists
-    existing_admin = conn.execute('SELECT id FROM users WHERE email = ?', ('superadmin@demo.com',)).fetchone()
-    if not existing_admin:
-        admin_user_id = str(uuid.uuid4())
-        admin_password_hash = generate_password_hash('admin123')
-        conn.execute('''
-            INSERT INTO users (id, email, password_hash, first_name, last_name, role, organization_name, job_title, onboarding_completed)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (admin_user_id, 'superadmin@demo.com', admin_password_hash, 'System', 'Administrator', 'admin', 'SecureArch Corp', 'System Administrator', 1))
-    
-    conn.commit()
-    conn.close()
-
 if __name__ == '__main__':
-    # Initialize database
-    init_db()
+    # Create and run Flask app
+    app = create_app()
+    
     print("🚀 SecureArch Portal (Restructured) starting...")
     print("📊 Database initialized with demo users")
     print("🔐 Role-based authentication system ready")
     print("📋 Security questionnaires loaded")
     print("🛡️ STRIDE threat modeling ready")
     print("🌐 Server starting on http://localhost:5000")
-    print("👤 Demo User: user@demo.com / password123")
+    print("👤 Demo User: admin@demo.com / password123")
     print("🔍 Demo Analyst: analyst@demo.com / analyst123")
-    print("🛡️ Demo Admin: superadmin@demo.com / admin123")
     print()
     print("🎯 Role-based Structure:")
     print("   • Users: Application creation and management")
     print("   • Analysts: Security reviews and STRIDE analysis")
     print("   • Admins: System administration and oversight")
     
-    # Create and run Flask app
-    app = create_app()
     app.run(host='0.0.0.0', port=5000, debug=True) 

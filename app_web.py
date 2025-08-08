@@ -86,6 +86,11 @@ def migrate_database():
             print("   ✅ Added analyst_reviewed_at column")
         except sqlite3.OperationalError:
             pass
+        try:
+            conn.execute('ALTER TABLE security_reviews ADD COLUMN recommendations TEXT')
+            print("   ✅ Added recommendations column")
+        except sqlite3.OperationalError:
+            pass
         
         # Check if stride_analysis table needs updating
         try:
@@ -173,6 +178,14 @@ def init_db():
         conn.execute('ALTER TABLE applications ADD COLUMN overview_document_file TEXT')
     except:
         pass
+    try:
+        conn.execute('ALTER TABLE applications ADD COLUMN cloud_review_required TEXT DEFAULT "no"')
+    except:
+        pass
+    try:
+        conn.execute('ALTER TABLE applications ADD COLUMN cloud_providers TEXT')
+    except:
+        pass
     
     # Security Reviews table
     conn.execute('''
@@ -185,6 +198,7 @@ def init_db():
             screenshots TEXT,
             status TEXT DEFAULT 'draft',
             risk_score REAL,
+            recommendations TEXT,
             author_id TEXT,
             analyst_id TEXT,
             analyst_reviewed_at TIMESTAMP,
@@ -194,6 +208,13 @@ def init_db():
             FOREIGN KEY (analyst_id) REFERENCES users (id)
         )
     ''')
+    
+    # Add recommendations column if it doesn't exist (migration)
+    try:
+        conn.execute('ALTER TABLE security_reviews ADD COLUMN recommendations TEXT')
+        print("   ✅ Added recommendations column")
+    except sqlite3.OperationalError:
+        pass
     
     # Notifications table
     conn.execute('''
@@ -978,6 +999,91 @@ def get_questionnaire_for_field(field):
         # Fallback to application review
         return SECURITY_QUESTIONNAIRES['application_review']
 
+def filter_questions_by_technology(questionnaire_data, technology_stack, cloud_providers=None):
+    """Filter questions based on technology stack and cloud providers"""
+    if not technology_stack:
+        return questionnaire_data
+    
+    # Convert technology stack to list if it's a string
+    if isinstance(technology_stack, str):
+        tech_list = [tech.strip().lower() for tech in technology_stack.split(',')]
+    else:
+        tech_list = [tech.lower() for tech in technology_stack]
+    
+    # Define technology-specific question mappings
+    tech_question_mapping = {
+        'javascript': ['input_1', 'input_3', 'auth_1', 'auth_3', 'session_1', 'session_2', 'api_1', 'api_2'],
+        'python': ['input_1', 'input_2', 'auth_1', 'auth_2', 'crypto_1', 'crypto_2', 'api_1'],
+        'java': ['input_1', 'input_2', 'auth_1', 'auth_2', 'session_1', 'crypto_1', 'crypto_2'],
+        'react': ['input_3', 'auth_3', 'session_1', 'session_2', 'api_1', 'api_2'],
+        'angular': ['input_3', 'auth_3', 'session_1', 'session_2', 'api_1', 'api_2'],
+        'vue.js': ['input_3', 'auth_3', 'session_1', 'session_2', 'api_1', 'api_2'],
+        'mysql': ['input_2', 'database_1', 'database_2', 'crypto_1'],
+        'postgresql': ['input_2', 'database_1', 'database_2', 'crypto_1'],
+        'mongodb': ['input_2', 'database_1', 'database_2', 'crypto_2'],
+        'docker': ['config_1', 'config_2', 'network_1', 'network_2']
+    }
+    
+    # Get relevant question IDs based on selected technologies
+    relevant_questions = set()
+    for tech in tech_list:
+        if tech in tech_question_mapping:
+            relevant_questions.update(tech_question_mapping[tech])
+    
+    # If no specific technology mapping found, include all questions
+    if not relevant_questions:
+        return questionnaire_data
+    
+    # Filter the questionnaire data
+    filtered_data = {}
+    for category_key, category_data in questionnaire_data.items():
+        filtered_questions = []
+        for question in category_data['questions']:
+            if question['id'] in relevant_questions:
+                filtered_questions.append(question)
+        
+        # Only include categories that have questions after filtering
+        if filtered_questions:
+            filtered_data[category_key] = {
+                'title': category_data['title'],
+                'description': category_data['description'],
+                'questions': filtered_questions
+            }
+    
+    # If filtering resulted in empty questionnaire, return original
+    if not filtered_data:
+        return questionnaire_data
+    
+    return filtered_data
+
+def filter_cloud_questions_by_providers(questionnaire_data, cloud_providers):
+    """Filter cloud questions based on selected cloud providers"""
+    if not cloud_providers or not questionnaire_data:
+        return questionnaire_data
+    
+    # Convert to list if string
+    if isinstance(cloud_providers, str):
+        provider_list = [p.strip().upper() for p in cloud_providers.split(',')]
+    else:
+        provider_list = [p.upper() for p in cloud_providers]
+    
+    # Map providers to category keys
+    provider_mapping = {
+        'AWS': 'aws_security',
+        'AZURE': 'azure_security', 
+        'GCP': 'gcp_security'
+    }
+    
+    # Filter categories based on selected providers
+    filtered_data = {}
+    for provider in provider_list:
+        if provider in provider_mapping:
+            category_key = provider_mapping[provider]
+            if category_key in questionnaire_data:
+                filtered_data[category_key] = questionnaire_data[category_key]
+    
+    return filtered_data if filtered_data else questionnaire_data
+
 # Web Routes
 
 @app.route('/')
@@ -1219,12 +1325,12 @@ def web_dashboard():
             'total_assigned': len(todo_applications) + len(in_review_applications) + len(completed_applications)
         }
         
-        # Get recent activity
+        # Get recent completed reviews only
         recent_reviews = conn.execute('''
             SELECT sr.*, a.name as app_name
             FROM security_reviews sr
             JOIN applications a ON sr.application_id = a.id
-            WHERE sr.analyst_id = ?
+            WHERE sr.analyst_id = ? AND sr.status = 'completed'
             ORDER BY sr.created_at DESC
             LIMIT 5
         ''', (user_id,)).fetchall()
@@ -1311,7 +1417,9 @@ def web_create_application():
             'technology_stack': ', '.join(request.form.getlist('technology_stack')),
             'deployment_environment': request.form.get('deployment_environment'),
             'business_criticality': request.form.get('business_criticality'),
-            'data_classification': request.form.get('data_classification')
+            'data_classification': request.form.get('data_classification'),
+            'cloud_review_required': request.form.get('cloud_review_required', 'no'),
+            'cloud_providers': ', '.join(request.form.getlist('cloud_providers'))
         }
         
         # Validate required fields
@@ -1345,14 +1453,16 @@ def web_create_application():
             INSERT INTO applications (id, name, description, technology_stack, 
                                     deployment_environment, business_criticality, 
                                     data_classification, author_id, logical_architecture_file,
-                                    physical_architecture_file, overview_document_file)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    physical_architecture_file, overview_document_file,
+                                    cloud_review_required, cloud_providers)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (app_id, data['name'], data['description'], data['technology_stack'],
               data['deployment_environment'], data['business_criticality'], 
               data['data_classification'], session['user_id'],
               file_paths.get('logical_architecture_file'),
               file_paths.get('physical_architecture_file'),
-              file_paths.get('overview_document_file')))
+              file_paths.get('overview_document_file'),
+              data['cloud_review_required'], data['cloud_providers']))
         
         conn.commit()
         conn.close()
@@ -1460,12 +1570,19 @@ def web_security_assessment(app_id):
     
     conn.close()
     
+    # Check if cloud review is required
+    cloud_review_required = (app['cloud_review_required'] if 'cloud_review_required' in app.keys() else 'no') == 'yes'
+    cloud_providers_str = app['cloud_providers'] if 'cloud_providers' in app.keys() and app['cloud_providers'] else ''
+    cloud_providers = cloud_providers_str.split(', ') if cloud_providers_str else []
+    
     return render_template('security_assessment.html', 
                          application=app,
                          app_review_completed=app_review_completed,
                          cloud_review_completed=cloud_review_completed,
                          app_review_status=app_review_status,
                          cloud_review_status=cloud_review_status,
+                         cloud_review_required=cloud_review_required,
+                         cloud_providers=cloud_providers,
                          user_role=user_role)
 
 @app.route('/field-selection')
@@ -1573,6 +1690,11 @@ def web_questionnaire(app_id):
         review_type = 'application_review'
         field_type = 'comprehensive_application'  # Normalize field type
 
+    # Apply filtering based on technology stack and cloud providers
+    if field_type == 'application_review' and 'technology_stack' in app.keys() and app['technology_stack']:
+        questionnaire_data = filter_questions_by_technology(questionnaire_data, app['technology_stack'])
+    elif field_type == 'cloud_review' and 'cloud_providers' in app.keys() and app['cloud_providers']:
+        questionnaire_data = filter_cloud_questions_by_providers(questionnaire_data, app['cloud_providers'])
     
     return render_template('questionnaire.html', 
                          application=app, 
@@ -1823,7 +1945,9 @@ def save_stride_analysis(review_id):
     
     try:
         # Get the finding data from the request
-        finding_data = request.get_json()
+        finding_data = None
+        if request.is_json:
+            finding_data = request.get_json()
         
         if finding_data and 'question_id' in finding_data:
             # Individual finding from marking questions
@@ -1985,6 +2109,64 @@ def finalize_review(review_id):
     flash('Security review finalized successfully!', 'success')
     return redirect(url_for('analyst_dashboard'))
 
+@app.route('/analyst/review/<review_id>/complete')
+@analyst_required
+def review_completion_page(review_id):
+    """Display review completion page for finalizing the review"""
+    conn = get_db()
+    
+    # Get review details with application info
+    review = conn.execute('''
+        SELECT sr.*, a.name as app_name, a.business_criticality, a.technology_stack,
+               u.first_name, u.last_name, u.email,
+               sr.id as review_id, sr.status as review_status
+        FROM security_reviews sr
+        JOIN applications a ON sr.application_id = a.id
+        JOIN users u ON a.author_id = u.id
+        WHERE sr.id = ?
+    ''', (review_id,)).fetchone()
+    
+    if not review:
+        flash('Review not found', 'error')
+        conn.close()
+        return redirect(url_for('analyst_reviews'))
+    
+    # Check if already completed
+    if review['review_status'] == 'completed':
+        flash('This review has already been completed', 'info')
+        conn.close()
+        return redirect(url_for('analyst_reviews'))
+    
+    # Get STRIDE analysis for this review
+    stride_analysis = conn.execute('''
+        SELECT * FROM stride_analysis 
+        WHERE review_id = ?
+        ORDER BY created_at DESC
+    ''', (review_id,)).fetchall()
+    
+    # Get questionnaire responses summary
+    responses = {}
+    if review['questionnaire_responses']:
+        try:
+            responses = json.loads(review['questionnaire_responses'])
+        except json.JSONDecodeError:
+            responses = {}
+    
+    # Calculate summary statistics
+    total_findings = len(stride_analysis)
+    high_risk_findings = len([f for f in stride_analysis if f['risk_level'] == 'High'])
+    critical_findings = len([f for f in stride_analysis if f['risk_level'] == 'Critical'])
+    
+    conn.close()
+    
+    return render_template('analyst/review_completion.html',
+                         review=review,
+                         stride_analysis=stride_analysis,
+                         responses=responses,
+                         total_findings=total_findings,
+                         high_risk_findings=high_risk_findings,
+                         critical_findings=critical_findings)
+
 def update_application_status(app_id, new_status, conn, user_role='user', business_context=None):
     """Update application status with enhanced role-based validation"""
     
@@ -2100,33 +2282,42 @@ def auto_save_questionnaire(app_id):
         
         conn = get_db()
         
-        # Check if draft already exists
-        existing_draft = conn.execute('''
-            SELECT id FROM security_reviews 
-            WHERE application_id = ? AND status = 'draft'
-        ''', (app_id,)).fetchone()
-        
-        if existing_draft:
-            # Update existing draft
-            conn.execute('''
-                UPDATE security_reviews 
-                SET questionnaire_responses = ?
-                WHERE id = ?
-            ''', (json.dumps(questionnaire_data), existing_draft[0]))
-        else:
-            # Create new draft
-            draft_id = str(uuid.uuid4())
-            conn.execute('''
-                INSERT INTO security_reviews (id, application_id, questionnaire_responses, 
-                                             status, created_at)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (draft_id, app_id, json.dumps(questionnaire_data), 'draft', 
-                  datetime.now().isoformat()))
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({'success': True, 'message': 'Draft saved'})
+        try:
+            # Begin transaction
+            conn.execute('BEGIN')
+            
+            # Check if draft already exists
+            existing_draft = conn.execute('''
+                SELECT id FROM security_reviews 
+                WHERE application_id = ? AND status = 'draft'
+            ''', (app_id,)).fetchone()
+            
+            if existing_draft:
+                # Update existing draft
+                conn.execute('''
+                    UPDATE security_reviews 
+                    SET questionnaire_responses = ?
+                    WHERE id = ?
+                ''', (json.dumps(questionnaire_data), existing_draft[0]))
+            else:
+                # Create new draft
+                draft_id = str(uuid.uuid4())
+                conn.execute('''
+                    INSERT INTO security_reviews (id, application_id, questionnaire_responses, 
+                                                 status, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (draft_id, app_id, json.dumps(questionnaire_data), 'draft', 
+                      datetime.now().isoformat()))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({'success': True, 'message': 'Draft saved'})
+            
+        except Exception as e:
+            conn.execute('ROLLBACK')
+            conn.close()
+            return jsonify({'success': False, 'error': str(e)}), 500
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -2218,27 +2409,39 @@ def submit_questionnaire(app_id):
         'disabled_categories': disabled_categories
     }
     
-    # Save to database
+    # Save to database with proper transaction handling
     review_id = str(uuid.uuid4())
     conn = get_db()
     
-    # Delete any existing draft for this application
-    conn.execute('DELETE FROM security_reviews WHERE application_id = ? AND status = "draft"', (app_id,))
-    
-    conn.execute('''
-        INSERT INTO security_reviews (id, application_id, author_id, field_type, questionnaire_responses, 
-                                     risk_score, recommendations, 
-                                     status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (review_id, app_id, session['user_id'], field_type, json.dumps(questionnaire_data), risk_score, 
-          json.dumps(recommendations), 'submitted', datetime.now().isoformat()))
-    
-    # Update application status to 'submitted' when first questionnaire is submitted
-    success, error = update_application_status(app_id, 'submitted', conn, 'user')
-    if not success:
-        flash(f'Failed to submit application: {error}', 'error')
-    
-    conn.commit()
+    try:
+        # Begin transaction
+        conn.execute('BEGIN')
+        
+        # Delete any existing draft for this application
+        conn.execute('DELETE FROM security_reviews WHERE application_id = ? AND status = "draft"', (app_id,))
+        
+        conn.execute('''
+            INSERT INTO security_reviews (id, application_id, author_id, field_type, questionnaire_responses, 
+                                         risk_score, recommendations, 
+                                         status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (review_id, app_id, session['user_id'], field_type, json.dumps(questionnaire_data), risk_score, 
+              json.dumps(recommendations), 'submitted', datetime.now().isoformat()))
+        
+        # Update application status to 'submitted' when first questionnaire is submitted
+        success, error = update_application_status(app_id, 'submitted', conn, 'user')
+        if not success:
+            conn.execute('ROLLBACK')
+            flash(f'Failed to submit application: {error}', 'error')
+            return redirect(url_for('web_security_assessment', app_id=app_id))
+        
+        # Commit the transaction
+        conn.commit()
+        
+    except Exception as e:
+        conn.execute('ROLLBACK')
+        flash(f'Error submitting questionnaire: {str(e)}', 'error')
+        return redirect(url_for('web_security_assessment', app_id=app_id))
     
     # Check if both review types are completed to determine redirect
     both_completed = False
@@ -2257,7 +2460,12 @@ def submit_questionnaire(app_id):
         elif review['field_type'] == 'cloud_review':
             cloud_review_done = True
     
-    both_completed = app_review_done and cloud_review_done
+    # Get application to check if cloud review is required
+    app = conn.execute('SELECT cloud_review_required FROM applications WHERE id = ?', (app_id,)).fetchone()
+    cloud_review_required = app and app['cloud_review_required'] == 'yes'
+    
+    # Both completed only if app review is done AND (cloud review not required OR cloud review is done)
+    both_completed = app_review_done and (not cloud_review_required or cloud_review_done)
     conn.close()
     
     flash('Security assessment submitted successfully!', 'success')
@@ -2409,9 +2617,14 @@ def web_review_results(app_id):
         
         # Add recommendations
         try:
-            review_recommendations = json.loads(review['recommendations']) if review['recommendations'] else []
+            # Handle SQLite Row object properly
+            try:
+                recommendations_data = review['recommendations'] if review['recommendations'] else '[]'
+            except (KeyError, IndexError):
+                recommendations_data = '[]'
+            review_recommendations = json.loads(recommendations_data)
             combined_recommendations.extend(review_recommendations)
-        except (json.JSONDecodeError, TypeError):
+        except (json.JSONDecodeError, TypeError, KeyError, IndexError):
             pass
     
     # Use combined data
@@ -3290,12 +3503,14 @@ def analyst_reviews():
     """Analyst Security Review Management"""
     conn = get_db()
     
-    # Get all security reviews for the analyst
+    # Get all security reviews for the analyst (assigned + unassigned available)
     reviews = conn.execute('''
-        SELECT sr.*, a.name as app_name
+        SELECT sr.*, a.name as app_name, u.first_name, u.last_name, u.email,
+               sr.id as review_id, sr.status as review_status, sr.created_at as review_created
         FROM security_reviews sr
         JOIN applications a ON sr.application_id = a.id
-        WHERE sr.analyst_id = ?
+        JOIN users u ON a.author_id = u.id
+        WHERE sr.analyst_id = ? OR (sr.analyst_id IS NULL AND sr.status = 'submitted')
         ORDER BY sr.created_at DESC
     ''', (session['user_id'],)).fetchall()
     
