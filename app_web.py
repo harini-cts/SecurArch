@@ -15,6 +15,7 @@ import sqlite3
 import jwt
 from functools import wraps
 from werkzeug.utils import secure_filename
+from app.workflow import workflow_engine
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -1986,7 +1987,6 @@ def finalize_review(review_id):
 
 def update_application_status(app_id, new_status, conn, user_role='user', business_context=None):
     """Update application status with enhanced role-based validation"""
-    from app.workflow import workflow_engine
     
     # Get current status and business context
     current = conn.execute('''
