@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Logs - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a></li>
+                    <li class="breadcrumb-item active">Audit Logs</li>
+                </ol>
+            </nav>
+            <h2><i class="fas fa-file-alt text-danger"></i> System Audit Logs</h2>
+            <p class="text-muted">Monitor user actions and system activities</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left-info">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Log Entries</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">{{ logs|length }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-success">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Today's Activities</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">
+                        {{ logs|selectattr('created_at', 'match', '.*' + moment().format('YYYY-MM-DD') + '.*')|list|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-warning">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">User Actions</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">
+                        {{ logs|selectattr('user_id', 'defined')|list|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-danger">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">System Events</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">
+                        {{ logs|rejectattr('user_id', 'defined')|list|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Logs Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Audit Logs</h6>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-filter"></i> Filter
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" data-filter="all">All Activities</a></li>
+                            <li><a class="dropdown-item" href="#" data-filter="login">Login Events</a></li>
+                            <li><a class="dropdown-item" href="#" data-filter="application">Application Events</a></li>
+                            <li><a class="dropdown-item" href="#" data-filter="review">Review Events</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if logs %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="auditLogsTable">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th><i class="fas fa-clock"></i> Timestamp</th>
+                                    <th><i class="fas fa-user"></i> User</th>
+                                    <th><i class="fas fa-cog"></i> Action</th>
+                                    <th><i class="fas fa-cube"></i> Resource</th>
+                                    <th><i class="fas fa-info-circle"></i> Details</th>
+                                    <th><i class="fas fa-network-wired"></i> IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr data-action="{{ log.action or 'unknown' }}">
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ log.created_at[:16] if log.created_at else 'N/A' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if log.first_name and log.last_name %}
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                                {{ log.first_name[0] }}{{ log.last_name[0] }}
+                                            </div>
+                                            <div>
+                                                <div class="font-weight-bold">{{ log.first_name }} {{ log.last_name }}</div>
+                                                <small class="text-muted">{{ log.email }}</small>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">System</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if 'login' in log.action|lower %}success{% elif 'create' in log.action|lower %}info{% elif 'update' in log.action|lower %}warning{% elif 'delete' in log.action|lower %}danger{% else %}secondary{% endif %}">
+                                            {{ log.action }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if log.resource_type %}
+                                        <div>
+                                            <span class="font-weight-bold">{{ log.resource_type }}</span>
+                                            {% if log.resource_id %}
+                                            <br><small class="text-muted">ID: {{ log.resource_id[:8] }}...</small>
+                                            {% endif %}
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.details %}
+                                        <button class="btn btn-sm btn-outline-info" data-bs-toggle="collapse" data-bs-target="#details-{{ loop.index }}">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <div class="collapse mt-2" id="details-{{ loop.index }}">
+                                            <div class="card card-body p-2">
+                                                <pre><small>{{ log.details }}</small></pre>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ log.ip_address or 'N/A' }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-file-alt fa-3x text-gray-300 mb-3"></i>
+                        <h5 class="text-muted">No Audit Logs Available</h5>
+                        <p class="text-muted">System audit logs will appear here as users perform actions.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter functionality
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    const tableRows = document.querySelectorAll('#auditLogsTable tbody tr');
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const filter = this.getAttribute('data-filter');
+            
+            tableRows.forEach(row => {
+                const action = row.getAttribute('data-action').toLowerCase();
+                
+                if (filter === 'all') {
+                    row.style.display = '';
+                } else if (action.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update dropdown text
+            document.querySelector('.dropdown-toggle').innerHTML = 
+                '<i class="fas fa-filter"></i> ' + this.textContent;
+        });
+    });
+});
+</script>
+{% endblock %} 
