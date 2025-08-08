@@ -568,9 +568,15 @@
                         </li>
                         
                         <!-- Reviews Tab (for analysts and admins) -->
-                        {% if session.user_role in ['security_analyst', 'admin'] %}
+                        {% if session.user_role == 'security_analyst' %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('analyst_reviews') }}">
+                                <i class="fas fa-clipboard-check"></i> Reviews
+                            </a>
+                        </li>
+                        {% elif session.user_role == 'admin' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_reviews') }}">
                                 <i class="fas fa-clipboard-check"></i> Reviews
                             </a>
                         </li>
