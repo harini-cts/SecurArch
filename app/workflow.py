@@ -337,6 +337,49 @@ class WorkflowEngine:
                 summary[status] = summary.get(status, 0) + 1
         
         return summary
+    
+    def get_analyst_applications(self, analyst_id: str, status_filter: str) -> List[Dict]:
+        """
+        Get applications for analyst dashboard filtered by status
+        
+        Args:
+            analyst_id: ID of the analyst user
+            status_filter: Filter by analyst status ('todo', 'in_review', 'completed')
+            
+        Returns:
+            List of applications filtered by analyst status
+        """
+        import sqlite3
+        
+        # Get database connection
+        conn = sqlite3.connect('securearch_portal.db')
+        conn.row_factory = sqlite3.Row
+        
+        try:
+            # Get all applications (we'll filter them through workflow logic)
+            all_applications = conn.execute('''
+                SELECT a.*, u.first_name, u.last_name, u.email
+                FROM applications a
+                JOIN users u ON a.author_id = u.id
+                ORDER BY a.created_at DESC
+            ''').fetchall()
+            
+            # Convert to list of dicts and filter through workflow engine
+            applications_list = [dict(app) for app in all_applications]
+            visible_applications = self.get_applications_for_analyst(applications_list)
+            
+            # Filter by requested status
+            if status_filter == 'todo':
+                return [app for app in visible_applications if app.get('analyst_status') == 'todo']
+            elif status_filter == 'in_review':
+                return [app for app in visible_applications if app.get('analyst_status') == 'in_review']
+            elif status_filter == 'completed':
+                return [app for app in visible_applications if app.get('analyst_status') == 'completed']
+            else:
+                return visible_applications
+                
+        finally:
+            conn.close()
 
 # Global workflow engine instance
 workflow_engine = WorkflowEngine() 
