@@ -58,12 +58,19 @@
 
             <!-- Saved Progress Alert -->
             {% if existing_responses and existing_responses|length > 0 %}
-            <div class="alert alert-success mb-4">
-                <h6><i class="fas fa-save"></i> Saved Progress Restored</h6>
+            <div class="alert alert-success mb-4" id="progress-restoration-alert">
+                <h6><i class="fas fa-save"></i> Previous Progress Restored</h6>
                 <p class="mb-0">
-                    Welcome back! Your previous responses ({{ existing_responses|length }} questions) have been restored. 
-                    {% if saved_section > 0 %}You'll start from Section {{ saved_section + 1 }} where you left off.{% endif %}
+                    <strong>Welcome back!</strong> Your previous responses ({{ existing_responses|length }} questions) have been restored.
+                    {% if saved_section > 0 %}
+                    <br><i class="fas fa-play-circle text-success"></i> You'll continue from <strong>Section {{ saved_section + 1 }}</strong> where you left off.
+                    {% else %}
+                    <br><i class="fas fa-play-circle text-success"></i> You'll start from the <strong>beginning</strong> with your saved answers.
+                    {% endif %}
                 </p>
+                <small class="text-muted mt-2 d-block">
+                    <i class="fas fa-info-circle"></i> Your progress is automatically saved as you complete questions.
+                </small>
             </div>
             {% endif %}
             
@@ -95,8 +102,9 @@
                                 <button type="button" class="btn btn-primary" id="next-btn">
                                     Next <i class="fas fa-chevron-right"></i>
                                 </button>
-                                <button type="submit" class="btn btn-success d-none" id="submit-btn">
-                                    <i class="fas fa-check"></i> Submit Assessment
+                                <button type="button" class="btn btn-success d-none" id="submit-btn" onclick="handleSubmission()">
+                                    <i class="fas fa-check"></i> <span id="submit-btn-text">Submit Assessment</span>
+                    <small class="d-block mt-1" id="completion-status" style="font-size: 0.75rem; opacity: 0.9;"></small>
                                 </button>
                             </div>
                         </div>
@@ -150,7 +158,23 @@ document.addEventListener('DOMContentLoaded', function() {
     if (savedSection && savedSection < sections.length) {
         currentSection = savedSection;
     }
-    console.log(`📍 Starting from section ${currentSection} of ${sections.length}`);
+    console.log(`📍 Starting from section ${currentSection + 1} of ${sections.length}`);
+    
+    // Add smooth transition effect when resuming from saved position
+    if (savedSection > 0) {
+        // Add highlight effect to the restoration alert
+        setTimeout(() => {
+            const restorationAlert = document.getElementById('progress-restoration-alert');
+            if (restorationAlert) {
+                restorationAlert.style.border = '2px solid #28a745';
+                restorationAlert.style.boxShadow = '0 0 15px rgba(40, 167, 69, 0.3)';
+                setTimeout(() => {
+                    restorationAlert.style.border = '';
+                    restorationAlert.style.boxShadow = '';
+                }, 3000);
+            }
+        }, 500);
+    }
     let autoSaveTimeout;
     
     // Auto-save function
@@ -531,100 +555,93 @@ document.addEventListener('DOMContentLoaded', function() {
          // Update progress based on actual completion
          const completionProgress = totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
          
-         // Update the secondary progress indicator
-         const secondaryProgress = document.getElementById('completion-progress');
-         if (secondaryProgress) {
-             const categoryText = disabledCategories > 0 ? ` (${disabledCategories} categories disabled)` : '';
-             secondaryProgress.textContent = `${answeredQuestions}/${totalQuestions} questions answered (${completionProgress}%)${categoryText}`;
-         }
-         
-         // Debug log to verify the calculation
-         console.log(`Progress Update: ${answeredQuestions}/${totalQuestions} questions (${completionProgress}%), ${disabledCategories} categories disabled`);
+                 // Update the secondary progress indicator
+        const secondaryProgress = document.getElementById('completion-progress');
+        if (secondaryProgress) {
+            const categoryText = disabledCategories > 0 ? ` (${disabledCategories} categories disabled)` : '';
+            secondaryProgress.textContent = `${answeredQuestions}/${totalQuestions} questions answered (${completionProgress}%)${categoryText}`;
+        }
+        
+        // Update submit button with completion status
+        updateSubmitButtonStatus(answeredQuestions, totalQuestions, completionProgress);
+        
+        // Debug log to verify the calculation
+        console.log(`Progress Update: ${answeredQuestions}/${totalQuestions} questions (${completionProgress}%), ${disabledCategories} categories disabled`);
+     }
+     
+     function updateSubmitButtonStatus(answered, total, percentage) {
+        const submitBtn = document.getElementById('submit-btn');
+        const submitBtnText = document.getElementById('submit-btn-text');
+        const completionStatus = document.getElementById('completion-status');
+        
+        if (!submitBtn || !submitBtnText || !completionStatus) return;
+        
+        const unanswered = total - answered;
+        
+        if (percentage === 100) {
+            submitBtnText.textContent = 'Submit Complete Assessment';
+            completionStatus.textContent = `🎉 All ${total} questions answered!`;
+            completionStatus.style.color = '#28a745';
+            submitBtn.className = 'btn btn-success d-none'; // Keep base classes
+        } else if (percentage >= 80) {
+            submitBtnText.textContent = 'Submit Assessment';
+            completionStatus.textContent = `${unanswered} questions remaining (${percentage}% complete)`;
+            completionStatus.style.color = '#ffc107';
+            submitBtn.className = 'btn btn-warning d-none'; // Keep base classes
+        } else {
+            submitBtnText.textContent = 'Submit Partial Assessment';
+            completionStatus.textContent = `${unanswered} questions remaining (${percentage}% complete)`;
+            completionStatus.style.color = '#dc3545';
+            submitBtn.className = 'btn btn-outline-primary d-none'; // Keep base classes
+        }
+        
+        // Ensure visibility state is preserved
+        if (currentSection === sections.length - 1) {
+            submitBtn.classList.remove('d-none');
+        } else {
+            submitBtn.classList.add('d-none');
+        }
      }
     
     // Event Listeners
-         prevBtn.addEventListener('click', function() {
-         if (currentSection > 0) {
-             currentSection--;
-             renderSection(currentSection);
-             updateProgress();
-             updateButtons();
-             updateProgressBasedOnAnswers();
-             window.scrollTo({ top: 0, behavior: 'smooth' });
-         }
-     });
-    
-         nextBtn.addEventListener('click', function() {
-         if (currentSection < sections.length - 1) {
-             currentSection++;
-             renderSection(currentSection);
-             updateProgress();
-             updateButtons();
-             updateProgressBasedOnAnswers();
-             window.scrollTo({ top: 0, behavior: 'smooth' });
-         }
-     });
-    
-    // Handle form submission - collect ALL responses before submitting
-    const form = document.getElementById('questionnaireForm');
-    form.addEventListener('submit', function(e) {
-        e.preventDefault(); // Prevent default submission
-        
-        // Collect ALL responses and comments from all sections
-        const allResponses = {};
-        const allComments = {};
-        
-        sections.forEach(sectionKey => {
-            const section = questionnaireData[sectionKey];
-            section.questions.forEach(question => {
-                // Check if this question was answered (from existingResponses or from current form state)
-                let response = existingResponses[question.id] || '';
-                let comment = existingComments[question.id] || '';
-                
-                // If this question is in the current section, get the latest value from the form
-                if (sectionKey === sections[currentSection]) {
-                    const radioButtons = document.querySelectorAll(`input[name="${question.id}"]:checked`);
-                    if (radioButtons.length > 0) {
-                        response = radioButtons[0].value;
-                    }
-                    
-                    const commentTextarea = document.getElementById(`${question.id}_comment`);
-                    if (commentTextarea && commentTextarea.value.trim()) {
-                        comment = commentTextarea.value.trim();
-                    }
-                }
-                
-                // Store response and comment if they exist
-                if (response) {
-                    allResponses[question.id] = response;
-                }
-                if (comment) {
-                    allComments[question.id] = comment;
-                }
-            });
-        });
-        
-        // Create hidden fields for all responses
-        Object.keys(allResponses).forEach(questionId => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = questionId;
-            input.value = allResponses[questionId];
-            form.appendChild(input);
-        });
-        
-        // Create hidden fields for all comments
-        Object.keys(allComments).forEach(questionId => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = questionId + '_comment';
-            input.value = allComments[questionId];
-            form.appendChild(input);
-        });
-        
-        // Now submit the form with all data
-        form.submit();
+             prevBtn.addEventListener('click', function() {
+        if (currentSection > 0) {
+            currentSection--;
+            renderSection(currentSection);
+            updateProgress();
+            updateButtons();
+            updateProgressBasedOnAnswers();
+            autoSave(); // Save progress when navigating sections
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     });
+    
+                 nextBtn.addEventListener('click', function() {
+        if (currentSection < sections.length - 1) {
+            currentSection++;
+            renderSection(currentSection);
+            updateProgress();
+            updateButtons();
+            updateProgressBasedOnAnswers();
+            autoSave(); // Save progress when navigating sections
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+    
+    // Handle submission button click
+    window.handleSubmission = function() {
+        // Auto-save current responses first
+        autoSave();
+        
+        // Wait a moment for auto-save to complete, then redirect
+        setTimeout(() => {
+            const appId = '{{ application.id }}';
+            const fieldType = '{{ field_type }}';
+            const url = `/submission-review/${appId}?field=${fieldType}`;
+            console.log('Redirecting to:', url);
+            window.location.href = url;
+        }, 500);
+    };
     
     // Function to update disabled categories hidden field
     function updateDisabledCategories() {

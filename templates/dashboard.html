@@ -806,8 +806,12 @@
                                             <a href="/review-results/{{ app.id }}" class="btn btn-sm btn-outline-success" title="View Results">
                                                 <i class="fas fa-chart-line"></i>
                                             </a>
+                                            {% elif app.has_draft_review > 0 %}
+                                            <a href="/security-assessment/{{ app.id }}" class="btn btn-sm btn-success" title="Continue Assessment - Resume where you left off" style="background: #28a745; border-color: #28a745;">
+                                                <i class="fas fa-play-circle"></i>
+                                            </a>
                                             {% else %}
-                                            <a href="/security-assessment/{{ app.id }}" class="btn btn-sm btn-primary" title="Continue Assessment" style="background: #000048; border-color: #000048;">
+                                            <a href="/security-assessment/{{ app.id }}" class="btn btn-sm btn-primary" title="Start Assessment" style="background: #000048; border-color: #000048;">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             {% endif %}

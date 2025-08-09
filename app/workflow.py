@@ -44,7 +44,7 @@ class WorkflowEngine:
             UserRole.ADMIN: [ApplicationStatus.SUBMITTED, ApplicationStatus.ARCHIVED]
         },
         ApplicationStatus.SUBMITTED: {
-            UserRole.USER: [],  # Users cannot change status once submitted
+            UserRole.USER: [],  # Users cannot change status once submitted (only after both reviews completed)
             UserRole.SECURITY_ANALYST: [ApplicationStatus.IN_REVIEW, ApplicationStatus.REJECTED],
             UserRole.ADMIN: [ApplicationStatus.IN_REVIEW, ApplicationStatus.REJECTED, ApplicationStatus.ARCHIVED]
         },
@@ -356,11 +356,18 @@ class WorkflowEngine:
         conn.row_factory = sqlite3.Row
         
         try:
-            # Get all applications (we'll filter them through workflow logic)
+            # Get applications that are ready for analyst review (all required reviews submitted)
             all_applications = conn.execute('''
-                SELECT a.*, u.first_name, u.last_name, u.email
+                SELECT a.*, u.first_name, u.last_name, u.email,
+                       COUNT(sr.id) as submitted_review_count
                 FROM applications a
                 JOIN users u ON a.author_id = u.id
+                LEFT JOIN security_reviews sr ON a.id = sr.application_id AND sr.status = 'submitted'
+                WHERE a.status = 'submitted'
+                GROUP BY a.id, a.name, a.description, a.cloud_review_required, 
+                         u.first_name, u.last_name, u.email
+                HAVING (a.cloud_review_required = 'no' AND COUNT(sr.id) >= 1) 
+                    OR (a.cloud_review_required = 'yes' AND COUNT(sr.id) >= 2)
                 ORDER BY a.created_at DESC
             ''').fetchall()
             

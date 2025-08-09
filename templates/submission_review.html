@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+
+{% block title %}Submission Review - {{ application.name }} - Cognizant SecArch Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <!-- Header -->
+        <div class="submission-header mb-4">
+            <h2><i class="fas fa-clipboard-check"></i> Ready to Submit?</h2>
+            <p class="lead">Review your assessment completion before submission</p>
+            <div class="app-info">
+                <strong>{{ application.name }}</strong> - 
+                <span class="text-muted">{{ field_type.replace('_', ' ').title() }}</span>
+            </div>
+        </div>
+
+        <!-- Overall Progress -->
+        <div class="overall-stats mb-4">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ total_answered }}</div>
+                        <div class="stat-label">Answered</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number text-warning">{{ total_unanswered }}</div>
+                        <div class="stat-label">Remaining</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ total_questions }}</div>
+                        <div class="stat-label">Total Questions</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number text-primary">{{ overall_completion }}%</div>
+                        <div class="stat-label">Complete</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container mb-4">
+                         <div class="progress">
+                 <div class="progress-bar bg-success" role="progressbar" 
+                      style="width: {{ overall_completion }}%;" 
+                      aria-valuenow="{{ overall_completion }}" 
+                      aria-valuemin="0" aria-valuemax="100">
+                     {{ overall_completion }}%
+                 </div>
+             </div>
+        </div>
+
+        <!-- Categories Breakdown -->
+        <div class="categories-breakdown mb-4">
+            <h4 class="mb-3"><i class="fas fa-list-ul"></i> Categories Breakdown</h4>
+            
+            {% for category in categories_summary %}
+            <div class="category-card mb-3">
+                <div class="category-header d-flex justify-content-between align-items-center">
+                    <div class="category-info">
+                        <h5 class="mb-1">{{ category.name }}</h5>
+                        <small class="text-muted">
+                            {{ category.answered }}/{{ category.total_questions }} questions answered
+                        </small>
+                    </div>
+                    <div class="category-actions">
+                        {% if category.unanswered > 0 %}
+                        <span class="badge badge-warning me-2">{{ category.unanswered }} remaining</span>
+                        <a href="/questionnaire/{{ application.id }}?field={{ field_type }}#{{ category.key }}" 
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-edit"></i> Continue
+                        </a>
+                        {% else %}
+                        <span class="badge badge-success me-2">Complete</span>
+                        <button class="btn btn-sm btn-outline-success" disabled>
+                            <i class="fas fa-check"></i> Done
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Progress bar for this category -->
+                <div class="category-progress mt-2">
+                    <div class="progress">
+                                         <div class="progress-bar {% if category.completion_percentage == 100 %}bg-success{% else %}bg-warning{% endif %}" 
+                      role="progressbar" style="width: {{ category.completion_percentage }}%;">
+                     {{ category.completion_percentage }}%
+                 </div>
+                    </div>
+                </div>
+                
+                <!-- Show unanswered questions if any -->
+                {% if category.unanswered_questions %}
+                <div class="unanswered-details mt-3">
+                    <details>
+                        <summary class="text-muted">
+                            <i class="fas fa-question-circle"></i> 
+                            View {{ category.unanswered }} unanswered questions
+                        </summary>
+                        <div class="unanswered-list mt-2">
+                            {% for question in category.unanswered_questions[:5] %}
+                            <div class="unanswered-question">
+                                <i class="fas fa-circle text-warning" style="font-size: 0.5rem;"></i>
+                                {{ question.text[:100] }}{% if question.text|length > 100 %}...{% endif %}
+                            </div>
+                            {% endfor %}
+                            {% if category.unanswered_questions|length > 5 %}
+                            <div class="text-muted">
+                                <i class="fas fa-ellipsis-h"></i> 
+                                and {{ category.unanswered_questions|length - 5 }} more questions
+                            </div>
+                            {% endif %}
+                        </div>
+                    </details>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Submission Actions -->
+        <div class="submission-actions">
+            {% if total_unanswered > 0 %}
+            <div class="alert alert-warning">
+                <h6><i class="fas fa-exclamation-triangle"></i> Incomplete Assessment</h6>
+                <p class="mb-2">
+                    You have <strong>{{ total_unanswered }} unanswered questions</strong> across multiple categories. 
+                    You can still submit your assessment, but completing all questions provides better security insights.
+                </p>
+                <p class="mb-0">
+                    <strong>Recommendation:</strong> Complete at least 80% of questions for comprehensive results.
+                </p>
+            </div>
+            {% else %}
+            <div class="alert alert-success">
+                <h6><i class="fas fa-check-circle"></i> Assessment Complete!</h6>
+                <p class="mb-0">
+                    Excellent! All questions have been answered. Your assessment is ready for submission.
+                </p>
+            </div>
+            {% endif %}
+            
+            <div class="action-buttons text-center">
+                <a href="/questionnaire/{{ application.id }}?field={{ field_type }}" 
+                   class="btn btn-outline-secondary btn-lg me-3">
+                    <i class="fas fa-arrow-left"></i> Continue Editing
+                </a>
+                
+                <form method="POST" action="/submit-questionnaire/{{ application.id }}" 
+                      style="display: inline-block;" 
+                      onsubmit="return confirmSubmission()">
+                    <input type="hidden" name="field_type" value="{{ field_type }}">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-paper-plane"></i> 
+                        Submit Assessment
+                        {% if total_unanswered > 0 %}
+                        ({{ overall_completion }}% Complete)
+                        {% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.submission-header {
+    text-align: center;
+    padding: 2rem;
+    background: linear-gradient(135deg, #000048 0%, #2E308E 100%);
+    color: white;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.app-info {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.overall-stats .stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #000048;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    display: block;
+}
+
+.stat-label {
+    color: #666;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.progress-container {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.progress {
+    height: 20px;
+    border-radius: 10px;
+}
+
+.categories-breakdown {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.category-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.category-card:hover {
+    border-color: #000048;
+    box-shadow: 0 4px 15px rgba(0, 0, 72, 0.1);
+}
+
+.category-header h5 {
+    color: #000048;
+    margin-bottom: 0.5rem;
+}
+
+.category-progress .progress {
+    height: 8px;
+}
+
+.unanswered-details {
+    border-top: 1px solid #dee2e6;
+    padding-top: 1rem;
+}
+
+.unanswered-question {
+    padding: 0.25rem 0;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.submission-actions {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.action-buttons {
+    margin-top: 2rem;
+}
+
+.badge-warning {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+.badge-success {
+    background-color: #28a745 !important;
+}
+
+details > summary {
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+}
+
+details > summary:hover {
+    color: #000048;
+}
+
+.btn-lg {
+    padding: 0.75rem 2rem;
+    font-size: 1.1rem;
+}
+</style>
+
+<script>
+function confirmSubmission() {
+    const unanswered = {{ total_unanswered|int }};
+    const completion = {{ overall_completion|int }};
+    
+    if (unanswered > 0) {
+        const message = 'Are you sure you want to submit this assessment?\n\n' +
+                       'Completion: ' + completion + '%\n' +
+                       'Unanswered Questions: ' + unanswered + '\n\n' +
+                       'You can always come back to complete remaining questions later.';
+        return confirm(message);
+    }
+    
+    return confirm('Submit your complete security assessment?');
+}
+
+// Add hash navigation support for direct category links
+window.addEventListener('load', function() {
+    const hash = window.location.hash;
+    if (hash) {
+        const targetElement = document.querySelector(hash);
+        if (targetElement) {
+            targetElement.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+});
+</script>
+{% endblock %} 

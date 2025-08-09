@@ -1286,7 +1286,7 @@ def filter_cloud_questions_by_providers(questionnaire_data, cloud_providers):
     else:
         provider_list = [p.upper() for p in cloud_providers]
     
-    # Map providers to category keys
+    # Map providers to category keys (exact match with questionnaire structure)
     provider_mapping = {
         'AWS': 'aws_security',
         'AZURE': 'azure_security', 
@@ -1301,7 +1301,9 @@ def filter_cloud_questions_by_providers(questionnaire_data, cloud_providers):
             if category_key in questionnaire_data:
                 filtered_data[category_key] = questionnaire_data[category_key]
     
-    return filtered_data if filtered_data else questionnaire_data
+    # If no matching providers found, return empty dict (no questions)
+    # This ensures only relevant cloud provider questions are shown
+    return filtered_data
 
 # Web Routes
 
@@ -1536,23 +1538,26 @@ def web_dashboard():
         in_review_applications = workflow_engine.get_analyst_applications(user_id, 'in_review')
         completed_applications = workflow_engine.get_analyst_applications(user_id, 'completed')
         
-        # Get pending applications with their available review types
+        # Get pending applications where ALL required reviews are submitted and ready for analyst pickup
         pending_apps_data = conn.execute('''
             SELECT a.id as application_id, a.name as app_name, a.business_criticality,
                    a.description, a.technology_stack, a.deployment_environment,
-                   a.data_classification,
+                   a.data_classification, a.cloud_review_required,
                    (u.first_name || ' ' || u.last_name) as author_name, u.email as author_email,
                    MIN(sr.created_at) as earliest_review_date,
                    GROUP_CONCAT(sr.field_type) as review_types,
                    GROUP_CONCAT(sr.id) as review_ids,
-                   GROUP_CONCAT(sr.created_at) as review_dates
+                   GROUP_CONCAT(sr.created_at) as review_dates,
+                   COUNT(sr.id) as review_count
             FROM applications a
             JOIN security_reviews sr ON a.id = sr.application_id
             JOIN users u ON a.author_id = u.id
-            WHERE sr.status = 'todo' AND sr.analyst_id IS NULL
+            WHERE a.status = 'submitted' AND sr.status = 'submitted' AND sr.analyst_id IS NULL
             GROUP BY a.id, a.name, a.business_criticality, a.description, 
                      a.technology_stack, a.deployment_environment, a.data_classification,
-                     u.first_name, u.last_name, u.email
+                     a.cloud_review_required, u.first_name, u.last_name, u.email
+            HAVING (a.cloud_review_required = 'no' AND COUNT(sr.id) >= 1) 
+                OR (a.cloud_review_required = 'yes' AND COUNT(sr.id) >= 2)
             ORDER BY CASE 
                 WHEN a.business_criticality = 'Critical' THEN 1
                 WHEN a.business_criticality = 'High' THEN 2
@@ -1639,11 +1644,14 @@ def web_dashboard():
     
     else:
         # User Dashboard - Personal applications and activities
-        # Get user's applications
+        # Get user's applications with draft review status
         user_applications = conn.execute('''
-            SELECT * FROM applications 
-            WHERE author_id = ? 
-            ORDER BY created_at DESC
+            SELECT a.*, 
+                   (SELECT COUNT(*) FROM security_reviews sr 
+                    WHERE sr.application_id = a.id AND sr.status = 'draft') as has_draft_review
+            FROM applications a
+            WHERE a.author_id = ? 
+            ORDER BY a.created_at DESC
         ''', (user_id,)).fetchall()
         
         # Get application statistics with safe defaults
@@ -1848,7 +1856,9 @@ def web_security_assessment(app_id):
             if review['status'] == 'completed':
                 app_review_completed = True
                 app_review_status = 'completed'
-            elif review['status'] in ['submitted', 'in_review']:
+            elif review['status'] == 'submitted':
+                app_review_status = 'submitted'
+            elif review['status'] == 'in_review':
                 app_review_status = 'pending_analyst'
             elif review['status'] == 'draft':
                 app_review_status = 'draft'
@@ -1856,7 +1866,9 @@ def web_security_assessment(app_id):
             if review['status'] == 'completed':
                 cloud_review_completed = True
                 cloud_review_status = 'completed'
-            elif review['status'] in ['submitted', 'in_review']:
+            elif review['status'] == 'submitted':
+                cloud_review_status = 'submitted'
+            elif review['status'] == 'in_review':
                 cloud_review_status = 'pending_analyst'
             elif review['status'] == 'draft':
                 cloud_review_status = 'draft'
@@ -1870,7 +1882,16 @@ def web_security_assessment(app_id):
     
     # Calculate question counts from questionnaires
     app_review_questions = sum(len(cat['questions']) for cat in SECURITY_QUESTIONNAIRES['application_review']['categories'].values())
-    cloud_review_questions = sum(len(cat['questions']) for cat in SECURITY_QUESTIONNAIRES['cloud_review']['categories'].values())
+    
+    # Calculate cloud review questions based on selected providers
+    if cloud_review_required and cloud_providers:
+        # Filter cloud questions by selected providers to get accurate count
+        cloud_questionnaire_data = SECURITY_QUESTIONNAIRES['cloud_review']['categories']
+        filtered_cloud_data = filter_cloud_questions_by_providers(cloud_questionnaire_data, app['cloud_providers'])
+        cloud_review_questions = sum(len(cat['questions']) for cat in filtered_cloud_data.values())
+    else:
+        # Default to total count if no providers selected
+        cloud_review_questions = sum(len(cat['questions']) for cat in SECURITY_QUESTIONNAIRES['cloud_review']['categories'].values())
     
     return render_template('security_assessment.html', 
                          application=app,
@@ -1989,12 +2010,14 @@ def web_questionnaire(app_id):
         review_type = 'application_review'
         field_type = 'comprehensive_application'  # Normalize field type
 
-    # Temporarily disable filtering to show all 70 questions
-    # TODO: Implement more inclusive filtering that doesn't reduce questions drastically
-    # if field_type == 'application_review' and 'technology_stack' in app.keys() and app['technology_stack']:
-    #     questionnaire_data = filter_questions_by_technology(questionnaire_data, app['technology_stack'])
-    # elif field_type == 'cloud_review' and 'cloud_providers' in app.keys() and app['cloud_providers']:
-    #     questionnaire_data = filter_cloud_questions_by_providers(questionnaire_data, app['cloud_providers'])
+    # Apply cloud provider filtering for cloud reviews
+    if field_type == 'cloud_review' and 'cloud_providers' in app.keys() and app['cloud_providers']:
+        questionnaire_data = filter_cloud_questions_by_providers(questionnaire_data, app['cloud_providers'])
+        print(f"🔍 Cloud filtering applied for providers: {app['cloud_providers']}")
+        print(f"📊 Filtered questionnaire has {len(questionnaire_data)} categories")
+    
+    # Keep application review filtering disabled to show all 70 questions
+    # Technology filtering was too restrictive for application reviews
     
     return render_template('questionnaire.html', 
                          application=app, 
@@ -2622,6 +2645,92 @@ def auto_save_questionnaire(app_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/submission-review/<app_id>')
+@login_required
+def submission_review(app_id):
+    """Review submission page showing unanswered questions by category"""
+    field_type = request.args.get('field', 'application_review')
+    
+    try:
+        conn = get_db()
+        app = conn.execute('SELECT * FROM applications WHERE id = ? AND author_id = ?', 
+                          (app_id, session['user_id'])).fetchone()
+        
+        if not app:
+            conn.close()
+            return redirect(url_for('web_applications'))
+        # Get existing draft review responses
+        existing_responses = {}
+        existing_comments = {}
+        
+        draft_review = conn.execute('''
+            SELECT questionnaire_responses FROM security_reviews 
+            WHERE application_id = ? AND field_type = ? AND status = 'draft' 
+            ORDER BY created_at DESC LIMIT 1
+        ''', (app_id, field_type)).fetchone()
+        
+        if draft_review and draft_review['questionnaire_responses']:
+            try:
+                draft_data = json.loads(draft_review['questionnaire_responses'])
+                existing_responses = draft_data.get('responses', {})
+                existing_comments = draft_data.get('comments', {})
+            except:
+                pass
+        
+        conn.close()
+        
+        # Get questionnaire data based on field type
+        if field_type == 'cloud_review' and app['cloud_providers']:
+            questionnaire_data = SECURITY_QUESTIONNAIRES[field_type]['categories']
+            questionnaire_data = filter_cloud_questions_by_providers(questionnaire_data, app['cloud_providers'])
+        else:
+            questionnaire_data = SECURITY_QUESTIONNAIRES.get(field_type, {}).get('categories', {})
+        
+        # Analyze completion by category
+        categories_summary = []
+        total_questions = 0
+        total_answered = 0
+        
+        for category_key, category_data in questionnaire_data.items():
+            category_questions = len(category_data['questions'])
+            category_answered = 0
+            unanswered_questions = []
+            
+            for question in category_data['questions']:
+                total_questions += 1
+                if question['id'] in existing_responses and existing_responses[question['id']]:
+                    category_answered += 1
+                    total_answered += 1
+                else:
+                    unanswered_questions.append({
+                        'id': question['id'],
+                        'text': question['text']
+                    })
+            
+            categories_summary.append({
+                'key': category_key,
+                'name': category_data['name'],
+                'total_questions': category_questions,
+                'answered': category_answered,
+                'unanswered': category_questions - category_answered,
+                'completion_percentage': round((category_answered / category_questions) * 100) if category_questions > 0 else 0,
+                'unanswered_questions': unanswered_questions
+            })
+        
+        overall_completion = round((total_answered / total_questions) * 100) if total_questions > 0 else 0
+        
+        return render_template('submission_review.html', 
+                             application=app,
+                             field_type=field_type,
+                             categories_summary=categories_summary,
+                             total_questions=total_questions,
+                             total_answered=total_answered,
+                             total_unanswered=total_questions - total_answered,
+                             overall_completion=overall_completion)
+    except Exception as e:
+        print(f"Error in submission_review: {e}")
+        return redirect(url_for('web_applications'))
+
 @app.route('/submit-questionnaire/<app_id>', methods=['POST'])
 @login_required
 def submit_questionnaire(app_id):
@@ -2728,12 +2837,36 @@ def submit_questionnaire(app_id):
         ''', (review_id, app_id, session['user_id'], field_type, json.dumps(questionnaire_data), risk_score, 
               json.dumps(recommendations), 'submitted', datetime.now().isoformat()))
         
-        # Update application status to 'submitted' when first questionnaire is submitted
-        success, error = update_application_status(app_id, 'submitted', conn, 'user')
-        if not success:
-            conn.execute('ROLLBACK')
-            flash(f'Failed to submit application: {error}', 'error')
-            return redirect(url_for('web_security_assessment', app_id=app_id))
+        # Check if both review types are completed after this submission
+        existing_reviews = conn.execute('''
+            SELECT field_type, status FROM security_reviews 
+            WHERE application_id = ? AND author_id = ? AND status IN ('submitted', 'completed')
+        ''', (app_id, session['user_id'])).fetchall()
+        
+        # Check completion status
+        app_review_done = False
+        cloud_review_done = False
+        
+        for review in existing_reviews:
+            if review['field_type'] == 'application_review':
+                app_review_done = True
+            elif review['field_type'] == 'cloud_review':
+                cloud_review_done = True
+        
+        # Get application to check if cloud review is required
+        app = conn.execute('SELECT cloud_review_required FROM applications WHERE id = ?', (app_id,)).fetchone()
+        cloud_review_required = app and app['cloud_review_required'] == 'yes'
+        
+        # Both completed only if app review is done AND (cloud review not required OR cloud review is done)
+        both_completed = app_review_done and (not cloud_review_required or cloud_review_done)
+        
+        # Only update application status to 'submitted' when ALL required reviews are completed
+        if both_completed:
+            success, error = update_application_status(app_id, 'submitted', conn, 'user')
+            if not success:
+                conn.execute('ROLLBACK')
+                flash(f'Failed to submit application: {error}', 'error')
+                return redirect(url_for('web_security_assessment', app_id=app_id))
         
         # Commit the transaction
         conn.commit()
@@ -2743,38 +2876,17 @@ def submit_questionnaire(app_id):
         flash(f'Error submitting questionnaire: {str(e)}', 'error')
         return redirect(url_for('web_security_assessment', app_id=app_id))
     
-    # Check if both review types are completed to determine redirect
-    both_completed = False
-    existing_reviews = conn.execute('''
-        SELECT field_type, status FROM security_reviews 
-        WHERE application_id = ? AND author_id = ? AND status IN ('submitted', 'completed')
-    ''', (app_id, session['user_id'])).fetchall()
-    
-    # Check completion status
-    app_review_done = False
-    cloud_review_done = False
-    
-    for review in existing_reviews:
-        if review['field_type'] == 'application_review':
-            app_review_done = True
-        elif review['field_type'] == 'cloud_review':
-            cloud_review_done = True
-    
-    # Get application to check if cloud review is required
-    app = conn.execute('SELECT cloud_review_required FROM applications WHERE id = ?', (app_id,)).fetchone()
-    cloud_review_required = app and app['cloud_review_required'] == 'yes'
-    
-    # Both completed only if app review is done AND (cloud review not required OR cloud review is done)
-    both_completed = app_review_done and (not cloud_review_required or cloud_review_done)
     conn.close()
     
-    flash('Security assessment submitted successfully!', 'success')
-    
-    # Redirect based on completion status
+    # Provide appropriate feedback based on completion status
     if both_completed:
-        return redirect(url_for('web_review_results', app_id=app_id))
+        flash('All security assessments completed! Your application has been submitted to security analysts for review.', 'success')
+        return redirect(url_for('web_security_assessment', app_id=app_id))
     else:
-        # Return to security assessment page to continue with the other category
+        if cloud_review_required and not cloud_review_done:
+            flash('Application review submitted! Please complete the Cloud Review to submit your application to security analysts.', 'info')
+        else:
+            flash('Cloud review submitted! Please complete the Application Review to submit your application to security analysts.', 'info')
         return redirect(url_for('web_security_assessment', app_id=app_id))
 
 def generate_recommendations(responses, high_risk_percentage):

@@ -102,10 +102,22 @@
                             <button class="btn btn-outline-success w-100" disabled>
                                 <i class="fas fa-check"></i> Review Completed
                             </button>
+                        {% elif app_review_status == 'submitted' %}
+                            <button class="btn btn-outline-success w-100" disabled>
+                                <i class="fas fa-check"></i> Submitted - Complete Cloud Review
+                            </button>
                         {% elif app_review_status == 'pending_analyst' %}
                             <button class="btn btn-outline-warning w-100" disabled>
                                 <i class="fas fa-clock"></i> Pending with Security Analyst
                             </button>
+                        {% elif app_review_status == 'draft' %}
+                            <!-- Continue from where they left off -->
+                            <a href="{{ url_for('web_questionnaire', app_id=application.id, field='application_review') }}" class="btn btn-success w-100">
+                                <i class="fas fa-play-circle"></i> Continue Application Review
+                            </a>
+                            <small class="text-muted mt-2 d-block text-center">
+                                <i class="fas fa-info-circle"></i> Resume from where you left off
+                            </small>
                         {% elif user_role in ['security_analyst', 'admin'] %}
                             <!-- Only analysts can start reviews -->
                             <a href="{{ url_for('web_questionnaire', app_id=application.id, field='application_review') }}" class="btn btn-primary w-100">
@@ -166,10 +178,22 @@
                             <button class="btn btn-outline-success w-100" disabled>
                                 <i class="fas fa-check"></i> Review Completed
                             </button>
+                        {% elif cloud_review_status == 'submitted' %}
+                            <button class="btn btn-outline-success w-100" disabled>
+                                <i class="fas fa-check"></i> Submitted - Complete App Review
+                            </button>
                         {% elif cloud_review_status == 'pending_analyst' %}
                             <button class="btn btn-outline-warning w-100" disabled>
                                 <i class="fas fa-clock"></i> Pending with Security Analyst
                             </button>
+                        {% elif cloud_review_status == 'draft' %}
+                            <!-- Continue from where they left off -->
+                            <a href="{{ url_for('web_questionnaire', app_id=application.id, field='cloud_review') }}" class="btn btn-success w-100">
+                                <i class="fas fa-play-circle"></i> Continue Cloud Review
+                            </a>
+                            <small class="text-muted mt-2 d-block text-center">
+                                <i class="fas fa-info-circle"></i> Resume from where you left off
+                            </small>
                         {% elif user_role in ['security_analyst', 'admin'] %}
                             <!-- Only analysts can start reviews -->
                             <a href="{{ url_for('web_questionnaire', app_id=application.id, field='cloud_review') }}" class="btn btn-info w-100">
@@ -202,10 +226,32 @@
                 <i class="fas fa-chart-line"></i> View Security Report
             </a>
         </div>
+        {% elif app_review_status == 'submitted' and (not cloud_review_required or cloud_review_status == 'submitted') %}
+        <div class="alert alert-success text-center">
+            <h5><i class="fas fa-clock"></i> Ready for Security Analysis!</h5>
+            <p class="mb-0">
+                {% if cloud_review_required %}
+                Both Application Review and Cloud Review have been submitted. Security analysts will now review your application and provide detailed findings.
+                {% else %}
+                Application Review has been submitted. Security analysts will now review your application and provide detailed findings.
+                {% endif %}
+            </p>
+        </div>
         {% elif app_review_status == 'pending_analyst' or (cloud_review_required and cloud_review_status == 'pending_analyst') %}
         <div class="alert alert-info text-center">
             <h5><i class="fas fa-clock"></i> Security Review in Progress</h5>
             <p class="mb-0">Your application has been submitted for security review. Our analysts will complete the assessment and provide detailed findings.</p>
+        </div>
+        {% elif (app_review_status == 'submitted' and cloud_review_required and cloud_review_status != 'submitted') or (cloud_review_status == 'submitted' and app_review_status != 'submitted') %}
+        <div class="alert alert-warning text-center">
+            <h5><i class="fas fa-exclamation-triangle"></i> Complete All Reviews Required</h5>
+            <p class="mb-0">
+                {% if app_review_status == 'submitted' and cloud_review_required and cloud_review_status != 'submitted' %}
+                Application Review completed! Please complete the <strong>Cloud Review</strong> above to submit your application to security analysts.
+                {% elif cloud_review_status == 'submitted' and app_review_status != 'submitted' %}
+                Cloud Review completed! Please complete the <strong>Application Review</strong> above to submit your application to security analysts.
+                {% endif %}
+            </p>
         </div>
         {% elif user_role in ['security_analyst', 'admin'] %}
         <div class="alert alert-primary text-center">
