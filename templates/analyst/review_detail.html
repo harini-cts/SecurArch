@@ -49,9 +49,9 @@
                                 <span class="badge bg-secondary me-1">{{ total_questions }}</span> Total
                             </div>
                             <div class="mb-2">
-                                <span class="badge bg-danger me-1">{{ findings|selectattr('severity', 'equalto', 'High')|list|length }}</span> High Risk
-                                <span class="badge bg-warning me-1">{{ findings|selectattr('severity', 'equalto', 'Medium')|list|length }}</span> Medium Risk
-                                <span class="badge bg-success">{{ findings|selectattr('severity', 'equalto', 'Low')|list|length }}</span> Low Risk
+                                <span class="badge bg-danger me-1">{{ stride_analysis|selectattr('risk_level', 'equalto', 'High')|list|length }}</span> High Risk
+                                <span class="badge bg-warning me-1">{{ stride_analysis|selectattr('risk_level', 'equalto', 'Medium')|list|length }}</span> Medium Risk
+                                <span class="badge bg-success">{{ stride_analysis|selectattr('risk_level', 'equalto', 'Low')|list|length }}</span> Low Risk
                             </div>
                             <div class="progress" style="height: 8px;">
                                 <div class="progress-bar bg-info" style="width: {{ (answered_questions/total_questions*100)|round(1) }}%"></div>

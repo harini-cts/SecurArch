@@ -2,277 +2,632 @@
 
 {% block title %}Security Analyst Dashboard{% endblock %}
 
+<!-- Updated Dashboard Design v2.0 - {{ moment().format() }} -->
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col">
-            <h2><i class="fas fa-shield-alt text-primary"></i> Security Analyst Dashboard</h2>
-            <p class="text-muted">Review and analyze security assessments using STRIDE methodology</p>
+    <!-- Header Section -->
+    <div class="dashboard-header mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="dashboard-title">
+                    <i class="fas fa-shield-alt me-3" style="color: #fff;"></i>
+                    Security Analyst Dashboard
+                </h1>
+                <p class="dashboard-subtitle">Review applications and analyze security assessments using STRIDE methodology</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="dashboard-actions">
+                    <a href="{{ url_for('analyst.reviews') }}" class="btn btn-light btn-lg">
+                        <i class="fas fa-list me-2"></i>All Reviews
+                    </a>
+                    <a href="{{ url_for('analyst.workload') }}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-chart-bar me-2"></i>Workload
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-left-primary h-100">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Pending Reviews
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_pending }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-gray-300"></i>
-                        </div>
+    <!-- Review Status Section -->
+    <div class="section-card mb-4">
+        <div class="section-header">
+            <h3><i class="fas fa-tasks me-2"></i>Review Status</h3>
+            <p class="text-muted">Current status of assigned security reviews</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="metric-card pending">
+                    <div class="metric-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-number">{{ review_stats.pending }}</div>
+                        <div class="metric-label">Pending Reviews</div>
+                        <div class="metric-sublabel">Awaiting analysis</div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-left-success h-100">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Completed Reviews
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_completed }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                        </div>
+            <div class="col-lg-4">
+                <div class="metric-card in-progress">
+                    <div class="metric-icon">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-number">{{ review_stats.in_review }}</div>
+                        <div class="metric-label">In Review</div>
+                        <div class="metric-sublabel">Currently analyzing</div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-left-danger h-100">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                High Risk Issues
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.high_risk_count or 0 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
-                        </div>
+            <div class="col-lg-4">
+                <div class="metric-card completed">
+                    <div class="metric-icon">
+                        <i class="fas fa-check-circle"></i>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-left-info h-100">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                STRIDE Analysis
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">Active</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-sitemap fa-2x text-gray-300"></i>
-                        </div>
+                    <div class="metric-content">
+                        <div class="metric-number">{{ review_stats.completed }}</div>
+                        <div class="metric-label">Completed</div>
+                        <div class="metric-sublabel">Reviews finished</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Second row for Medium and Low Risk -->
-    <div class="row">
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-left-warning h-100">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Medium Risk Issues
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.medium_risk_count or 0 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-exclamation-circle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+    <!-- Security Issues Section -->
+    <div class="section-card mb-4">
+        <div class="section-header">
+            <h3><i class="fas fa-exclamation-triangle me-2"></i>Security Issues</h3>
+            <p class="text-muted">Security findings across all reviewed applications</p>
+        </div>
+        <div class="row g-3">
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="issue-card critical">
+                    <div class="issue-number">{{ issue_stats.critical }}</div>
+                    <div class="issue-label">Critical</div>
                 </div>
             </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-left-success h-100">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Low Risk Issues
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.low_risk_count or 0 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="issue-card high">
+                    <div class="issue-number">{{ issue_stats.high }}</div>
+                    <div class="issue-label">High</div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="issue-card medium">
+                    <div class="issue-number">{{ issue_stats.medium }}</div>
+                    <div class="issue-label">Medium</div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="issue-card low">
+                    <div class="issue-number">{{ issue_stats.low }}</div>
+                    <div class="issue-label">Low</div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-8 col-sm-12">
+                <div class="issue-card total">
+                    <div class="issue-number">{{ issue_stats.total }}</div>
+                    <div class="issue-label">Total Issues Found</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Pending Reviews -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-list"></i> Pending Security Reviews
-                    </h6>
-                </div>
-                <div class="card-body">
-                    {% if pending_reviews %}
-                    <div class="table-responsive">
-                        <table class="table table-bordered" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Application</th>
-                                    <th>Submitted By</th>
-                                    <th>Business Criticality</th>
-                                    <th>Status</th>
-                                    <th>Submitted Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for review in pending_reviews %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ review[5] }}</strong>
-                                    </td>
-                                    <td>{{ review[7] }} {{ review[8] }}</td>
-                                    <td>
-                                        <span class="badge {% if review[6] == 'critical' %}bg-danger{% elif review[6] == 'high' %}bg-warning{% else %}bg-info{% endif %}">
-                                            {{ review[6]|title }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge {% if review[2] == 'submitted' %}bg-info{% else %}bg-warning{% endif %}">
-                                            {{ review[2]|title }}
-                                        </span>
-                                    </td>
-                                    <td>{{ review[3][:10] }}</td>
-                                    <td>
-                                        <a href="{{ url_for('analyst_security_assessment', app_id=review[1]) }}" 
-                                           class="btn btn-primary btn-sm">
-                                            <i class="fas fa-eye"></i> Review Assessment
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+    <!-- Pending Applications Section -->
+    {% if pending_reviews %}
+    <div class="section-card mb-4">
+        <div class="section-header">
+            <h3><i class="fas fa-clipboard-list me-2"></i>Pending Applications</h3>
+            <p class="text-muted">Applications waiting for security review</p>
+        </div>
+        <div class="applications-grid">
+            {% for review in pending_reviews %}
+            <div class="application-card">
+                <div class="app-header">
+                    <div class="app-title">
+                        <h4>{{ review.app_name }}</h4>
+                        <span class="badge badge-{{ review.business_criticality }}">
+                            {{ review.business_criticality|title }} Priority
+                        </span>
                     </div>
-                    {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No pending reviews at this time.</p>
+                    <div class="app-actions">
+                        <a href="{{ url_for('analyst_security_assessment', app_id=review.application_id) }}" 
+                           class="btn btn-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i>Review
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="app-details">
+                    {% if review.description %}
+                    <p class="app-description">{{ review.description[:100] }}{% if review.description|length > 100 %}...{% endif %}</p>
+                    {% endif %}
+                    
+                    <div class="app-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-user me-1"></i>
+                            <span>{{ review.first_name }} {{ review.last_name }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-calendar me-1"></i>
+                            <span>{{ review.created_at[:10] if review.created_at else 'N/A' }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-tag me-1"></i>
+                            <span class="review-type">{{ review.field_type.replace('_', ' ')|title }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if review.technology_stack %}
+                    <div class="tech-stack">
+                        <div class="tech-label">Technology Stack:</div>
+                        <div class="tech-tags">
+                            {% set techs = review.technology_stack.split(',') %}
+                            {% for tech in techs[:4] %}
+                            <span class="tech-tag">{{ tech.strip() }}</span>
+                            {% endfor %}
+                            {% if techs|length > 4 %}
+                            <span class="tech-tag more">+{{ techs|length - 4 }} more</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if review.deployment_model %}
+                    <div class="deployment-info">
+                        <i class="fas fa-cloud me-1"></i>
+                        <span>{{ review.deployment_model|title }} Deployment</span>
+                        {% if review.data_classification %}
+                        <span class="mx-2">•</span>
+                        <i class="fas fa-lock me-1"></i>
+                        <span>{{ review.data_classification|title }} Data</span>
+                        {% endif %}
                     </div>
                     {% endif %}
                 </div>
             </div>
+            {% endfor %}
         </div>
     </div>
+    {% endif %}
 
-    <!-- Recent Completed Reviews -->
-    {% if completed_reviews %}
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-success">
-                        <i class="fas fa-check-circle"></i> Recently Completed Reviews
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Application</th>
-                                    <th>Submitted By</th>
-                                    <th>Business Criticality</th>
-
-                                    <th>Completed Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for review in completed_reviews %}
-                                <tr>
-                                    <td><strong>{{ review[5] }}</strong></td>
-                                    <td>{{ review[7] }} {{ review[8] }}</td>
-                                    <td>
-                                        <span class="badge {% if review[6] == 'critical' %}bg-danger{% elif review[6] == 'high' %}bg-warning{% else %}bg-info{% endif %}">
-                                            {{ review[6]|title }}
-                                        </span>
-                                    </td>
-
-                                    <td>{{ review[3][:10] if review[3] else 'N/A' }}</td>
-                                    <td>
-                                        <a href="{{ url_for('analyst_security_assessment', app_id=review[1]) }}" 
-                                           class="btn btn-outline-primary btn-sm">
-                                            <i class="fas fa-file-alt"></i> View Assessment
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+    <!-- In Review Applications Section -->
+    {% if in_review_applications %}
+    <div class="section-card mb-4">
+        <div class="section-header">
+            <h3><i class="fas fa-cogs me-2"></i>Applications In Review</h3>
+            <p class="text-muted">Currently analyzing these applications</p>
+        </div>
+        <div class="applications-grid">
+            {% for review in in_review_applications %}
+            <div class="application-card in-review">
+                <div class="app-header">
+                    <div class="app-title">
+                        <h4>{{ review.app_name }}</h4>
+                        <span class="badge badge-warning">In Progress</span>
+                    </div>
+                    <div class="app-actions">
+                        <a href="{{ url_for('analyst_security_assessment', app_id=review.application_id) }}" 
+                           class="btn btn-warning btn-sm">
+                            <i class="fas fa-edit me-1"></i>Continue
+                        </a>
                     </div>
                 </div>
+                
+                <div class="app-details">
+                    {% if review.description %}
+                    <p class="app-description">{{ review.description[:100] }}{% if review.description|length > 100 %}...{% endif %}</p>
+                    {% endif %}
+                    
+                    <div class="app-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-user me-1"></i>
+                            <span>{{ review.first_name }} {{ review.last_name }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-clock me-1"></i>
+                            <span>Started {{ review.created_at[:10] if review.created_at else 'N/A' }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if review.technology_stack %}
+                    <div class="tech-stack">
+                        <div class="tech-label">Technologies:</div>
+                        <div class="tech-tags">
+                            {% set techs = review.technology_stack.split(',') %}
+                            {% for tech in techs[:3] %}
+                            <span class="tech-tag">{{ tech.strip() }}</span>
+                            {% endfor %}
+                            {% if techs|length > 3 %}
+                            <span class="tech-tag more">+{{ techs|length - 3 }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Activity Section -->
+    {% if completed_reviews %}
+    <div class="section-card">
+        <div class="section-header">
+            <h3><i class="fas fa-history me-2"></i>Recently Completed</h3>
+            <p class="text-muted">Latest completed security reviews</p>
+        </div>
+        <div class="recent-activity">
+            {% for review in completed_reviews[:5] %}
+            <div class="activity-item">
+                <div class="activity-icon completed">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">{{ review.app_name }}</div>
+                    <div class="activity-meta">
+                        <span class="badge badge-{{ review.business_criticality }}">{{ review.business_criticality|title }}</span>
+                        <span class="activity-date">Completed {{ review.completed_at[:10] if review.completed_at else review.created_at[:10] }}</span>
+                        {% if review.technology_stack %}
+                        <span class="activity-tech">{{ review.technology_stack.split(',')[0].strip() }}{% if ',' in review.technology_stack %} +more{% endif %}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="activity-action">
+                    <a href="{{ url_for('analyst_security_assessment', app_id=review.application_id) }}" 
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-eye me-1"></i>View
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
     {% endif %}
 </div>
 
 <style>
-.border-left-primary {
-    border-left: 4px solid #007bff !important;
+/* Dashboard Header */
+.dashboard-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 2rem;
+    color: white;
+    margin-bottom: 2rem;
 }
 
-.border-left-success {
-    border-left: 4px solid #28a745 !important;
+.dashboard-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
 }
 
-.border-left-danger {
-    border-left: 4px solid #dc3545 !important;
+.dashboard-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 0;
 }
 
-.border-left-info {
-    border-left: 4px solid #17a2b8 !important;
+.dashboard-actions .btn {
+    margin-left: 0.5rem;
 }
 
-.card {
-    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+/* Section Cards */
+.section-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 2rem;
+    border: 1px solid #e9ecef;
 }
 
-.text-xs {
-    font-size: 0.7rem;
+.section-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f8f9fa;
 }
 
-.text-gray-800 {
-    color: #5a5c69 !important;
+.section-header h3 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
 }
 
-.text-gray-300 {
-    color: #dddfeb !important;
+/* Metric Cards */
+.metric-card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.metric-card.pending {
+    border-color: #ffc107;
+}
+
+.metric-card.in-progress {
+    border-color: #17a2b8;
+}
+
+.metric-card.completed {
+    border-color: #28a745;
+}
+
+.metric-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #6c757d;
+}
+
+.metric-card.pending .metric-icon { color: #ffc107; }
+.metric-card.in-progress .metric-icon { color: #17a2b8; }
+.metric-card.completed .metric-icon { color: #28a745; }
+
+.metric-number {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #495057;
+    line-height: 1;
+}
+
+.metric-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #495057;
+    margin-top: 0.5rem;
+}
+
+.metric-sublabel {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+/* Issue Cards */
+.issue-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border-left: 4px solid #dee2e6;
+    transition: all 0.3s ease;
+}
+
+.issue-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+}
+
+.issue-card.critical { border-left-color: #dc3545; }
+.issue-card.high { border-left-color: #fd7e14; }
+.issue-card.medium { border-left-color: #ffc107; }
+.issue-card.low { border-left-color: #28a745; }
+.issue-card.total { border-left-color: #6f42c1; }
+
+.issue-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #495057;
+    line-height: 1;
+}
+
+.issue-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 0.5rem;
+}
+
+/* Application Cards */
+.applications-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 1.5rem;
+}
+
+.application-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.application-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    border-color: #007bff;
+}
+
+.application-card.in-review {
+    border-color: #ffc107;
+    background: linear-gradient(145deg, #fff8e1 0%, #ffffff 100%);
+}
+
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.app-title h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.app-details {
+    padding: 1rem 1.5rem 1.5rem;
+}
+
+.app-description {
+    color: #6c757d;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.app-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.tech-stack {
+    margin-bottom: 1rem;
+}
+
+.tech-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.tech-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.tech-tag {
+    background: #e9ecef;
+    color: #495057;
+    padding: 0.3rem 0.6rem;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.tech-tag.more {
+    background: #dee2e6;
+    color: #6c757d;
+}
+
+.deployment-info {
+    font-size: 0.9rem;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+}
+
+/* Badges */
+.badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-critical { background: #dc3545; color: white; }
+.badge-high { background: #fd7e14; color: white; }
+.badge-medium { background: #ffc107; color: #495057; }
+.badge-low { background: #28a745; color: white; }
+.badge-warning { background: #ffc107; color: #495057; }
+
+/* Recent Activity */
+.recent-activity {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.activity-item:hover {
+    background: #e9ecef;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.1rem;
+}
+
+.activity-icon.completed {
+    background: #28a745;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-title {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.25rem;
+}
+
+.activity-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.activity-tech {
+    background: #e9ecef;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-title {
+        font-size: 2rem;
+    }
+    
+    .applications-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .app-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .dashboard-actions {
+        margin-top: 1rem;
+    }
 }
 </style>
 {% endblock %} 

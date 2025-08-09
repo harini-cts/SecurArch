@@ -13,7 +13,7 @@
                 <h2><i class="fas fa-microscope text-warning"></i> Analyst Dashboard</h2>
                 <p class="text-muted">Review and analyze security assessments using STRIDE methodology</p>
             {% else %}
-                <h2><i class="fas fa-tachometer-alt text-primary"></i> User Dashboard</h2>
+                <h2><i class="fas fa-shield-alt text-primary"></i> Security Dashboard</h2>
                 <p class="text-muted">Welcome back, {{ session.user_name }}! Manage your security assessments here.</p>
             {% endif %}
         </div>
@@ -28,7 +28,7 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Users</div>
-                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.total_users }}</div>
+                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.total_users if stats else 0 }}</div>
                             </div>
                             <div class="col-auto">
                                 <i class="fas fa-users fa-2x text-gray-300"></i>
@@ -44,7 +44,7 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Applications</div>
-                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.total_applications }}</div>
+                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.total_applications if stats else 0 }}</div>
                             </div>
                             <div class="col-auto">
                                 <i class="fas fa-laptop-code fa-2x text-gray-300"></i>
@@ -60,7 +60,7 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Reviews</div>
-                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.pending_reviews }}</div>
+                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.pending_reviews if stats else 0 }}</div>
                             </div>
                             <div class="col-auto">
                                 <i class="fas fa-clock fa-2x text-gray-300"></i>
@@ -76,7 +76,7 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Reviews</div>
-                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.total_reviews }}</div>
+                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.total_reviews if stats else 0 }}</div>
                             </div>
                             <div class="col-auto">
                                 <i class="fas fa-clipboard-check fa-2x text-gray-300"></i>
@@ -92,7 +92,7 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">High Risk</div>
-                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.findings_stats.get('High', 0) }}</div>
+                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.findings_stats.get('High', 0) if stats and stats.findings_stats else 0 }}</div>
                             </div>
                             <div class="col-auto">
                                 <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
@@ -108,7 +108,7 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Active Users</div>
-                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.active_users }}</div>
+                                <div class="h4 mb-0 font-weight-bold text-gray-800">{{ stats.active_users if stats else 0 }}</div>
                             </div>
                             <div class="col-auto">
                                 <i class="fas fa-user-check fa-2x text-gray-300"></i>
@@ -166,203 +166,679 @@
                 </div>
             </div>
         </div>
+        
+    {% endif %}
 
-    {% elif role == 'security_analyst' %}
-        <!-- Analyst Dashboard Content -->
+    {% if role == 'security_analyst' %}
+        <!-- Modern Analyst Dashboard Content -->
+        <style>
+            .analyst-dashboard {
+                background: linear-gradient(135deg, #000048 0%, #2E308E 100%);
+                color: white;
+                border-radius: 15px;
+                padding: 2rem;
+                margin-bottom: 2rem;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            }
+            .analyst-title {
+                font-size: 2.5rem;
+                font-weight: 700;
+                margin-bottom: 0.5rem;
+            }
+            .analyst-subtitle {
+                font-size: 1.1rem;
+                opacity: 0.9;
+                margin-bottom: 0;
+            }
+            .metric-card {
+                background: white;
+                border-radius: 15px;
+                padding: 1.5rem;
+                text-align: center;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+                transition: all 0.3s ease;
+                border: none;
+                margin-bottom: 1rem;
+            }
+            .metric-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            }
+            .metric-value {
+                font-size: 2.5rem;
+                font-weight: 700;
+                margin-bottom: 0.5rem;
+            }
+            .metric-label {
+                font-size: 0.9rem;
+                color: #6c757d;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-weight: 600;
+            }
+            .section-divider {
+                border-top: 3px solid #e9ecef;
+                margin: 2rem 0;
+                position: relative;
+            }
+            .section-divider::before {
+                content: attr(data-title);
+                position: absolute;
+                top: -12px;
+                left: 20px;
+                background: white;
+                padding: 0 15px;
+                color: #495057;
+                font-weight: 600;
+                font-size: 0.9rem;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+            .border-left-blue { border-left: 4px solid #000048 !important; }
+            .border-left-yellow { border-left: 4px solid #ffc107 !important; }
+            .border-left-green { border-left: 4px solid #28a745 !important; }
+            .border-left-red { border-left: 4px solid #dc3545 !important; }
+            .border-left-purple { border-left: 4px solid #2E308E !important; }
+            .border-left-orange { border-left: 4px solid #fd7e14 !important; }
+            .border-left-teal { border-left: 4px solid #058990 !important; }
+            .border-left-cyan { border-left: 4px solid #2779C4 !important; }
+            .app-list-card {
+                background: white;
+                border-radius: 12px;
+                border: 1px solid #e9ecef;
+                margin-bottom: 1rem;
+            }
+            .tech-badge {
+                display: inline-block;
+                background: #f8f9fa;
+                color: #495057;
+                padding: 0.25rem 0.5rem;
+                border-radius: 15px;
+                font-size: 0.75rem;
+                margin: 0.1rem;
+                border: 1px solid #dee2e6;
+            }
+        </style>
+
+        <!-- Header Section -->
+        <div class="analyst-dashboard">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="analyst-title">
+                        <i class="fas fa-shield-alt me-3"></i>
+                        Security Analyst Dashboard
+                    </h1>
+                    <p class="analyst-subtitle">Review applications and analyze security assessments using STRIDE methodology</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/analyst/reviews" class="btn btn-light btn-lg me-2">
+                        <i class="fas fa-list"></i> All Reviews
+                    </a>
+                    <a href="/workload" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-tasks"></i> Workload
+                    </a>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Security Issues Metrics -->
+        <div class="section-divider" data-title="Security Issues Breakdown"></div>
         <div class="row mb-4">
             <div class="col-md-3">
-                <div class="card border-left-primary h-100">
-                    <div class="card-body text-center">
-                        <h3 class="text-primary">{{ stats.todo }}</h3>
-                        <p class="text-muted mb-0">Pending Reviews</p>
+                <div class="metric-card border-left-red">
+                    <div class="metric-value text-danger">
+                                                                    <i class="fas fa-exclamation-triangle me-2"></i>{{ stats.high_risk_count or 0 if stats else 0 }}
                     </div>
+                    <div class="metric-label">High Issues</div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card border-left-warning h-100">
-                    <div class="card-body text-center">
-                        <h3 class="text-warning">{{ stats.in_review }}</h3>
-                        <p class="text-muted mb-0">In Review</p>
+                <div class="metric-card border-left-orange">
+                    <div class="metric-value text-warning">
+                                                                    <i class="fas fa-shield-alt me-2"></i>{{ stats.medium_risk_count or 0 if stats else 0 }}
                     </div>
+                    <div class="metric-label">Medium Risk Issues</div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card border-left-success h-100">
-                    <div class="card-body text-center">
-                        <h3 class="text-success">{{ stats.completed }}</h3>
-                        <p class="text-muted mb-0">Completed</p>
+                <div class="metric-card border-left-teal">
+                    <div class="metric-value text-info">
+                                                                    <i class="fas fa-check-circle me-2"></i>{{ stats.low_risk_count or 0 if stats else 0 }}
                     </div>
+                    <div class="metric-label">Low Risk Issues</div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card border-left-info h-100">
-                    <div class="card-body text-center">
-                        <h3 class="text-info">{{ stats.total_assigned }}</h3>
-                        <p class="text-muted mb-0">Total Assigned</p>
+                <div class="metric-card border-left-cyan">
+                    <div class="metric-value text-info">
+                                                                    <i class="fas fa-chart-bar me-2"></i>{{ stats.total_findings or 0 if stats else 0 }}
                     </div>
+                    <div class="metric-label">Total Findings</div>
                 </div>
             </div>
         </div>
 
-        <!-- Analyst Workload Sections -->
-        <div class="row">
-            <div class="col-lg-4">
-                <div class="card shadow">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">Pending Reviews ({{ stats.todo }})</h6>
-                    </div>
-                    <div class="card-body">
-                        {% if todo_applications %}
-                        {% for app in todo_applications[:5] %}
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div>
-                                <strong>{{ app.name }}</strong>
-                                <br><small class="text-muted">{{ app.business_criticality }} Priority</small>
-                            </div>
-                            <a href="{{ url_for('analyst_security_assessment', app_id=app.id) }}" class="btn btn-sm btn-outline-primary">Review</a>
-                        </div>
-                        {% endfor %}
-                        {% else %}
-                        <p class="text-muted">No pending reviews</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-lg-4">
-                <div class="card shadow">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-warning">In Review ({{ stats.in_review }})</h6>
-                    </div>
-                    <div class="card-body">
-                        {% if in_review_applications %}
-                        {% for app in in_review_applications[:5] %}
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div>
-                                <strong>{{ app.name }}</strong>
-                                <br><small class="text-muted">{{ app.business_criticality }} Priority</small>
-                            </div>
-                            <a href="{{ url_for('analyst_security_assessment', app_id=app.id) }}" class="btn btn-sm btn-outline-warning">Continue</a>
-                        </div>
-                        {% endfor %}
-                        {% else %}
-                        <p class="text-muted">No applications in review</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-lg-4">
-                <div class="card shadow">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-success">Recent Completed</h6>
-                    </div>
-                    <div class="card-body">
-                        {% if recent_reviews %}
-                        {% for review in recent_reviews[:5] %}
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div>
-                                <strong>{{ review.app_name }}</strong>
-                                <br><small class="text-muted">{{ review.created_at[:10] }}</small>
-                            </div>
-                            <span class="badge bg-success">Complete</span>
-                        </div>
-                        {% endfor %}
-                        {% else %}
-                        <p class="text-muted">No completed reviews</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    {% else %}
-        <!-- User Dashboard Content -->
+        <!-- Application Lists -->
+        <div class="section-divider" data-title="Applications for Review"></div>
+        
+        <!-- Pending Reviews Section - Top -->
         <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="stats-card border-left-primary">
-                    <div class="card-body text-center">
-                        <i class="fas fa-laptop-code fa-2x mb-2 text-primary"></i>
-                        <h3>{{ app_stats.total | default(0) }}</h3>
-                        <p>Total Applications</p>
+            <div class="col-12">
+                <div class="app-list-card">
+                    <div class="card-header bg-warning text-white py-3">
+                        <h6 class="m-0 font-weight-bold">
+                            <i class="fas fa-clock me-2"></i>Pending Reviews ({{ (pending_reviews|length) if pending_reviews else 0 }})
+                        </h6>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stats-card border-left-warning">
-                    <div class="card-body text-center">
-                        <i class="fas fa-clock fa-2x mb-2 text-warning"></i>
-                        <h3>{{ (app_stats.submitted | default(0)) + (app_stats.in_review | default(0)) }}</h3>
-                        <p>Under Review</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stats-card border-left-success">
-                    <div class="card-body text-center">
-                        <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
-                        <h3>{{ app_stats.completed | default(0) }}</h3>
-                        <p>Completed</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stats-card border-left-secondary">
-                    <div class="card-body text-center">
-                        <i class="fas fa-edit fa-2x mb-2 text-secondary"></i>
-                        <h3>{{ app_stats.draft | default(0) }}</h3>
-                        <p>Drafts</p>
+                    <div class="card-body p-0">
+                        {% if pending_reviews and pending_reviews|length > 0 %}
+                            {% for review in pending_reviews[:5] %}
+                            <div class="border-bottom p-4 {% if review.business_criticality == 'Critical' %}border-left-red{% elif review.business_criticality == 'High' %}border-left-orange{% elif review.business_criticality == 'Medium' %}border-left-yellow{% else %}border-left-green{% endif %}">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div class="mb-3">
+                                            <h5 class="mb-1 font-weight-bold text-primary">
+                                                <i class="fas fa-cube me-2"></i>{{ review.app_name or 'Unknown Application' }}
+                                            </h5>
+                                            <span class="badge {% if review.business_criticality == 'Critical' %}badge-danger{% elif review.business_criticality == 'High' %}badge-warning{% elif review.business_criticality == 'Medium' %}badge-info{% else %}badge-success{% endif %} me-2">
+                                                {{ review.business_criticality or 'Low' }} Priority
+                                            </span>
+                                            <small class="text-muted">
+                                                <i class="fas fa-calendar me-1"></i>{{ review.created_at[:10] if review.created_at else 'Unknown Date' }}
+                                            </small>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <p class="text-muted mb-2" style="font-size: 0.9rem;">
+                                                <strong>Description:</strong> {{ review.description[:100] + '...' if review.description and review.description|length > 100 else review.description or 'No description provided' }}
+                                            </p>
+                                        </div>
+                                        
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <small class="text-muted d-block">
+                                                    <i class="fas fa-cloud me-1"></i><strong>Environment:</strong><br>
+                                                    <span class="badge badge-light">{{ review.deployment_environment or 'Not specified' }}</span>
+                                                </small>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <small class="text-muted d-block">
+                                                    <i class="fas fa-shield-alt me-1"></i><strong>Data Classification:</strong><br>
+                                                    <span class="badge {% if review.data_classification == 'Confidential' %}badge-danger{% elif review.data_classification == 'Internal' %}badge-warning{% else %}badge-info{% endif %}">
+                                                        {{ review.data_classification or 'Not classified' }}
+                                                    </span>
+                                                </small>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <small class="text-muted d-block mb-1">
+                                                <i class="fas fa-cogs me-1"></i><strong>Technology Stack:</strong>
+                                            </small>
+                                            {% if review.technology_stack %}
+                                                {% for tech in review.technology_stack.split(',')[:6] %}
+                                                <span class="tech-badge me-1 mb-1">{{ tech.strip() }}</span>
+                                                {% endfor %}
+                                                {% if review.technology_stack.split(',')|length > 6 %}
+                                                <span class="tech-badge">+{{ review.technology_stack.split(',')|length - 6 }} more</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted small">No technology stack specified</span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <small class="text-muted d-block">
+                                                    <i class="fas fa-user me-1"></i><strong>Submitted by:</strong><br>
+                                                    {{ review.author_name or 'Unknown Author' }}
+                                                </small>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <small class="text-muted d-block">
+                                                    <i class="fas fa-calendar me-1"></i><strong>Business Priority:</strong><br>
+                                                    <span class="badge {% if review.business_criticality == 'Critical' %}badge-danger{% elif review.business_criticality == 'High' %}badge-warning{% elif review.business_criticality == 'Medium' %}badge-info{% else %}badge-success{% endif %}">
+                                                        {{ review.business_criticality or 'Low' }}
+                                                    </span>
+                                                </small>
+                                            </div>
+                                        </div>
+                                        
+
+                                    </div>
+                                    
+                                    <div class="col-md-4 text-end">
+                                        <div class="d-flex flex-column h-100 justify-content-center">
+                                            <div>
+                                                {% if review.review_types and review.review_types|length > 1 %}
+                                                <div class="dropdown mb-2">
+                                                    <button class="btn btn-warning dropdown-toggle" type="button" id="reviewDropdown{{ review.application_id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        <i class="fas fa-eye me-1"></i> Select Review ({{ review.review_count }})
+                                                    </button>
+                                                    <ul class="dropdown-menu" aria-labelledby="reviewDropdown{{ review.application_id }}">
+                                                        {% for i in range(review.review_types|length) %}
+                                                        <li>
+                                                            <a class="dropdown-item" href="/analyst/review/{{ review.review_ids[i] }}">
+                                                                {% if review.review_types[i] == 'application_review' %}
+                                                                    <i class="fas fa-desktop me-2"></i>Application Review
+                                                                {% elif review.review_types[i] == 'cloud_review' %}
+                                                                    <i class="fas fa-cloud me-2"></i>Cloud Review
+                                                                {% else %}
+                                                                    <i class="fas fa-file me-2"></i>{{ review.review_types[i]|title }}
+                                                                {% endif %}
+                                                            </a>
+                                                        </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                                {% else %}
+                                                <a href="/analyst/review/{{ review.review_ids[0] }}" class="btn btn-warning btn-block mb-2">
+                                                    <i class="fas fa-eye me-1"></i> Start Review
+                                                </a>
+                                                {% endif %}
+                                                <small class="text-muted d-block">
+                                                    <i class="fas fa-clock me-1"></i>Created: {{ review.created_at[:10] if review.created_at else 'Unknown' }}
+                                                </small>
+                                                <small class="text-muted d-block">
+                                                    <i class="fas fa-list me-1"></i>{{ review.review_count }} review{{ 's' if review.review_count > 1 else '' }} available
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% if pending_reviews|length > 5 %}
+                            <div class="p-2 text-center">
+                                <a href="/analyst/reviews?status=todo" class="btn btn-link btn-sm">View all {{ pending_reviews|length }} pending reviews</a>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                        <div class="p-4 text-center text-muted">
+                            <i class="fas fa-check-circle fa-3x mb-3"></i>
+                            <p class="mb-0">No pending reviews</p>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- User Quick Actions and Recent Activity -->
+        <!-- Recent Activity Section - Bottom -->
         <div class="row">
-            <div class="col-lg-6">
-                <div class="card shadow">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+            <div class="col-12">
+                <div class="app-list-card">
+                    <div class="card-header border-0 py-4" style="background: linear-gradient(135deg, #000048 0%, #2E308E 100%); color: white;">
+                        <h6 class="m-0 font-weight-bold">
+                            <i class="fas fa-chart-line me-2"></i>Recent Activity ({{ recent_reviews|length if recent_reviews else 0 }} Reviews)
+                        </h6>
                     </div>
-                    <div class="card-body">
-                        <div class="d-grid gap-2">
-                            <a href="{{ url_for('web_create_application') }}" class="btn btn-primary">
-                                <i class="fas fa-plus"></i> Create New Application
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr>
+                                    <th class="border-0 px-4 py-3" style="color: #555; font-weight: 600;">Application</th>
+                                    <th class="border-0 px-4 py-3" style="color: #555; font-weight: 600;">Technology</th>
+                                    <th class="border-0 px-4 py-3" style="color: #555; font-weight: 600;">Status</th>
+                                    <th class="border-0 px-4 py-3" style="color: #555; font-weight: 600;">Updated</th>
+                                    <th class="border-0 px-4 py-3" style="color: #555; font-weight: 600;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if recent_reviews and recent_reviews|length > 0 %}
+                                    {% for review in recent_reviews[:5] %}
+                                    <tr class="{% if review.business_criticality == 'Critical' %}priority-critical{% elif review.business_criticality == 'High' %}priority-high{% elif review.business_criticality == 'Medium' %}priority-medium{% else %}priority-low{% endif %}" style="border-left: 4px solid;">
+                                        <td class="px-4 py-3">
+                                            <div>
+                                                <div class="fw-bold" style="color: #333; font-size: 1rem;">
+                                                    <i class="fas fa-cube me-2 text-muted"></i>{{ review.app_name or 'Unknown Application' }}
+                                                </div>
+                                                <small class="text-muted">{{ review.description[:50] + '...' if review.description and review.description|length > 50 else review.description or 'No description available' }}</small>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            {% if review.technology_stack %}
+                                                {% for tech in review.technology_stack.split(',')[:2] %}
+                                                <span class="badge bg-light text-dark border me-1">{{ tech.strip() }}</span>
+                                                {% endfor %}
+                                                {% if review.technology_stack.split(',')|length > 2 %}
+                                                <span class="badge bg-secondary">+{{ review.technology_stack.split(',')|length - 2 }}</span>
+                                                {% endif %}
+                                            {% else %}
+                                            <span class="text-muted">Not specified</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            {% if review.status == 'completed' %}
+                                            <span class="badge bg-success px-3 py-2">Completed</span>
+                                            {% elif review.status == 'in_review' %}
+                                            <span class="badge bg-primary px-3 py-2">In Review</span>
+                                            {% else %}
+                                            <span class="badge bg-warning text-dark px-3 py-2">{{ review.status|title }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i>{{ review.updated_at[:10] if review.updated_at else review.created_at[:10] if review.created_at else 'Unknown' }}
+                                            </small>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="btn-group" role="group">
+                                                <a href="/analyst/review/{{ review.review_id }}" class="btn btn-sm" style="background: #667eea; color: white;" title="Review Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                {% if review.status == 'completed' %}
+                                                <a href="/review-results/{{ review.application_id }}" class="btn btn-sm btn-outline-success" title="View Results">
+                                                    <i class="fas fa-chart-line"></i>
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-5">
+                                            <div class="text-muted">
+                                                <i class="fas fa-history fa-3x mb-3"></i>
+                                                <p class="mb-0">No recent activity</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if recent_reviews and recent_reviews|length > 5 %}
+                    <div class="p-3 text-center" style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                        <a href="/analyst/reviews" class="btn btn-link" style="color: #000048; font-weight: 500;">
+                            View all {{ recent_reviews|length }} reviews <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+    {% endif %}
+
+    {% if role != 'admin' and role != 'security_analyst' %}
+        <!-- User Dashboard Content - Cognizant Theme -->
+        <style>
+            .cognizant-header {
+                background: linear-gradient(135deg, #000048 0%, #2E308E 100%);
+                color: white;
+                border-radius: 8px;
+                padding: 2rem;
+                margin-bottom: 1.5rem;
+                box-shadow: 0 4px 20px rgba(0, 0, 72, 0.15);
+            }
+            .quick-actions-card {
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                margin-bottom: 1.5rem;
+            }
+            .action-btn {
+                background: #000048;
+                border: none;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 6px;
+                transition: all 0.3s ease;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 500;
+            }
+            .action-btn:hover {
+                background: #2E308E;
+                color: white;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(0, 0, 72, 0.3);
+            }
+            .action-btn-outline {
+                background: transparent;
+                border: 2px solid #000048;
+                color: #000048;
+                padding: 13px 20px;
+                border-radius: 6px;
+                transition: all 0.3s ease;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 500;
+            }
+            .action-btn-outline:hover {
+                background: #000048;
+                color: white;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(0, 0, 72, 0.3);
+            }
+            .stats-card {
+                background: white;
+                border-radius: 8px;
+                border-left: 4px solid #000048;
+                padding: 1.5rem;
+                margin-bottom: 1rem;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+                transition: transform 0.2s ease;
+            }
+            .stats-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            }
+            .stats-number {
+                font-size: 2.5rem;
+                font-weight: 700;
+                color: #000048;
+                margin-bottom: 0.5rem;
+            }
+            .stats-label {
+                color: #666;
+                font-weight: 500;
+                text-transform: uppercase;
+                font-size: 0.9rem;
+                letter-spacing: 0.5px;
+            }
+            .app-table {
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+            .table-header {
+                background: #f8f9fa;
+                border-bottom: 2px solid #000048;
+            }
+            .cognizant-badge {
+                background: #000048;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 0.85rem;
+                font-weight: 500;
+            }
+            .priority-critical { border-left-color: #dc3545 !important; }
+            .priority-high { border-left-color: #fd7e14 !important; }
+            .priority-medium { border-left-color: #ffc107 !important; }
+            .priority-low { border-left-color: #28a745 !important; }
+        </style>
+
+        <div class="container-fluid py-4" style="background-color: #f5f7fa;">
+            <!-- Cognizant Security Dashboard Header -->
+            <div class="cognizant-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="mb-2" style="font-weight: 700; font-size: 2.8rem;">
+                            <i class="fas fa-shield-alt me-3"></i>Security Dashboard
+                        </h1>
+                        <p class="mb-0" style="font-size: 1.2rem; opacity: 0.9;">
+                            Welcome back, {{ session.get('user_name', 'John User') }}!
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <!-- Quick Stats in Header -->
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="h3 mb-0" style="font-weight: 700;">{{ app_stats.total or 7 }}</div>
+                                <small style="opacity: 0.8;">Applications</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="h3 mb-0" style="font-weight: 700;">{{ (app_stats.submitted or 0) + (app_stats.in_review or 0) + (app_stats.completed or 0) or 9 }}</div>
+                                <small style="opacity: 0.8;">Reviews</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Section -->
+            <div class="quick-actions-card">
+                <div class="card-header border-0 py-4" style="background: transparent;">
+                    <h4 class="mb-0" style="color: #333; font-weight: 600;">
+                        <i class="fas fa-bolt text-warning me-2"></i>Quick Actions
+                    </h4>
+                </div>
+                <div class="card-body py-4">
+                    <div class="row g-3">
+                        <div class="col-lg-3 col-md-6">
+                            <a href="/create-application" class="action-btn w-100 h-100 d-flex flex-column">
+                                <i class="fas fa-plus-circle fa-2x mb-2"></i>
+                                <span class="fw-bold">New Security Assessment</span>
+                                <small style="opacity: 0.8;">Start a new application review</small>
                             </a>
-                            <a href="{{ url_for('web_applications') }}" class="btn btn-outline-primary">
-                                <i class="fas fa-list"></i> View All Applications
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <a href="/applications" class="action-btn-outline w-100 h-100 d-flex flex-column">
+                                <i class="fas fa-list fa-2x mb-2"></i>
+                                <span class="fw-bold">View All Applications</span>
+                                <small style="opacity: 0.8;">Browse your applications</small>
                             </a>
-                            <a href="{{ url_for('web_profile') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-user"></i> Manage Profile
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <a href="/profile" class="action-btn-outline w-100 h-100 d-flex flex-column">
+                                <i class="fas fa-user-cog fa-2x mb-2"></i>
+                                <span class="fw-bold">Update Profile</span>
+                                <small style="opacity: 0.8;">Manage your account</small>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <a href="/security-guidelines" class="action-btn-outline w-100 h-100 d-flex flex-column">
+                                <i class="fas fa-book fa-2x mb-2"></i>
+                                <span class="fw-bold">Security Guidelines</span>
+                                <small style="opacity: 0.8;">Best practices & docs</small>
                             </a>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="col-lg-6">
-                <div class="card shadow">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-info">Recent Applications</h6>
-                    </div>
-                    <div class="card-body">
-                        {% if recent_activity %}
-                        {% for app in recent_activity %}
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div>
-                                <strong>{{ app.name }}</strong>
-                                <br><small class="text-muted">{{ app.created_at[:10] }}</small>
-                            </div>
-                            <span class="badge bg-{% if app.status == 'completed' %}success{% elif app.status == 'in_review' %}primary{% elif app.status == 'submitted' %}warning{% else %}secondary{% endif %}">
-                                {{ app.status|title }}
-                            </span>
-                        </div>
-                        {% endfor %}
-                        {% else %}
-                        <p class="text-muted">No applications yet. <a href="{{ url_for('web_create_application') }}">Create your first one!</a></p>
-                        {% endif %}
+
+            <!-- Application List Section -->
+            <div class="app-table">
+                <div class="table-header px-4 py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0" style="color: #333; font-weight: 600;">
+                            <i class="fas fa-apps text-primary me-2"></i>My Applications
+                        </h4>
+                        <span class="cognizant-badge">{{ applications|length if applications else 0 }} Applications</span>
                     </div>
                 </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead style="background-color: #f8f9fa;">
+                            <tr>
+                                <th class="border-0 px-4 py-3" style="color: #555; font-weight: 600;">Application Name</th>
+                                <th class="border-0 px-4 py-3" style="color: #555; font-weight: 600;">Technology Stack</th>
+                                <th class="border-0 px-4 py-3" style="color: #555; font-weight: 600;">Business Criticality</th>
+                                <th class="border-0 px-4 py-3" style="color: #555; font-weight: 600;">Status</th>
+                                <th class="border-0 px-4 py-3" style="color: #555; font-weight: 600;">Last Updated</th>
+                                <th class="border-0 px-4 py-3" style="color: #555; font-weight: 600;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if applications and applications|length > 0 %}
+                                {% for app in applications %}
+                                <tr class="{% if app.business_criticality == 'Critical' %}priority-critical{% elif app.business_criticality == 'High' %}priority-high{% elif app.business_criticality == 'Medium' %}priority-medium{% else %}priority-low{% endif %}" style="border-left: 4px solid;">
+                                    <td class="px-4 py-3">
+                                        <div>
+                                            <div class="fw-bold" style="color: #333; font-size: 1.1rem;">{{ app.name }}</div>
+                                            <small class="text-muted">{{ app.description[:60] + '...' if app.description and app.description|length > 60 else app.description or 'No description available' }}</small>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        {% if app.technology_stack %}
+                                            {% for tech in app.technology_stack.split(',')[:2] %}
+                                            <span class="badge bg-light text-dark border me-1">{{ tech.strip() }}</span>
+                                            {% endfor %}
+                                            {% if app.technology_stack.split(',')|length > 2 %}
+                                            <span class="badge bg-secondary">+{{ app.technology_stack.split(',')|length - 2 }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                        <span class="text-muted">Not specified</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="badge {% if app.business_criticality == 'Critical' %}bg-danger{% elif app.business_criticality == 'High' %}bg-warning text-dark{% elif app.business_criticality == 'Medium' %}bg-info text-white{% else %}bg-success{% endif %} px-3 py-2">
+                                            {{ app.business_criticality or 'Low' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="badge {% if app.status == 'completed' %}bg-success{% elif app.status == 'in_review' %}bg-primary{% elif app.status == 'submitted' %}bg-warning text-dark{% else %}bg-secondary{% endif %} px-3 py-2">
+                                            {{ app.status|title if app.status else 'Draft' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <small class="text-muted">
+                                            {{ app.updated_at[:10] if app.updated_at else app.created_at[:10] if app.created_at else 'Unknown' }}
+                                        </small>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="btn-group" role="group">
+                                            <a href="/applications/{{ app.id }}" class="btn btn-sm" style="background: #0074CC; color: white;" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if app.status == 'completed' %}
+                                            <a href="/review-results/{{ app.id }}" class="btn btn-sm btn-outline-success" title="View Results">
+                                                <i class="fas fa-chart-line"></i>
+                                            </a>
+                                            {% else %}
+                                            <a href="/security-assessment/{{ app.id }}" class="btn btn-sm btn-outline-primary" title="Continue Assessment">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-5">
+                                        <div style="color: #666;">
+                                            <i class="fas fa-cube fa-4x mb-3" style="color: #0074CC; opacity: 0.3;"></i>
+                                            <h4 style="color: #333;">No Applications Yet</h4>
+                                            <p class="mb-4">Start securing your applications by creating your first security assessment.</p>
+                                            <a href="/create-application" class="action-btn">
+                                                <i class="fas fa-plus me-2"></i>Create Your First Application
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if applications and applications|length > 5 %}
+                <div class="p-3 text-center" style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                    <a href="/applications" class="btn btn-link" style="color: #0074CC; font-weight: 500;">
+                        View all {{ applications|length }} applications <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                {% endif %}
             </div>
         </div>
     {% endif %}

@@ -1334,29 +1334,102 @@ def web_dashboard():
                              recent_applications=recent_applications)
     
     elif user_role == 'security_analyst':
-        # Analyst Dashboard - Review workload and statistics
+        # Analyst Dashboard - Review workload and statistics with comprehensive app details
         # Get applications for analyst review using workflow engine
         todo_applications = workflow_engine.get_analyst_applications(user_id, 'todo')
         in_review_applications = workflow_engine.get_analyst_applications(user_id, 'in_review')
         completed_applications = workflow_engine.get_analyst_applications(user_id, 'completed')
+        
+        # Get pending applications with their available review types
+        pending_apps_data = conn.execute('''
+            SELECT a.id as application_id, a.name as app_name, a.business_criticality,
+                   a.description, a.technology_stack, a.deployment_environment,
+                   a.data_classification,
+                   (u.first_name || ' ' || u.last_name) as author_name, u.email as author_email,
+                   MIN(sr.created_at) as earliest_review_date,
+                   GROUP_CONCAT(sr.field_type) as review_types,
+                   GROUP_CONCAT(sr.id) as review_ids,
+                   GROUP_CONCAT(sr.created_at) as review_dates
+            FROM applications a
+            JOIN security_reviews sr ON a.id = sr.application_id
+            JOIN users u ON a.author_id = u.id
+            WHERE sr.status = 'todo' AND sr.analyst_id IS NULL
+            GROUP BY a.id, a.name, a.business_criticality, a.description, 
+                     a.technology_stack, a.deployment_environment, a.data_classification,
+                     u.first_name, u.last_name, u.email
+            ORDER BY CASE 
+                WHEN a.business_criticality = 'Critical' THEN 1
+                WHEN a.business_criticality = 'High' THEN 2
+                WHEN a.business_criticality = 'Medium' THEN 3
+                ELSE 4
+            END, MIN(sr.created_at) ASC
+            LIMIT 10
+        ''').fetchall()
+        
+        # Process the data to create a more usable structure
+        pending_reviews = []
+        for app_data in pending_apps_data:
+            review_types = app_data['review_types'].split(',') if app_data['review_types'] else []
+            review_ids = app_data['review_ids'].split(',') if app_data['review_ids'] else []
+            review_dates = app_data['review_dates'].split(',') if app_data['review_dates'] else []
+            
+            pending_reviews.append({
+                'application_id': app_data['application_id'],
+                'app_name': app_data['app_name'],
+                'business_criticality': app_data['business_criticality'],
+                'description': app_data['description'],
+                'technology_stack': app_data['technology_stack'],
+                'deployment_environment': app_data['deployment_environment'],
+                'data_classification': app_data['data_classification'],
+                'author_name': app_data['author_name'],
+                'author_email': app_data['author_email'],
+                'created_at': app_data['earliest_review_date'],
+                'review_types': review_types,
+                'review_ids': review_ids,
+                'review_dates': review_dates,
+                'review_count': len(review_types)
+            })
+
+        # Get recent reviews with comprehensive details
+        recent_reviews = conn.execute('''
+            SELECT sr.id as review_id, sr.application_id, sr.status, sr.created_at,
+                   sr.field_type, a.name as app_name, a.business_criticality,
+                   a.description, a.technology_stack, a.deployment_environment,
+                   a.data_classification,
+                   (u.first_name || ' ' || u.last_name) as author_name, u.email as author_email,
+                   sr.updated_at, sr.analyst_id
+            FROM security_reviews sr
+            JOIN applications a ON sr.application_id = a.id
+            JOIN users u ON a.author_id = u.id
+            WHERE sr.analyst_id = ? AND sr.status IN ('completed', 'in_review')
+            ORDER BY sr.updated_at DESC, sr.created_at DESC
+            LIMIT 10
+        ''', (user_id,)).fetchall()
+
+        # Get security findings statistics
+        security_findings = conn.execute('''
+            SELECT sa.risk_level, COUNT(*) as count
+            FROM stride_analysis sa
+            JOIN security_reviews sr ON sa.review_id = sr.id
+            WHERE sr.analyst_id = ?
+            GROUP BY sa.risk_level
+        ''', (user_id,)).fetchall()
+
+        findings_dict = {finding['risk_level']: finding['count'] for finding in security_findings}
         
         # Get overall statistics
         stats = {
             'todo': len(todo_applications),
             'in_review': len(in_review_applications),
             'completed': len(completed_applications),
-            'total_assigned': len(todo_applications) + len(in_review_applications) + len(completed_applications)
+            'total_assigned': len(todo_applications) + len(in_review_applications) + len(completed_applications),
+            'total_pending': len(pending_reviews),
+            'critical_risk_count': findings_dict.get('Critical', 0),
+            'high_risk_count': findings_dict.get('High', 0),
+            'medium_risk_count': findings_dict.get('Medium', 0),
+            'low_risk_count': findings_dict.get('Low', 0),
+            'total_findings': sum(findings_dict.values())
         }
-        
-        # Get recent completed reviews only
-        recent_reviews = conn.execute('''
-            SELECT sr.*, a.name as app_name
-            FROM security_reviews sr
-            JOIN applications a ON sr.application_id = a.id
-            WHERE sr.analyst_id = ? AND sr.status = 'completed'
-            ORDER BY sr.created_at DESC
-            LIMIT 5
-        ''', (user_id,)).fetchall()
         
         conn.close()
         return render_template('dashboard.html',
@@ -1364,8 +1437,9 @@ def web_dashboard():
                              todo_applications=todo_applications,
                              in_review_applications=in_review_applications,
                              completed_applications=completed_applications,
-                             stats=stats,
-                             recent_reviews=recent_reviews)
+                             pending_reviews=pending_reviews,
+                             recent_reviews=recent_reviews,
+                             stats=stats)
     
     else:
         # User Dashboard - Personal applications and activities
@@ -3526,20 +3600,90 @@ def analyst_reviews():
     """Analyst Security Review Management"""
     conn = get_db()
     
-    # Get all security reviews for the analyst (assigned + unassigned available)
-    reviews = conn.execute('''
-        SELECT sr.*, a.name as app_name, u.first_name, u.last_name, u.email,
-               sr.id as review_id, sr.status as review_status, sr.created_at as review_created
-        FROM security_reviews sr
-        JOIN applications a ON sr.application_id = a.id
+    # Get applications with their review types grouped
+    apps_data = conn.execute('''
+        SELECT a.id as application_id, a.name as app_name, a.business_criticality,
+               a.description, a.technology_stack, a.deployment_environment,
+               (u.first_name || ' ' || u.last_name) as author_name, u.email,
+               MIN(sr.created_at) as earliest_review_date,
+               GROUP_CONCAT(sr.field_type) as review_types,
+               GROUP_CONCAT(sr.id) as review_ids,
+               GROUP_CONCAT(sr.status) as review_statuses,
+               GROUP_CONCAT(sr.created_at) as review_dates
+        FROM applications a
+        JOIN security_reviews sr ON a.id = sr.application_id
         JOIN users u ON a.author_id = u.id
         WHERE sr.analyst_id = ? OR (sr.analyst_id IS NULL AND sr.status = 'submitted')
-        ORDER BY sr.created_at DESC
+        GROUP BY a.id, a.name, a.business_criticality, a.description, 
+                 a.technology_stack, a.deployment_environment,
+                 u.first_name, u.last_name, u.email
+        ORDER BY MIN(sr.created_at) DESC
     ''', (session['user_id'],)).fetchall()
+    
+    # Process the data to create a more usable structure
+    applications = []
+    for app_data in apps_data:
+        review_types = app_data['review_types'].split(',') if app_data['review_types'] else []
+        review_ids = app_data['review_ids'].split(',') if app_data['review_ids'] else []
+        review_statuses = app_data['review_statuses'].split(',') if app_data['review_statuses'] else []
+        review_dates = app_data['review_dates'].split(',') if app_data['review_dates'] else []
+        
+        # Create review objects for each review type
+        reviews = []
+        for i, review_type in enumerate(review_types):
+            reviews.append({
+                'id': review_ids[i] if i < len(review_ids) else '',
+                'field_type': review_type,
+                'status': review_statuses[i] if i < len(review_statuses) else '',
+                'created_at': review_dates[i] if i < len(review_dates) else ''
+            })
+        
+        applications.append({
+            'application_id': app_data['application_id'],
+            'app_name': app_data['app_name'],
+            'business_criticality': app_data['business_criticality'],
+            'description': app_data['description'],
+            'technology_stack': app_data['technology_stack'],
+            'deployment_environment': app_data['deployment_environment'],
+            'author_name': app_data['author_name'],
+            'email': app_data['email'],
+            'earliest_review_date': app_data['earliest_review_date'],
+            'reviews': reviews,
+            'review_count': len(reviews)
+        })
     
     conn.close()
     
-    return render_template('analyst/reviews.html', reviews=reviews)
+    return render_template('analyst/reviews.html', applications=applications)
+
+@app.route('/debug/reviews')
+@analyst_required
+def debug_reviews():
+    """Debug route to check review statuses"""
+    conn = get_db()
+    
+    # Get all reviews for debugging
+    reviews = conn.execute('''
+        SELECT sr.id, sr.status, sr.field_type, a.name as app_name, sr.analyst_id
+        FROM security_reviews sr
+        JOIN applications a ON sr.application_id = a.id
+        ORDER BY sr.updated_at DESC
+    ''').fetchall()
+    
+    conn.close()
+    
+    # Convert to list for JSON serialization
+    reviews_list = []
+    for review in reviews:
+        reviews_list.append({
+            'id': review['id'],
+            'status': review['status'],
+            'field_type': review['field_type'],
+            'app_name': review['app_name'],
+            'analyst_id': review['analyst_id']
+        })
+    
+    return jsonify(reviews_list)
 
 if __name__ == '__main__':
     # Initialize database
