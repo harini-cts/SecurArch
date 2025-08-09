@@ -3,6 +3,214 @@
 {% block title %}Add Application - Cognizant SecArch Portal{% endblock %}
 
 {% block content %}
+<style>
+/* Cloud Infrastructure Section Styles */
+.form-section-title {
+    color: #000048;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.form-section-description {
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* Cloud Option Cards */
+.cloud-option-card {
+    position: relative;
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 1.5rem;
+    height: 100%;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.cloud-option-card:hover {
+    border-color: #000048;
+    box-shadow: 0 4px 20px rgba(0, 0, 72, 0.1);
+    transform: translateY(-2px);
+}
+
+.cloud-option-card input[type="radio"] {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    transform: scale(1.2);
+}
+
+.cloud-option-card input[type="radio"]:checked + .cloud-option-label {
+    color: #000048;
+}
+
+.cloud-option-card input[type="radio"]:checked ~ .cloud-option-label,
+.cloud-option-card:has(input[type="radio"]:checked) {
+    border-color: #000048;
+    background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
+}
+
+.cloud-option-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin: 0;
+    width: 100%;
+}
+
+.cloud-option-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    margin-right: 1rem;
+    font-size: 1.5rem;
+    color: #6c757d;
+    transition: all 0.3s ease;
+}
+
+.cloud-option-card:hover .cloud-option-icon,
+.cloud-option-card:has(input[type="radio"]:checked) .cloud-option-icon {
+    background: #000048;
+    color: white;
+}
+
+.cloud-option-content {
+    flex: 1;
+}
+
+.cloud-option-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #2c3e50;
+    margin-bottom: 0.25rem;
+}
+
+.cloud-option-subtitle {
+    color: #6c757d;
+    font-size: 0.9rem;
+    line-height: 1.3;
+}
+
+/* Cloud Providers Section */
+.cloud-providers-section {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    border: 1px solid #e9ecef;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+/* Provider Cards */
+.provider-card {
+    position: relative;
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 1.25rem;
+    height: 100%;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.provider-card:hover {
+    border-color: #000048;
+    box-shadow: 0 6px 25px rgba(0, 0, 72, 0.15);
+    transform: translateY(-3px);
+}
+
+.provider-card input[type="checkbox"] {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    transform: scale(1.1);
+}
+
+.provider-card input[type="checkbox"]:checked ~ .provider-label,
+.provider-card:has(input[type="checkbox"]:checked) {
+    border-color: #000048;
+    background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+}
+
+.provider-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    margin: 0;
+    width: 100%;
+}
+
+.provider-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    font-size: 2rem;
+    transition: all 0.3s ease;
+}
+
+.aws-icon {
+    background: #ff9900;
+    color: white;
+}
+
+.azure-icon {
+    background: #0078d4;
+    color: white;
+}
+
+.gcp-icon {
+    background: #4285f4;
+    color: white;
+}
+
+.provider-card:hover .provider-icon {
+    transform: scale(1.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.provider-name {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.95rem;
+    line-height: 1.3;
+}
+
+.provider-card:has(input[type="checkbox"]:checked) .provider-name {
+    color: #000048;
+}
+
+/* Animation for cloud providers section */
+.cloud-providers-section {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card">
@@ -102,61 +310,84 @@
                         </div>
                     </div>
 
-                    <!-- Cloud Review Section -->
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <h5><i class="fas fa-cloud"></i> Cloud Infrastructure</h5>
-                            <p class="text-muted">Specify if your application uses cloud services that require additional security review</p>
+                    <!-- Cloud Infrastructure Section -->
+                    <div class="mb-4">
+                        <h6 class="form-section-title">
+                            <i class="fas fa-cloud me-2"></i>Cloud Infrastructure
+                        </h6>
+                        <p class="form-section-description text-muted mb-3">
+                            Specify if your application uses cloud services that require additional security review
+                        </p>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Cloud Review Required?</label>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="cloud-option-card">
+                                        <input class="form-check-input" type="radio" name="cloud_review_required" value="yes" id="cloud_yes" onchange="toggleCloudProviders()">
+                                        <label class="cloud-option-label" for="cloud_yes">
+                                            <div class="cloud-option-icon">
+                                                <i class="fas fa-cloud"></i>
+                                            </div>
+                                            <div class="cloud-option-content">
+                                                <div class="cloud-option-title">Yes</div>
+                                                <div class="cloud-option-subtitle">Application uses cloud services</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="cloud-option-card">
+                                        <input class="form-check-input" type="radio" name="cloud_review_required" value="no" id="cloud_no" onchange="toggleCloudProviders()" checked>
+                                        <label class="cloud-option-label" for="cloud_no">
+                                            <div class="cloud-option-icon">
+                                                <i class="fas fa-server"></i>
+                                            </div>
+                                            <div class="cloud-option-content">
+                                                <div class="cloud-option-title">No</div>
+                                                <div class="cloud-option-subtitle">On-premises or no cloud services</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Cloud Review Required?</label>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="cloud_review_required" value="yes" id="cloud_yes" onchange="toggleCloudProviders()">
-                                    <label class="form-check-label" for="cloud_yes">
-                                        <i class="fas fa-cloud"></i> Yes - Application uses cloud services
-                                    </label>
+                        <div id="cloudProvidersSection" class="cloud-providers-section" style="display: none;">
+                            <label class="form-label fw-semibold mb-3">Cloud Providers (Select all that apply)</label>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="provider-card">
+                                        <input class="form-check-input" type="checkbox" name="cloud_providers" value="AWS" id="cloud_aws">
+                                        <label class="provider-label" for="cloud_aws">
+                                            <div class="provider-icon aws-icon">
+                                                <i class="fab fa-aws"></i>
+                                            </div>
+                                            <div class="provider-name">Amazon Web Services (AWS)</div>
+                                        </label>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="cloud_review_required" value="no" id="cloud_no" onchange="toggleCloudProviders()" checked>
-                                    <label class="form-check-label" for="cloud_no">
-                                        <i class="fas fa-server"></i> No - On-premises or no cloud services
-                                    </label>
+                                <div class="col-md-4">
+                                    <div class="provider-card">
+                                        <input class="form-check-input" type="checkbox" name="cloud_providers" value="Azure" id="cloud_azure">
+                                        <label class="provider-label" for="cloud_azure">
+                                            <div class="provider-icon azure-icon">
+                                                <i class="fab fa-microsoft"></i>
+                                            </div>
+                                            <div class="provider-name">Microsoft Azure</div>
+                                        </label>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="cloudProvidersSection" class="mb-3" style="display: none;">
-                        <label class="form-label">Cloud Providers (Select all that apply)</label>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="cloud_providers" value="AWS" id="cloud_aws">
-                                    <label class="form-check-label" for="cloud_aws">
-                                        <i class="fab fa-aws"></i> Amazon Web Services (AWS)
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="cloud_providers" value="Azure" id="cloud_azure">
-                                    <label class="form-check-label" for="cloud_azure">
-                                        <i class="fab fa-microsoft"></i> Microsoft Azure
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="cloud_providers" value="GCP" id="cloud_gcp">
-                                    <label class="form-check-label" for="cloud_gcp">
-                                        <i class="fab fa-google"></i> Google Cloud Platform
-                                    </label>
+                                <div class="col-md-4">
+                                    <div class="provider-card">
+                                        <input class="form-check-input" type="checkbox" name="cloud_providers" value="GCP" id="cloud_gcp">
+                                        <label class="provider-label" for="cloud_gcp">
+                                            <div class="provider-icon gcp-icon">
+                                                <i class="fab fa-google"></i>
+                                            </div>
+                                            <div class="provider-name">Google Cloud Platform</div>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -258,8 +489,19 @@ function toggleCloudProviders() {
     
     if (cloudYes.checked) {
         cloudProvidersSection.style.display = 'block';
+        // Add smooth animation
+        setTimeout(() => {
+            cloudProvidersSection.style.opacity = '1';
+            cloudProvidersSection.style.transform = 'translateY(0)';
+        }, 10);
     } else {
-        cloudProvidersSection.style.display = 'none';
+        // Add smooth hide animation
+        cloudProvidersSection.style.opacity = '0';
+        cloudProvidersSection.style.transform = 'translateY(-10px)';
+        setTimeout(() => {
+            cloudProvidersSection.style.display = 'none';
+        }, 300);
+        
         // Uncheck all cloud provider checkboxes when hiding
         const cloudCheckboxes = document.querySelectorAll('input[name="cloud_providers"]');
         cloudCheckboxes.forEach(cb => cb.checked = false);

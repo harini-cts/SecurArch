@@ -1564,8 +1564,8 @@ def web_create_application():
         conn.commit()
         conn.close()
         
-        flash('Application created successfully!', 'success')
-        return redirect(url_for('web_security_assessment', app_id=app_id))
+        flash('Application created successfully! You can now start the security assessment from your dashboard.', 'success')
+        return redirect(url_for('web_dashboard'))
     
     return render_template('create_application.html')
 
@@ -2993,6 +2993,42 @@ def secure_upload(file, file_type, user_id, app_id):
 def web_review_results_all():
     """Handle invalid /review-results/all URL - redirect silently to applications"""
     return redirect(url_for('web_applications'))
+
+@app.route('/results')
+@login_required
+def web_results():
+    """Results page for users - shows applications with findings count"""
+    user_role = session.get('user_role', 'user')
+    
+    # Only allow regular users to access this page
+    if user_role != 'user':
+        return redirect(url_for('web_dashboard'))
+    
+    conn = get_db()
+    
+    # Get user's applications with findings count
+    applications_with_findings = conn.execute('''
+        SELECT a.id, a.name, a.description, a.business_criticality,
+               a.technology_stack, a.status, a.created_at,
+               COUNT(DISTINCT sr.id) as review_count,
+               COUNT(DISTINCT sa.id) as findings_count,
+               COUNT(CASE WHEN sa.risk_level = 'High' THEN 1 END) as high_risk_count,
+               COUNT(CASE WHEN sa.risk_level = 'Medium' THEN 1 END) as medium_risk_count,
+               COUNT(CASE WHEN sa.risk_level = 'Low' THEN 1 END) as low_risk_count,
+               MAX(sr.updated_at) as last_review_date
+        FROM applications a
+        LEFT JOIN security_reviews sr ON a.id = sr.application_id 
+            AND sr.status IN ('submitted', 'completed', 'in_review')
+        LEFT JOIN stride_analysis sa ON sr.id = sa.review_id
+        WHERE a.author_id = ? AND a.status != 'draft'
+        GROUP BY a.id, a.name, a.description, a.business_criticality, 
+                 a.technology_stack, a.status, a.created_at
+        ORDER BY a.created_at DESC
+    ''', (session['user_id'],)).fetchall()
+    
+    conn.close()
+    
+    return render_template('results.html', applications=applications_with_findings)
 
 # Add this route after the existing routes, before the analyst routes
 
