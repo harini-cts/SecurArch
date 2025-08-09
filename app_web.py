@@ -419,7 +419,7 @@ SECURITY_QUESTIONNAIRES = {
         "review_type": "application_review",
         "categories": {
             "input_validation": {
-                "title": "Input Validation & Injection Prevention",
+                "title": "Input Validation - OWASP A1, A3, A6",
                 "description": "OWASP Top 10 A03 (Injection) - Preventing injection attacks through proper input validation",
                 "questions": [
                     {
@@ -442,11 +442,25 @@ SECURITY_QUESTIONNAIRES = {
                         "description": "Proper output encoding prevents Cross-Site Scripting vulnerabilities",
                         "type": "radio", 
                         "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "input_4",
+                        "question": "Are file upload functionalities secured against malicious file uploads?",
+                        "description": "File upload validation prevents malware and code execution attacks",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "input_5",
+                        "question": "Is input length validation implemented to prevent buffer overflow attacks?",
+                        "description": "Length validation prevents memory corruption and system crashes",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
                     }
                 ]
             },
             "authentication": {
-                "title": "Authentication & Identity Management",
+                "title": "Authentication (Identity & Access Management - IAM) - OWASP A2",
                 "description": "OWASP Top 10 A07 (Identification and Authentication Failures) - Secure user authentication",
                 "questions": [
                     {
@@ -469,11 +483,25 @@ SECURITY_QUESTIONNAIRES = {
                         "description": "Strong password policies reduce brute force attack success",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "auth_4",
+                        "question": "Is account lockout protection implemented against brute force attacks?",
+                        "description": "Account lockout prevents automated password guessing attacks",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "auth_5",
+                        "question": "Are authentication tokens securely generated and managed?",
+                        "description": "Secure token management prevents session hijacking and replay attacks",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
                     }
                 ]
             },
             "authorization": {
-                "title": "Authorization & Access Control",
+                "title": "Authorization (Access Control) - OWASP A5",
                 "description": "OWASP Top 10 A01 (Broken Access Control) - Proper access control implementation",
                 "questions": [
                     {
@@ -496,173 +524,25 @@ SECURITY_QUESTIONNAIRES = {
                         "description": "Minimal necessary permissions reduce attack surface",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
-                    }
-                ]
-            },
-            "session_management": {
-                "title": "Session Management",
-                "description": "OWASP Top 10 A07 - Secure session handling and lifecycle management",
-                "questions": [
+                    },
                     {
-                        "id": "session_1",
-                        "question": "How are user sessions securely managed and validated?",
-                        "description": "Secure session management prevents session hijacking",
+                        "id": "authz_4",
+                        "question": "Are indirect object references protected against unauthorized access?",
+                        "description": "Prevents users from accessing resources through URL manipulation",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
                     },
                     {
-                        "id": "session_2",
-                        "question": "Are session timeouts implemented for inactive sessions?",
-                        "description": "Session timeouts reduce exposure of abandoned sessions",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    },
-                    {
-                        "id": "session_3",
-                        "question": "Is session regeneration implemented after authentication?",
-                        "description": "Session regeneration prevents session fixation attacks",
+                        "id": "authz_5",
+                        "question": "Is privilege escalation prevention implemented in the application?",
+                        "description": "Prevents users from gaining higher privileges than authorized",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
                     }
                 ]
             },
-            "cryptography": {
-                "title": "Cryptographic Controls",
-                "description": "OWASP Top 10 A02 (Cryptographic Failures) - Proper encryption and key management",
-                "questions": [
-                    {
-                        "id": "crypto_1",
-                        "question": "How is sensitive data encrypted at rest and in transit?",
-                        "description": "Encryption protects sensitive data from unauthorized access",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    },
-                    {
-                        "id": "crypto_2",
-                        "question": "Are cryptographic keys properly managed and rotated?",
-                        "description": "Proper key management maintains encryption effectiveness",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    },
-                    {
-                        "id": "crypto_3",
-                        "question": "Are strong, approved cryptographic algorithms used?",
-                        "description": "Modern algorithms provide adequate security protection",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    }
-                ]
-            },
-            "error_handling": {
-                "title": "Error Handling & Logging",
-                "description": "OWASP Top 10 A09 (Security Logging and Monitoring Failures) - Secure error handling",
-                "questions": [
-                    {
-                        "id": "error_1",
-                        "question": "How does your application handle and log security-relevant events?",
-                        "description": "Proper logging enables security monitoring and incident response",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    },
-                    {
-                        "id": "error_2",
-                        "question": "Are error messages sanitized to prevent information disclosure?",
-                        "description": "Generic error messages prevent information leakage",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    },
-                    {
-                        "id": "error_3",
-                        "question": "Is centralized logging implemented with proper retention policies?",
-                        "description": "Centralized logging supports security monitoring and compliance",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    }
-                ]
-            },
-            "data_protection": {
-                "title": "Data Protection & Privacy",
-                "description": "OWASP Top 10 A02 - Protecting sensitive data throughout its lifecycle",
-                "questions": [
-                    {
-                        "id": "data_1",
-                        "question": "How is personally identifiable information (PII) protected?",
-                        "description": "PII protection ensures privacy compliance and prevents identity theft",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    },
-                    {
-                        "id": "data_2",
-                        "question": "Is data classification implemented with appropriate controls?",
-                        "description": "Data classification ensures appropriate protection levels",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    },
-                    {
-                        "id": "data_3",
-                        "question": "Are secure data deletion procedures implemented?",
-                        "description": "Secure deletion prevents data recovery by unauthorized parties",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    }
-                ]
-            },
-            "communication_security": {
-                "title": "Communication Security",
-                "description": "OWASP Top 10 A02 - Securing data transmission and API communications",
-                "questions": [
-                    {
-                        "id": "comm_1",
-                        "question": "Is HTTPS/TLS implemented for all data transmission?",
-                        "description": "HTTPS/TLS protects data in transit from interception",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    },
-                    {
-                        "id": "comm_2",
-                        "question": "Are certificate validation and pinning implemented?",
-                        "description": "Certificate validation prevents man-in-the-middle attacks",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    },
-                    {
-                        "id": "comm_3",
-                        "question": "Is secure communication implemented for API endpoints?",
-                        "description": "API security prevents unauthorized access and data exposure",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    }
-                ]
-            },
-            "api_security": {
-                "title": "API Security & Integration",
-                "description": "OWASP API Security Top 10 - Securing application programming interfaces",
-                "questions": [
-                    {
-                        "id": "api_1",
-                        "question": "How are APIs authenticated, authorized, and access-controlled?",
-                        "description": "API security prevents unauthorized access to backend services and data",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    },
-                    {
-                        "id": "api_2",
-                        "question": "Is API rate limiting and throttling implemented?",
-                        "description": "Rate limiting prevents API abuse and DoS attacks",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    },
-                    {
-                        "id": "api_3",
-                        "question": "Are API inputs validated and outputs sanitized?",
-                        "description": "Input validation prevents injection attacks through APIs",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    }
-                ]
-            },
-            "configuration_security": {
-                "title": "Security Configuration Management",
+            "configuration_management": {
+                "title": "Configuration Management - OWASP A6",
                 "description": "OWASP Top 10 A05 (Security Misconfiguration) - Secure system configuration",
                 "questions": [
                     {
@@ -685,11 +565,312 @@ SECURITY_QUESTIONNAIRES = {
                         "description": "Automated testing ensures consistent security configuration",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "config_4",
+                        "question": "Are security headers properly configured (HSTS, CSP, X-Frame-Options)?",
+                        "description": "Security headers provide protection against common web attacks",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "config_5",
+                        "question": "Is environment separation properly implemented (dev/test/prod)?",
+                        "description": "Environment separation prevents production data exposure in lower environments",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
                     }
                 ]
             },
-            "vulnerability_management": {
-                "title": "Vulnerability Management",
+            "sensitive_data": {
+                "title": "Sensitive Data - OWASP A3",
+                "description": "OWASP Top 10 A02 (Cryptographic Failures) - Protecting sensitive data throughout its lifecycle",
+                "questions": [
+                    {
+                        "id": "data_1",
+                        "question": "How is personally identifiable information (PII) protected?",
+                        "description": "PII protection ensures privacy compliance and prevents identity theft",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "data_2",
+                        "question": "Is data classification implemented with appropriate controls?",
+                        "description": "Data classification ensures appropriate protection levels",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "data_3",
+                        "question": "Are secure data deletion procedures implemented?",
+                        "description": "Secure deletion prevents data recovery by unauthorized parties",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "data_4",
+                        "question": "Is sensitive data masked or tokenized in non-production environments?",
+                        "description": "Data masking prevents exposure of sensitive information in development/testing",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "data_5",
+                        "question": "Are data retention policies implemented and enforced?",
+                        "description": "Data retention policies ensure compliance and minimize data exposure",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    }
+                ]
+            },
+            "session_management": {
+                "title": "Session Management - OWASP A5",
+                "description": "OWASP Top 10 A07 - Secure session handling and lifecycle management",
+                "questions": [
+                    {
+                        "id": "session_1",
+                        "question": "How are user sessions securely managed and validated?",
+                        "description": "Secure session management prevents session hijacking",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "session_2",
+                        "question": "Are session timeouts implemented for inactive sessions?",
+                        "description": "Session timeouts reduce exposure of abandoned sessions",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "session_3",
+                        "question": "Is session regeneration implemented after authentication?",
+                        "description": "Session regeneration prevents session fixation attacks",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "session_4",
+                        "question": "Are session cookies configured with secure attributes (HttpOnly, Secure, SameSite)?",
+                        "description": "Secure cookie attributes protect against XSS and CSRF attacks",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "session_5",
+                        "question": "Is concurrent session management implemented to prevent session sharing?",
+                        "description": "Concurrent session controls prevent unauthorized session sharing",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    }
+                ]
+            },
+            "database_security": {
+                "title": "Database Security",
+                "description": "Database security controls to protect data integrity and confidentiality",
+                "questions": [
+                    {
+                        "id": "db_1",
+                        "question": "Are database connections encrypted and using strong authentication?",
+                        "description": "Encrypted database connections protect data in transit",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "db_2",
+                        "question": "Is database access logging and monitoring implemented?",
+                        "description": "Database monitoring detects unauthorized access and data manipulation",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "db_3",
+                        "question": "Are database privileges minimized using principle of least privilege?",
+                        "description": "Minimal database privileges reduce impact of compromise",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "db_4",
+                        "question": "Is database backup security and encryption implemented?",
+                        "description": "Secure backups protect against data loss and unauthorized access",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "db_5",
+                        "question": "Are database security patches and updates regularly applied?",
+                        "description": "Regular patching prevents exploitation of known database vulnerabilities",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    }
+                ]
+            },
+            "file_management": {
+                "title": "File Management",
+                "description": "Secure file handling and storage practices",
+                "questions": [
+                    {
+                        "id": "file_1",
+                        "question": "Are file upload validations implemented (type, size, content)?",
+                        "description": "File validation prevents malicious file uploads and system compromise",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "file_2",
+                        "question": "Is file storage implemented outside of web root directory?",
+                        "description": "Secure file storage prevents direct web access to uploaded files",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "file_3",
+                        "question": "Are file permissions properly configured and restricted?",
+                        "description": "Proper file permissions prevent unauthorized access and modification",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "file_4",
+                        "question": "Is antivirus scanning implemented for uploaded files?",
+                        "description": "Antivirus scanning detects and prevents malware uploads",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "file_5",
+                        "question": "Are temporary files securely managed and cleaned up?",
+                        "description": "Secure temp file management prevents information disclosure",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    }
+                ]
+            },
+            "exception_management": {
+                "title": "Exception Management - OWASP A3",
+                "description": "OWASP Top 10 A09 (Security Logging and Monitoring Failures) - Secure error handling",
+                "questions": [
+                    {
+                        "id": "error_1",
+                        "question": "How does your application handle and log security-relevant events?",
+                        "description": "Proper logging enables security monitoring and incident response",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "error_2",
+                        "question": "Are error messages sanitized to prevent information disclosure?",
+                        "description": "Generic error messages prevent information leakage",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "error_3",
+                        "question": "Is centralized logging implemented with proper retention policies?",
+                        "description": "Centralized logging supports security monitoring and compliance",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "error_4",
+                        "question": "Are exception stack traces prevented from reaching end users?",
+                        "description": "Hidden stack traces prevent system information disclosure",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "error_5",
+                        "question": "Is security event correlation and alerting implemented?",
+                        "description": "Event correlation enables detection of security incidents",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    }
+                ]
+            },
+            "cryptography": {
+                "title": "Cryptography - OWASP A3",
+                "description": "OWASP Top 10 A02 (Cryptographic Failures) - Proper encryption and key management",
+                "questions": [
+                    {
+                        "id": "crypto_1",
+                        "question": "How is sensitive data encrypted at rest and in transit?",
+                        "description": "Encryption protects sensitive data from unauthorized access",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "crypto_2",
+                        "question": "Are cryptographic keys properly managed and rotated?",
+                        "description": "Proper key management maintains encryption effectiveness",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "crypto_3",
+                        "question": "Are strong, approved cryptographic algorithms used?",
+                        "description": "Modern algorithms provide adequate security protection",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "crypto_4",
+                        "question": "Is secure random number generation implemented for cryptographic operations?",
+                        "description": "Secure randomness ensures cryptographic strength",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "crypto_5",
+                        "question": "Are digital signatures and integrity checks implemented where required?",
+                        "description": "Digital signatures ensure data authenticity and integrity",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    }
+                ]
+            },
+            "auditing_logging": {
+                "title": "Auditing and Logging - OWASP A10",
+                "description": "OWASP Top 10 A09 - Security event logging and audit trail management",
+                "questions": [
+                    {
+                        "id": "audit_1",
+                        "question": "Are all security-relevant events logged with sufficient detail?",
+                        "description": "Comprehensive logging enables security incident investigation",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "audit_2",
+                        "question": "Is log integrity protection implemented to prevent tampering?",
+                        "description": "Log integrity ensures audit trail reliability",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "audit_3",
+                        "question": "Are logs centralized and securely stored with proper access controls?",
+                        "description": "Centralized secure logging prevents unauthorized access to audit data",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "audit_4",
+                        "question": "Is real-time security monitoring and alerting implemented?",
+                        "description": "Real-time monitoring enables rapid incident response",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "audit_5",
+                        "question": "Are log analysis and forensic capabilities implemented?",
+                        "description": "Log analysis supports security investigation and compliance",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    }
+                ]
+            },
+            "data_protection": {
+                "title": "Data Protection - OWASP A6",
                 "description": "OWASP Top 10 A06 (Vulnerable and Outdated Components) - Managing security vulnerabilities",
                 "questions": [
                     {
@@ -712,85 +893,100 @@ SECURITY_QUESTIONNAIRES = {
                         "description": "Regular scanning identifies new vulnerabilities quickly",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
-                    }
-                ]
-            },
-            "secure_development": {
-                "title": "Secure Development Practices",
-                "description": "OWASP SAMM - Secure software development lifecycle practices",
-                "questions": [
+                    },
                     {
-                        "id": "dev_1",
-                        "question": "Are secure coding practices integrated into the development process?",
-                        "description": "Secure coding prevents introduction of security vulnerabilities",
+                        "id": "vuln_4",
+                        "question": "Is software composition analysis implemented to track dependencies?",
+                        "description": "Dependency tracking identifies vulnerable components",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
                     },
                     {
-                        "id": "dev_2",
-                        "question": "Is security testing integrated into CI/CD pipelines?",
-                        "description": "Automated security testing catches vulnerabilities early",
-                        "type": "radio",
-                        "options": ["yes", "na", "no"]
-                    },
-                    {
-                        "id": "dev_3",
-                        "question": "Are code reviews performed with security focus?",
-                        "description": "Security-focused code reviews identify potential vulnerabilities",
+                        "id": "vuln_5",
+                        "question": "Are penetration testing and security assessments regularly conducted?",
+                        "description": "Security testing identifies vulnerabilities before attackers",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
                     }
                 ]
             },
-            "incident_response": {
-                "title": "Incident Response & Recovery",
-                "description": "OWASP Top 10 A09 - Security incident detection and response capabilities",
+            "api_security": {
+                "title": "API Security",
+                "description": "OWASP API Security Top 10 - Securing application programming interfaces",
                 "questions": [
                     {
-                        "id": "incident_1",
-                        "question": "How are security incidents detected, reported, and responded to?",
-                        "description": "Incident response minimizes impact of security breaches",
+                        "id": "api_1",
+                        "question": "How are APIs authenticated, authorized, and access-controlled?",
+                        "description": "API security prevents unauthorized access to backend services and data",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
                     },
                     {
-                        "id": "incident_2",
-                        "question": "Are security monitoring and alerting systems implemented?",
-                        "description": "Monitoring enables early detection of security threats",
+                        "id": "api_2",
+                        "question": "Is API rate limiting and throttling implemented?",
+                        "description": "Rate limiting prevents API abuse and DoS attacks",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
                     },
                     {
-                        "id": "incident_3",
-                        "question": "Is backup and recovery planning implemented for security incidents?",
-                        "description": "Recovery planning ensures business continuity after incidents",
+                        "id": "api_3",
+                        "question": "Are API inputs validated and outputs sanitized?",
+                        "description": "Input validation prevents injection attacks through APIs",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "api_4",
+                        "question": "Is API versioning and deprecation properly managed?",
+                        "description": "Proper API versioning ensures security through controlled evolution",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "api_5",
+                        "question": "Are API security headers and CORS policies properly configured?",
+                        "description": "Security headers and CORS prevent unauthorized cross-origin access",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
                     }
                 ]
             },
-            "business_logic": {
-                "title": "Business Logic Security",
-                "description": "OWASP Top 10 A04 (Insecure Design) - Securing application business logic",
+            "ai_security": {
+                "title": "AI Security",
+                "description": "Security considerations for artificial intelligence and machine learning components",
                 "questions": [
                     {
-                        "id": "logic_1",
-                        "question": "How are business logic flaws identified and prevented?",
-                        "description": "Business logic security prevents exploitation of application workflows",
+                        "id": "ai_1",
+                        "question": "Are AI/ML models protected against adversarial attacks and data poisoning?",
+                        "description": "AI security prevents model manipulation and malicious training data",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
                     },
                     {
-                        "id": "logic_2",
-                        "question": "Are workflow integrity controls implemented?",
-                        "description": "Workflow controls prevent manipulation of business processes",
+                        "id": "ai_2",
+                        "question": "Is AI model access properly authenticated and authorized?",
+                        "description": "Access controls prevent unauthorized use of AI capabilities",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
                     },
                     {
-                        "id": "logic_3",
-                        "question": "Is transaction integrity validation implemented?",
-                        "description": "Transaction validation prevents financial and data manipulation",
+                        "id": "ai_3",
+                        "question": "Are AI training data and models securely stored and protected?",
+                        "description": "Secure storage prevents intellectual property theft and data breaches",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "ai_4",
+                        "question": "Is AI model output validation and sanitization implemented?",
+                        "description": "Output validation prevents malicious AI-generated content",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "ai_5",
+                        "question": "Are AI ethics and bias prevention measures implemented?",
+                        "description": "Ethical AI prevents discriminatory and harmful automated decisions",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
                     }
@@ -1672,6 +1868,10 @@ def web_security_assessment(app_id):
     cloud_providers_str = app['cloud_providers'] if 'cloud_providers' in app.keys() and app['cloud_providers'] else ''
     cloud_providers = cloud_providers_str.split(', ') if cloud_providers_str else []
     
+    # Calculate question counts from questionnaires
+    app_review_questions = sum(len(cat['questions']) for cat in SECURITY_QUESTIONNAIRES['application_review']['categories'].values())
+    cloud_review_questions = sum(len(cat['questions']) for cat in SECURITY_QUESTIONNAIRES['cloud_review']['categories'].values())
+    
     return render_template('security_assessment.html', 
                          application=app,
                          app_review_completed=app_review_completed,
@@ -1680,7 +1880,9 @@ def web_security_assessment(app_id):
                          cloud_review_status=cloud_review_status,
                          cloud_review_required=cloud_review_required,
                          cloud_providers=cloud_providers,
-                         user_role=user_role)
+                         user_role=user_role,
+                         app_review_questions=app_review_questions,
+                         cloud_review_questions=cloud_review_questions)
 
 @app.route('/field-selection')
 @app.route('/field-selection/<app_id>')
@@ -1775,23 +1977,24 @@ def web_questionnaire(app_id):
     
     # Determine questionnaire and field name based on field type
     if field_type in SECURITY_QUESTIONNAIRES:
-        # Cloud security questionnaire (AWS, Azure, GCP)
+        # Use specific questionnaire (Application, AWS, Azure, GCP)
         questionnaire_data = SECURITY_QUESTIONNAIRES[field_type]['categories']
         field_name = SECURITY_QUESTIONNAIRES[field_type]['name']
         review_type = SECURITY_QUESTIONNAIRES[field_type]['review_type']
 
     else:
-        # Application security questionnaire (comprehensive)
+        # Fallback to legacy questionnaire
         questionnaire_data = SECURITY_QUESTIONNAIRE
         field_name = 'Comprehensive OWASP Security Review'
         review_type = 'application_review'
         field_type = 'comprehensive_application'  # Normalize field type
 
-    # Apply filtering based on technology stack and cloud providers
-    if field_type == 'application_review' and 'technology_stack' in app.keys() and app['technology_stack']:
-        questionnaire_data = filter_questions_by_technology(questionnaire_data, app['technology_stack'])
-    elif field_type == 'cloud_review' and 'cloud_providers' in app.keys() and app['cloud_providers']:
-        questionnaire_data = filter_cloud_questions_by_providers(questionnaire_data, app['cloud_providers'])
+    # Temporarily disable filtering to show all 70 questions
+    # TODO: Implement more inclusive filtering that doesn't reduce questions drastically
+    # if field_type == 'application_review' and 'technology_stack' in app.keys() and app['technology_stack']:
+    #     questionnaire_data = filter_questions_by_technology(questionnaire_data, app['technology_stack'])
+    # elif field_type == 'cloud_review' and 'cloud_providers' in app.keys() and app['cloud_providers']:
+    #     questionnaire_data = filter_cloud_questions_by_providers(questionnaire_data, app['cloud_providers'])
     
     return render_template('questionnaire.html', 
                          application=app, 
