@@ -20,23 +20,24 @@ import io, csv
 
 # Initialize Flask app
 app = Flask(__name__)
-app.secret_key = 'dev-secret-key-change-in-production'
+app.secret_key = os.getenv('SECRET_KEY', os.urandom(32))
 
-# Configuration
-app.config['SECRET_KEY'] = 'dev-secret-key-change-in-production'
-app.config['JWT_SECRET'] = 'jwt-secret-change-in-production'
-app.config['TEMPLATES_AUTO_RELOAD'] = True
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+# Configuration from environment
+app.config['SECRET_KEY'] = app.secret_key
+app.config['JWT_SECRET'] = os.getenv('JWT_SECRET', os.urandom(32))
+app.config['TEMPLATES_AUTO_RELOAD'] = os.getenv('TEMPLATES_AUTO_RELOAD', 'false').lower() in ('1','true','yes')
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = int(os.getenv('SEND_FILE_MAX_AGE_DEFAULT', '0'))
 
-# Enable CORS
-CORS(app, origins=['http://localhost:3000', 'http://localhost:5000', 'http://127.0.0.1:5000'])
+# Enable CORS from env (comma-separated origins)
+cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5000,http://127.0.0.1:5000')
+CORS(app, origins=[o.strip() for o in cors_origins.split(',') if o.strip()])
 
-# Database setup
-DATABASE = 'securearch_portal.db'
+# Database setup (SQLite default; can be overridden by DATABASE_URL)
+DATABASE = os.getenv('DATABASE_URL', 'securearch_portal.db')
 
 # Configure file uploads
-UPLOAD_FOLDER = 'uploads'
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'uploads')
+MAX_FILE_SIZE = int(os.getenv('MAX_FILE_SIZE', str(10 * 1024 * 1024)))  # 10MB
 ALLOWED_EXTENSIONS = {
     'architecture': {'pdf', 'png', 'jpg', 'jpeg', 'svg', 'vsdx', 'drawio'},
     'document': {'pdf', 'doc', 'docx', 'txt', 'md'}
@@ -1685,7 +1686,7 @@ def web_login():
                 return redirect(url_for('web_dashboard'))
         else:
             conn.close()
-            flash('Invalid email or password. Try demo: admin@demo.com / password123', 'error')
+            flash('Invalid email or password.', 'error')
     
     return render_template('login.html')
 
@@ -4636,19 +4637,18 @@ def admin_export_applications():
 	)
 
 if __name__ == '__main__':
-    # Initialize database
+    # Initialize database (local/dev runner). Azure runs via Gunicorn
     init_db()
-    # Migrate database for STRIDE analysis support
     migrate_database()
-    print("🚀 SecureArch Portal Web Application starting...")
-    print("📊 Database initialized with demo users")
-    print("🔐 Authentication system ready")
-    print("📋 Security questionnaires loaded")
-    print("🛡️ STRIDE threat modeling ready")
-    print("🌐 Server starting on http://localhost:5000")
-    print("👤 Demo User: user@demo.com / password123")
-    print("🔍 Demo Analyst: analyst@demo.com / analyst123")
-    print("🛡️ Demo Admin: superadmin@demo.com / admin123")
-    
-    # Start Flask app
-    app.run(host='0.0.0.0', port=5000, debug=True) 
+
+    if os.getenv('SHOW_DEMO_BANNER', 'false').lower() in ('1','true','yes'):
+        print("🚀 SecureArch Portal Web Application starting...")
+        print("📊 Database initialized with demo users")
+        print("🔐 Authentication system ready")
+        print("📋 Security questionnaires loaded")
+        print("🛡️ STRIDE threat modeling ready")
+
+    host = os.getenv('HOST', '0.0.0.0')
+    port = int(os.getenv('PORT', '5000'))
+    debug = os.getenv('FLASK_DEBUG', '').lower() in ('1','true','yes')
+    app.run(host=host, port=port, debug=debug) 

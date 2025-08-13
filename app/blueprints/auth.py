@@ -63,7 +63,7 @@ def login():
                     return redirect(url_for('user.dashboard'))
         else:
             conn.close()
-            flash('Invalid email or password. Try demo: user@demo.com / password123', 'error')
+            flash('Invalid email or password.', 'error')
     
     return render_template('login.html')
 

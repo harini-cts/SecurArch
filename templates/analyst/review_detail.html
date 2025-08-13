@@ -28,6 +28,11 @@
                             <span class="badge bg-light text-dark fs-6">
                                 Status: {{ review[7].replace('_', ' ').title() }}
                             </span>
+                            {% if review[7] != 'completed' %}
+                            <a href="{{ url_for('review_completion_page', review_id=review[0]) }}" class="btn btn-success btn-sm ms-2">
+                                <i class="fas fa-check-circle me-1"></i> Complete & Close Review
+                            </a>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -161,12 +166,12 @@
                             </nav>
                         </div>
                     </div>
-
+                    
                     <!-- Questions Container -->
                     <div id="questions-container">
                         <!-- Questions will be loaded here by JavaScript -->
                     </div>
-
+                    
                     <!-- Pagination Controls (Bottom) -->
                     <div class="row mt-4">
                         <div class="col-12">

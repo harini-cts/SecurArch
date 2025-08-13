@@ -156,14 +156,16 @@
                                         <ul class="dropdown-menu" aria-labelledby="reviewDropdown{{ app.application_id }}">
                                             {% for review in app.reviews %}
                                             <li>
-                                                <a class="dropdown-item" href="{{ url_for('analyst_review_detail', review_id=review.id) }}">
-                                                    {% if review.field_type == 'application_review' %}
-                                                        <i class="fas fa-desktop me-2"></i>Application Review
-                                                    {% elif review.field_type == 'cloud_review' %}
-                                                        <i class="fas fa-cloud me-2"></i>Cloud Review
-                                                    {% else %}
-                                                        <i class="fas fa-file me-2"></i>{{ review.field_type|title }}
-                                                    {% endif %}
+                                                <a class="dropdown-item d-flex align-items-center justify-content-between" href="{{ url_for('analyst_review_detail', review_id=review.id) }}">
+                                                    <span>
+                                                        {% if review.field_type == 'application_review' %}
+                                                            <i class="fas fa-desktop me-2"></i>Application Review
+                                                        {% elif review.field_type == 'cloud_review' %}
+                                                            <i class="fas fa-cloud me-2"></i>Cloud Review
+                                                        {% else %}
+                                                            <i class="fas fa-file me-2"></i>{{ review.field_type|title }}
+                                                        {% endif %}
+                                                    </span>
                                                     <span class="badge ms-2 
                                                         {% if review.status == 'submitted' %}bg-warning text-dark
                                                         {% elif review.status == 'in_review' %}bg-info
@@ -173,6 +175,7 @@
                                                     </span>
                                                 </a>
                                             </li>
+
                                             {% endfor %}
                                         </ul>
                                     </div>
