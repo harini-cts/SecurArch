@@ -178,6 +178,22 @@
     color: white;
 }
 
+/* Database Provider Icons */
+.mongodb-icon {
+    background: #4db33d;
+    color: white;
+}
+
+.postgresql-icon {
+    background: #336791;
+    color: white;
+}
+
+.mysql-icon {
+    background: #f29111;
+    color: white;
+}
+
 .provider-card:hover .provider-icon {
     transform: scale(1.1);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
@@ -318,13 +334,13 @@
                         <p class="form-section-description text-muted mb-3">
                             Specify if your application uses cloud services that require additional security review
                         </p>
-                        
-                        <div class="mb-3">
+
+                    <div class="mb-3">
                             <label class="form-label fw-semibold">Cloud Review Required?</label>
                             <div class="row g-3">
-                                <div class="col-md-6">
+                            <div class="col-md-6">
                                     <div class="cloud-option-card">
-                                        <input class="form-check-input" type="radio" name="cloud_review_required" value="yes" id="cloud_yes" onchange="toggleCloudProviders()">
+                                    <input class="form-check-input" type="radio" name="cloud_review_required" value="yes" id="cloud_yes" onchange="toggleCloudProviders()">
                                         <label class="cloud-option-label" for="cloud_yes">
                                             <div class="cloud-option-icon">
                                                 <i class="fas fa-cloud"></i>
@@ -333,12 +349,12 @@
                                                 <div class="cloud-option-title">Yes</div>
                                                 <div class="cloud-option-subtitle">Application uses cloud services</div>
                                             </div>
-                                        </label>
-                                    </div>
+                                    </label>
                                 </div>
-                                <div class="col-md-6">
+                            </div>
+                            <div class="col-md-6">
                                     <div class="cloud-option-card">
-                                        <input class="form-check-input" type="radio" name="cloud_review_required" value="no" id="cloud_no" onchange="toggleCloudProviders()" checked>
+                                    <input class="form-check-input" type="radio" name="cloud_review_required" value="no" id="cloud_no" onchange="toggleCloudProviders()" checked>
                                         <label class="cloud-option-label" for="cloud_no">
                                             <div class="cloud-option-icon">
                                                 <i class="fas fa-server"></i>
@@ -347,45 +363,128 @@
                                                 <div class="cloud-option-title">No</div>
                                                 <div class="cloud-option-subtitle">On-premises or no cloud services</div>
                                             </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                        <div id="cloudProvidersSection" class="cloud-providers-section" style="display: none;">
+                            <label class="form-label fw-semibold mb-3">Cloud Providers (Select all that apply)</label>
+                            <div class="row g-3">
+                            <div class="col-md-4">
+                                    <div class="provider-card">
+                                    <input class="form-check-input" type="checkbox" name="cloud_providers" value="AWS" id="cloud_aws">
+                                        <label class="provider-label" for="cloud_aws">
+                                            <div class="provider-icon aws-icon">
+                                                <i class="fab fa-aws"></i>
+                                            </div>
+                                            <div class="provider-name">Amazon Web Services (AWS)</div>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                    <div class="provider-card">
+                                    <input class="form-check-input" type="checkbox" name="cloud_providers" value="Azure" id="cloud_azure">
+                                        <label class="provider-label" for="cloud_azure">
+                                            <div class="provider-icon azure-icon">
+                                                <i class="fab fa-microsoft"></i>
+                                            </div>
+                                            <div class="provider-name">Microsoft Azure</div>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                    <div class="provider-card">
+                                    <input class="form-check-input" type="checkbox" name="cloud_providers" value="GCP" id="cloud_gcp">
+                                        <label class="provider-label" for="cloud_gcp">
+                                            <div class="provider-icon gcp-icon">
+                                                <i class="fab fa-google"></i>
+                                            </div>
+                                            <div class="provider-name">Google Cloud Platform</div>
+                                    </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Database Infrastructure Section -->
+                    <div class="mb-4">
+                        <h6 class="form-section-title">
+                            <i class="fas fa-database me-2"></i>Database Infrastructure
+                        </h6>
+                        <p class="form-section-description text-muted mb-3">
+                            Specify if your application uses databases that require additional security review
+                        </p>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Database Review Required?</label>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="cloud-option-card">
+                                        <input class="form-check-input" type="radio" name="database_review_required" value="yes" id="database_yes" onchange="toggleDatabaseProviders()">
+                                        <label class="cloud-option-label" for="database_yes">
+                                            <div class="cloud-option-icon">
+                                                <i class="fas fa-database"></i>
+                                            </div>
+                                            <div class="cloud-option-content">
+                                                <div class="cloud-option-title">Yes</div>
+                                                <div class="cloud-option-subtitle">Application uses databases</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="cloud-option-card">
+                                        <input class="form-check-input" type="radio" name="database_review_required" value="no" id="database_no" onchange="toggleDatabaseProviders()" checked>
+                                        <label class="cloud-option-label" for="database_no">
+                                            <div class="cloud-option-icon">
+                                                <i class="fas fa-file"></i>
+                                            </div>
+                                            <div class="cloud-option-content">
+                                                <div class="cloud-option-title">No</div>
+                                                <div class="cloud-option-subtitle">No database or file-based storage</div>
+                                            </div>
                                         </label>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div id="cloudProvidersSection" class="cloud-providers-section" style="display: none;">
-                            <label class="form-label fw-semibold mb-3">Cloud Providers (Select all that apply)</label>
+                        <div id="databaseProvidersSection" class="cloud-providers-section" style="display: none;">
+                            <label class="form-label fw-semibold mb-3">Database Types (Select all that apply)</label>
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <div class="provider-card">
-                                        <input class="form-check-input" type="checkbox" name="cloud_providers" value="AWS" id="cloud_aws">
-                                        <label class="provider-label" for="cloud_aws">
-                                            <div class="provider-icon aws-icon">
-                                                <i class="fab fa-aws"></i>
+                                        <input class="form-check-input" type="checkbox" name="database_types" value="MongoDB" id="db_mongodb">
+                                        <label class="provider-label" for="db_mongodb">
+                                            <div class="provider-icon mongodb-icon">
+                                                <i class="fas fa-leaf"></i>
                                             </div>
-                                            <div class="provider-name">Amazon Web Services (AWS)</div>
+                                            <div class="provider-name">MongoDB</div>
                                         </label>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="provider-card">
-                                        <input class="form-check-input" type="checkbox" name="cloud_providers" value="Azure" id="cloud_azure">
-                                        <label class="provider-label" for="cloud_azure">
-                                            <div class="provider-icon azure-icon">
-                                                <i class="fab fa-microsoft"></i>
+                                        <input class="form-check-input" type="checkbox" name="database_types" value="PostgreSQL" id="db_postgresql">
+                                        <label class="provider-label" for="db_postgresql">
+                                            <div class="provider-icon postgresql-icon">
+                                                <i class="fas fa-elephant"></i>
                                             </div>
-                                            <div class="provider-name">Microsoft Azure</div>
+                                            <div class="provider-name">PostgreSQL</div>
                                         </label>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="provider-card">
-                                        <input class="form-check-input" type="checkbox" name="cloud_providers" value="GCP" id="cloud_gcp">
-                                        <label class="provider-label" for="cloud_gcp">
-                                            <div class="provider-icon gcp-icon">
-                                                <i class="fab fa-google"></i>
+                                        <input class="form-check-input" type="checkbox" name="database_types" value="MySQL" id="db_mysql">
+                                        <label class="provider-label" for="db_mysql">
+                                            <div class="provider-icon mysql-icon">
+                                                <i class="fas fa-database"></i>
                                             </div>
-                                            <div class="provider-name">Google Cloud Platform</div>
+                                            <div class="provider-name">MySQL</div>
                                         </label>
                                     </div>
                                 </div>
@@ -499,12 +598,37 @@ function toggleCloudProviders() {
         cloudProvidersSection.style.opacity = '0';
         cloudProvidersSection.style.transform = 'translateY(-10px)';
         setTimeout(() => {
-            cloudProvidersSection.style.display = 'none';
+        cloudProvidersSection.style.display = 'none';
         }, 300);
         
         // Uncheck all cloud provider checkboxes when hiding
         const cloudCheckboxes = document.querySelectorAll('input[name="cloud_providers"]');
         cloudCheckboxes.forEach(cb => cb.checked = false);
+    }
+}
+
+function toggleDatabaseProviders() {
+    const databaseYes = document.getElementById('database_yes');
+    const databaseProvidersSection = document.getElementById('databaseProvidersSection');
+    
+    if (databaseYes.checked) {
+        databaseProvidersSection.style.display = 'block';
+        // Add smooth animation
+        setTimeout(() => {
+            databaseProvidersSection.style.opacity = '1';
+            databaseProvidersSection.style.transform = 'translateY(0)';
+        }, 10);
+    } else {
+        // Add smooth hide animation
+        databaseProvidersSection.style.opacity = '0';
+        databaseProvidersSection.style.transform = 'translateY(-10px)';
+        setTimeout(() => {
+        databaseProvidersSection.style.display = 'none';
+        }, 300);
+        
+        // Uncheck all database provider checkboxes when hiding
+        const databaseCheckboxes = document.querySelectorAll('input[name="database_types"]');
+        databaseCheckboxes.forEach(cb => cb.checked = false);
     }
 }
 

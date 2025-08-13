@@ -7,7 +7,7 @@
     <div class="col-md-10">
         <div class="text-center mb-4">
             <h2><i class="fas fa-shield-alt"></i> Security Assessment</h2>
-            <p class="lead">Complete both categories to submit your security review</p>
+                            <p class="lead">Complete the questionnaires to submit your security review</p>
         </div>
 
         <!-- Application Context -->
@@ -18,7 +18,7 @@
 
         <!-- Progress Overview -->
         <div class="row mb-4">
-            <div class="{% if cloud_review_required %}col-md-6{% else %}col-md-8 offset-md-2{% endif %}">
+            <div class="{% if cloud_review_required and database_review_required %}col-md-4{% elif cloud_review_required or database_review_required %}col-md-6{% else %}col-md-12{% endif %}">
                 <div class="card">
                     <div class="card-body text-center">
                         {% if app_review_completed %}
@@ -34,7 +34,7 @@
                 </div>
             </div>
             {% if cloud_review_required %}
-            <div class="col-md-6">
+            <div class="{% if database_review_required %}col-md-4{% else %}col-md-6{% endif %}">
                 <div class="card">
                     <div class="card-body text-center">
                         {% if cloud_review_completed %}
@@ -59,12 +59,42 @@
                 </div>
             </div>
             {% endif %}
+            {% if database_review_required %}
+            <div class="{% if cloud_review_required %}col-md-4{% else %}col-md-6{% endif %}">
+                <div class="card">
+                    <div class="card-body text-center">
+                        {% if database_review_completed %}
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <h5>Database Review</h5>
+                            <span class="badge bg-success">Completed</span>
+                        {% else %}
+                            <i class="fas fa-database fa-3x text-success mb-3"></i>
+                            <h5>Database Review</h5>
+                            <span class="badge bg-success">Required</span>
+                            {% if database_types %}
+                            <div class="mt-2">
+                                {% for db_type in database_types %}
+                                {% if db_type == 'MongoDB' %}
+                                <span class="badge bg-success me-1">MongoDB</span>
+                                {% elif db_type == 'PostgreSQL' %}
+                                <span class="badge bg-primary me-1">PostgreSQL</span>
+                                {% elif db_type == 'MySQL' %}
+                                <span class="badge bg-warning text-dark me-1">MySQL</span>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Security Assessment Categories -->
         <div class="row">
             <!-- Application Review Category -->
-            <div class="{% if cloud_review_required %}col-md-6{% else %}col-md-8 offset-md-2{% endif %} mb-4">
+            <div class="{% if cloud_review_required and database_review_required %}col-md-4{% elif cloud_review_required or database_review_required %}col-md-6{% else %}col-md-8 offset-md-2{% endif %} mb-4">
                 <div class="card h-100 category-card">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="fas fa-desktop"></i> Application Review</h5>
@@ -103,9 +133,12 @@
                                 <i class="fas fa-check"></i> Review Completed
                             </button>
                         {% elif app_review_status == 'submitted' %}
-                            <button class="btn btn-outline-success w-100" disabled>
-                                <i class="fas fa-check"></i> Submitted - Complete Cloud Review
-                            </button>
+                            <a href="{{ url_for('web_questionnaire', app_id=application.id, field='application_review') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-eye"></i> View Submitted Answers
+                            </a>
+                            <small class="text-muted mt-2 d-block text-center">
+                                <i class="fas fa-check-circle"></i> Submitted successfully
+                            </small>
                         {% elif app_review_status == 'pending_analyst' %}
                             <button class="btn btn-outline-warning w-100" disabled>
                                 <i class="fas fa-clock"></i> Pending with Security Analyst
@@ -135,7 +168,7 @@
 
             <!-- Cloud Review Category -->
             {% if cloud_review_required %}
-            <div class="col-md-6 mb-4">
+            <div class="{% if database_review_required %}col-md-4{% else %}col-md-6{% endif %} mb-4">
                 <div class="card h-100 category-card">
                     <div class="card-header bg-info text-white">
                         <h5 class="mb-0"><i class="fas fa-cloud"></i> Cloud Review</h5>
@@ -179,9 +212,12 @@
                                 <i class="fas fa-check"></i> Review Completed
                             </button>
                         {% elif cloud_review_status == 'submitted' %}
-                            <button class="btn btn-outline-success w-100" disabled>
-                                <i class="fas fa-check"></i> Submitted - Complete App Review
-                            </button>
+                            <a href="{{ url_for('web_questionnaire', app_id=application.id, field='cloud_review') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-eye"></i> View Submitted Answers
+                            </a>
+                            <small class="text-muted mt-2 d-block text-center">
+                                <i class="fas fa-check-circle"></i> Submitted successfully
+                            </small>
                         {% elif cloud_review_status == 'pending_analyst' %}
                             <button class="btn btn-outline-warning w-100" disabled>
                                 <i class="fas fa-clock"></i> Pending with Security Analyst
@@ -209,15 +245,97 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Database Review Category -->
+            {% if database_review_required %}
+            <div class="{% if cloud_review_required %}col-md-4{% else %}col-md-6{% endif %} mb-4">
+                <div class="card h-100 category-card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-database"></i> Database Review</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">OWASP-based security assessment for database infrastructure covering MongoDB, PostgreSQL, and MySQL security practices.</p>
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <div class="feature-stat">
+                                    <span class="stat-number">{{ database_types|length }}</span>
+                                    <span class="stat-label">Database Types</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="feature-stat">
+                                    <span class="stat-number">{{ database_review_questions or 30 }}</span>
+                                    <span class="stat-label">Questions</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="database-types mb-3">
+                            {% for db_type in database_types %}
+                                {% if db_type == 'MongoDB' %}
+                                    <span class="badge bg-success me-1">MongoDB</span>
+                                {% elif db_type == 'PostgreSQL' %}
+                                    <span class="badge bg-primary me-1">PostgreSQL</span>
+                                {% elif db_type == 'MySQL' %}
+                                    <span class="badge bg-warning text-dark me-1">MySQL</span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        <div class="features-list mb-3">
+                            <small>
+                                <strong>Areas include:</strong><br>
+                                • Authentication & Access Control<br>
+                                • Network Security & Encryption<br>
+                                • Data Protection & Backup<br>
+                                • Database-specific vulnerabilities<br>
+                            </small>
+                        </div>
+
+                        {% if database_review_status == 'completed' %}
+                            <button class="btn btn-outline-success w-100" disabled>
+                                <i class="fas fa-check"></i> Review Completed
+                            </button>
+                        {% elif database_review_status == 'submitted' %}
+                            <a href="{{ url_for('web_questionnaire', app_id=application.id, field='database_review') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-eye"></i> View Submitted Answers
+                            </a>
+                            <small class="text-muted mt-2 d-block text-center">
+                                <i class="fas fa-check-circle"></i> Submitted successfully
+                            </small>
+                        {% elif database_review_status == 'pending_analyst' %}
+                            <button class="btn btn-outline-info w-100" disabled>
+                                <i class="fas fa-user-tie"></i> Pending Analyst Review
+                            </button>
+                        {% elif database_review_status == 'draft' %}
+                            <a href="{{ url_for('web_questionnaire', app_id=application.id, field='database_review') }}" class="btn btn-warning w-100">
+                                <i class="fas fa-edit"></i> Continue Database Review
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('web_questionnaire', app_id=application.id, field='database_review') }}" class="btn btn-success w-100">
+                                <i class="fas fa-play"></i> Start Database Review
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+
         </div>
 
         <!-- Submit Section -->
-        {% if app_review_status == 'completed' and (not cloud_review_required or cloud_review_status == 'completed') %}
+        {% if app_review_status == 'completed' and (not cloud_review_required or cloud_review_status == 'completed') and (not database_review_required or database_review_status == 'completed') %}
         <div class="alert alert-success text-center">
             <h5><i class="fas fa-check-circle"></i> Security Assessment Complete!</h5>
             <p class="mb-3">
-                {% if cloud_review_required %}
-                Both Application Review and Cloud Review have been completed by our Security Analysts.
+                {% if cloud_review_required and database_review_required %}
+                Application Review, Cloud Review, and Database Review have been completed by our Security Analysts.
+                {% elif cloud_review_required %}
+                Application Review and Cloud Review have been completed by our Security Analysts.
+                {% elif database_review_required %}
+                Application Review and Database Review have been completed by our Security Analysts.
                 {% else %}
                 Application Review has been completed by our Security Analysts.
                 {% endif %}
@@ -226,30 +344,38 @@
                 <i class="fas fa-chart-line"></i> View Security Report
             </a>
         </div>
-        {% elif app_review_status == 'submitted' and (not cloud_review_required or cloud_review_status == 'submitted') %}
-        <div class="alert alert-success text-center">
+        {% elif app_review_status == 'submitted' and (not cloud_review_required or cloud_review_status == 'submitted') and (not database_review_required or database_review_status == 'submitted') %}
+        <div class="alert alert-info text-center">
             <h5><i class="fas fa-clock"></i> Ready for Security Analysis!</h5>
             <p class="mb-0">
-                {% if cloud_review_required %}
-                Both Application Review and Cloud Review have been submitted. Security analysts will now review your application and provide detailed findings.
+                {% if cloud_review_required and database_review_required %}
+                Application Review, Cloud Review, and Database Review have been submitted. Security analysts will now review your application and provide detailed findings.
+                {% elif cloud_review_required %}
+                Application Review and Cloud Review have been submitted. Security analysts will now review your application and provide detailed findings.
+                {% elif database_review_required %}
+                Application Review and Database Review have been submitted. Security analysts will now review your application and provide detailed findings.
                 {% else %}
                 Application Review has been submitted. Security analysts will now review your application and provide detailed findings.
                 {% endif %}
             </p>
         </div>
-        {% elif app_review_status == 'pending_analyst' or (cloud_review_required and cloud_review_status == 'pending_analyst') %}
+        {% elif app_review_status == 'pending_analyst' or (cloud_review_required and cloud_review_status == 'pending_analyst') or (database_review_required and database_review_status == 'pending_analyst') %}
         <div class="alert alert-info text-center">
             <h5><i class="fas fa-clock"></i> Security Review in Progress</h5>
             <p class="mb-0">Your application has been submitted for security review. Our analysts will complete the assessment and provide detailed findings.</p>
         </div>
-        {% elif (app_review_status == 'submitted' and cloud_review_required and cloud_review_status != 'submitted') or (cloud_review_status == 'submitted' and app_review_status != 'submitted') %}
+        {% elif (app_review_status == 'completed' and cloud_review_required and cloud_review_status != 'completed') or (cloud_review_status == 'completed' and app_review_status != 'completed') or (app_review_status == 'completed' and database_review_required and database_review_status != 'completed') or (database_review_status == 'completed' and app_review_status != 'completed') %}
         <div class="alert alert-warning text-center">
             <h5><i class="fas fa-exclamation-triangle"></i> Complete All Reviews Required</h5>
             <p class="mb-0">
-                {% if app_review_status == 'submitted' and cloud_review_required and cloud_review_status != 'submitted' %}
+                {% if app_review_status == 'completed' and cloud_review_required and cloud_review_status != 'completed' %}
                 Application Review completed! Please complete the <strong>Cloud Review</strong> above to submit your application to security analysts.
-                {% elif cloud_review_status == 'submitted' and app_review_status != 'submitted' %}
+                {% elif app_review_status == 'completed' and database_review_required and database_review_status != 'completed' %}
+                Application Review completed! Please complete the <strong>Database Review</strong> above to submit your application to security analysts.
+                {% elif cloud_review_status == 'completed' and app_review_status != 'completed' %}
                 Cloud Review completed! Please complete the <strong>Application Review</strong> above to submit your application to security analysts.
+                {% elif database_review_status == 'completed' and app_review_status != 'completed' %}
+                Database Review completed! Please complete the <strong>Application Review</strong> above to submit your application to security analysts.
                 {% endif %}
             </p>
         </div>
@@ -312,6 +438,8 @@
     font-size: 0.7rem;
     padding: 0.25rem 0.5rem;
 }
+/* Force cache refresh for Database Review display */
+.category-card { margin-bottom: 0.5rem; }
 </style>
 
 <script>

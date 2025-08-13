@@ -24,6 +24,8 @@ app.secret_key = 'dev-secret-key-change-in-production'
 # Configuration
 app.config['SECRET_KEY'] = 'dev-secret-key-change-in-production'
 app.config['JWT_SECRET'] = 'jwt-secret-change-in-production'
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 # Enable CORS
 CORS(app, origins=['http://localhost:3000', 'http://localhost:5000', 'http://127.0.0.1:5000'])
@@ -209,6 +211,25 @@ def init_db():
         conn.execute('ALTER TABLE applications ADD COLUMN cloud_providers TEXT')
     except:
         pass
+    
+    # Add database review columns
+    try:
+        conn.execute('ALTER TABLE applications ADD COLUMN database_review_required TEXT DEFAULT "no"')
+        print("✅ Added database_review_required column")
+    except Exception as e:
+        print(f"ℹ️ database_review_required column already exists or error: {e}")
+    try:
+        conn.execute('ALTER TABLE applications ADD COLUMN database_types TEXT DEFAULT ""')
+        print("✅ Added database_types column")
+    except Exception as e:
+        print(f"ℹ️ database_types column already exists or error: {e}")
+    
+    # Add category preferences columns
+    try:
+        conn.execute('ALTER TABLE applications ADD COLUMN category_preferences TEXT DEFAULT "{}"')
+        print("✅ Added category_preferences column")
+    except Exception as e:
+        print(f"ℹ️ category_preferences column already exists or error: {e}")
     
     # Security Reviews table
     conn.execute('''
@@ -454,7 +475,7 @@ SECURITY_QUESTIONNAIRES = {
                         "id": "input_5",
                         "question": "Is input length validation implemented to prevent buffer overflow attacks?",
                         "description": "Length validation prevents memory corruption and system crashes",
-                        "type": "radio",
+                        "type": "radio", 
                         "options": ["yes", "na", "no"]
                     }
                 ]
@@ -770,7 +791,7 @@ SECURITY_QUESTIONNAIRES = {
                         "description": "Centralized logging supports security monitoring and compliance",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
-                    },
+            },
                     {
                         "id": "error_4",
                         "question": "Are exception stack traces prevented from reaching end users?",
@@ -786,7 +807,7 @@ SECURITY_QUESTIONNAIRES = {
                         "options": ["yes", "na", "no"]
                     }
                 ]
-            },
+                    },
             "cryptography": {
                 "title": "Cryptography - OWASP A3",
                 "description": "OWASP Top 10 A02 (Cryptographic Failures) - Proper encryption and key management",
@@ -818,7 +839,7 @@ SECURITY_QUESTIONNAIRES = {
                         "description": "Secure randomness ensures cryptographic strength",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
-                    },
+            },
                     {
                         "id": "crypto_5",
                         "question": "Are digital signatures and integrity checks implemented where required?",
@@ -827,7 +848,7 @@ SECURITY_QUESTIONNAIRES = {
                         "options": ["yes", "na", "no"]
                     }
                 ]
-            },
+                    },
             "auditing_logging": {
                 "title": "Auditing and Logging - OWASP A10",
                 "description": "OWASP Top 10 A09 - Security event logging and audit trail management",
@@ -845,7 +866,7 @@ SECURITY_QUESTIONNAIRES = {
                         "description": "Log integrity ensures audit trail reliability",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
-                    },
+            },
                     {
                         "id": "audit_3",
                         "question": "Are logs centralized and securely stored with proper access controls?",
@@ -893,7 +914,7 @@ SECURITY_QUESTIONNAIRES = {
                         "description": "Regular scanning identifies new vulnerabilities quickly",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
-                    },
+            },
                     {
                         "id": "vuln_4",
                         "question": "Is software composition analysis implemented to track dependencies?",
@@ -909,7 +930,7 @@ SECURITY_QUESTIONNAIRES = {
                         "options": ["yes", "na", "no"]
                     }
                 ]
-            },
+                    },
             "api_security": {
                 "title": "API Security",
                 "description": "OWASP API Security Top 10 - Securing application programming interfaces",
@@ -920,7 +941,7 @@ SECURITY_QUESTIONNAIRES = {
                         "description": "API security prevents unauthorized access to backend services and data",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
-                    },
+            },
                     {
                         "id": "api_2",
                         "question": "Is API rate limiting and throttling implemented?",
@@ -1084,7 +1105,7 @@ SECURITY_QUESTIONNAIRES = {
                     {
                         "id": "azure_iam_3",
                         "question": "Are Azure service principals properly managed and secured?",
-                        "description": "Service principals enable secure application authentication",
+                        "description": "Service principals enable secure application authentication in Azure",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
                     },
@@ -1182,6 +1203,243 @@ SECURITY_QUESTIONNAIRES = {
                         "id": "gcp_monitoring_1",
                         "question": "Is GCP Security Command Center enabled for threat detection?",
                         "description": "Security Command Center provides centralized security monitoring",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    }
+                ]
+            }
+        }
+    },
+
+    # ===== DATABASE REVIEW (3 Database Platforms) =====
+    "database_review": {
+        "name": "Database Security Review",
+        "description": "Comprehensive OWASP-based security assessment for database infrastructure covering MongoDB, PostgreSQL, and MySQL",
+        "review_type": "database_review",
+        "categories": {
+            "mongodb_security": {
+                "title": "MongoDB Security",
+                "description": "OWASP-based security assessment for MongoDB database instances",
+                "questions": [
+                    {
+                        "id": "mongo_auth_1",
+                        "question": "Is authentication enabled and properly configured in MongoDB?",
+                        "description": "OWASP A07 (Identification and Authentication Failures) - Prevent unauthorized database access",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mongo_auth_2",
+                        "question": "Are strong, unique passwords enforced for all MongoDB users?",
+                        "description": "Weak passwords are a primary attack vector against databases",
+                        "type": "radio", 
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mongo_auth_3",
+                        "question": "Is role-based access control (RBAC) implemented with least privilege principle?",
+                        "description": "OWASP A01 (Broken Access Control) - Limit user permissions to minimum required",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mongo_network_1",
+                        "question": "Is network access to MongoDB restricted using IP whitelisting or VPN?",
+                        "description": "OWASP A05 (Security Misconfiguration) - Prevent unauthorized network access",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mongo_network_2", 
+                        "question": "Is TLS/SSL encryption enabled for all MongoDB connections?",
+                        "description": "OWASP A02 (Cryptographic Failures) - Protect data in transit",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mongo_data_1",
+                        "question": "Is encryption at rest enabled for MongoDB data files?",
+                        "description": "OWASP A02 (Cryptographic Failures) - Protect sensitive data at rest",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mongo_audit_1",
+                        "question": "Is auditing enabled to log database access and operations?",
+                        "description": "OWASP A09 (Security Logging and Monitoring Failures) - Track database activities",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mongo_input_1",
+                        "question": "Are NoSQL injection attacks prevented through proper input validation?",
+                        "description": "OWASP A03 (Injection) - Prevent NoSQL injection vulnerabilities", 
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mongo_backup_1",
+                        "question": "Are regular encrypted backups performed and tested for recovery?",
+                        "description": "Ensure data availability and integrity against ransomware and data loss",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mongo_config_1",
+                        "question": "Are MongoDB security configurations regularly reviewed and hardened?",
+                        "description": "OWASP A05 (Security Misconfiguration) - Maintain secure database configuration",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    }
+                ]
+            },
+            "postgresql_security": {
+                "title": "PostgreSQL Security", 
+                "description": "OWASP-based security assessment for PostgreSQL database instances",
+                "questions": [
+                    {
+                        "id": "postgres_auth_1",
+                        "question": "Is PostgreSQL authentication properly configured using strong methods (scram-sha-256)?",
+                        "description": "OWASP A07 (Identification and Authentication Failures) - Use strong authentication mechanisms",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "postgres_auth_2", 
+                        "question": "Are database users created with minimal necessary privileges?",
+                        "description": "OWASP A01 (Broken Access Control) - Implement least privilege access control",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "postgres_auth_3",
+                        "question": "Is the PostgreSQL superuser account properly secured and access restricted?",
+                        "description": "Prevent unauthorized access to administrative functions",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "postgres_network_1",
+                        "question": "Is PostgreSQL configured to listen only on required network interfaces?",
+                        "description": "OWASP A05 (Security Misconfiguration) - Limit network exposure",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "postgres_network_2",
+                        "question": "Is SSL/TLS encryption enforced for all PostgreSQL connections?",
+                        "description": "OWASP A02 (Cryptographic Failures) - Protect data transmission",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "postgres_data_1",
+                        "question": "Is transparent data encryption (TDE) or file system encryption implemented?",
+                        "description": "OWASP A02 (Cryptographic Failures) - Protect data at rest",
+                        "type": "radio", 
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "postgres_audit_1",
+                        "question": "Is PostgreSQL logging configured to capture security-relevant events?",
+                        "description": "OWASP A09 (Security Logging and Monitoring Failures) - Enable security monitoring",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "postgres_injection_1",
+                        "question": "Are prepared statements and parameterized queries used consistently?",
+                        "description": "OWASP A03 (Injection) - Prevent SQL injection attacks",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "postgres_backup_1", 
+                        "question": "Are automated, encrypted backups performed with tested recovery procedures?",
+                        "description": "Ensure data availability and business continuity",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "postgres_config_1",
+                        "question": "Are PostgreSQL security settings regularly reviewed against security benchmarks?",
+                        "description": "OWASP A05 (Security Misconfiguration) - Maintain secure configuration baseline",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    }
+                ]
+            },
+            "mysql_security": {
+                "title": "MySQL Security",
+                "description": "OWASP-based security assessment for MySQL database instances", 
+                "questions": [
+                    {
+                        "id": "mysql_auth_1",
+                        "question": "Is MySQL authentication configured with strong password validation?",
+                        "description": "OWASP A07 (Identification and Authentication Failures) - Enforce strong password policies",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mysql_auth_2",
+                        "question": "Are MySQL user accounts created with specific host restrictions?",
+                        "description": "OWASP A01 (Broken Access Control) - Limit user access by host/network",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mysql_auth_3",
+                        "question": "Is the MySQL root account properly secured with password and host restrictions?",
+                        "description": "Prevent unauthorized administrative access to MySQL",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mysql_network_1",
+                        "question": "Is MySQL configured to bind only to required network interfaces?",
+                        "description": "OWASP A05 (Security Misconfiguration) - Minimize network attack surface",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mysql_network_2",
+                        "question": "Is SSL/TLS encryption enforced for all MySQL client connections?",
+                        "description": "OWASP A02 (Cryptographic Failures) - Secure data in transit",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mysql_data_1",
+                        "question": "Is MySQL data encryption at rest implemented using InnoDB encryption?",
+                        "description": "OWASP A02 (Cryptographic Failures) - Protect stored data",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mysql_audit_1",
+                        "question": "Is MySQL audit logging enabled to track database access and changes?",
+                        "description": "OWASP A09 (Security Logging and Monitoring Failures) - Monitor database activities",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mysql_injection_1",
+                        "question": "Are prepared statements used to prevent SQL injection attacks?",
+                        "description": "OWASP A03 (Injection) - Prevent SQL injection vulnerabilities",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mysql_backup_1",
+                        "question": "Are MySQL backups automated, encrypted, and regularly tested?",
+                        "description": "Ensure data recovery capabilities and business continuity",
+                        "type": "radio",
+                        "options": ["yes", "na", "no"]
+                    },
+                    {
+                        "id": "mysql_config_1",
+                        "question": "Are MySQL security configurations reviewed against CIS benchmarks?",
+                        "description": "OWASP A05 (Security Misconfiguration) - Follow security hardening guidelines",
                         "type": "radio",
                         "options": ["yes", "na", "no"]
                     }
@@ -1303,6 +1561,36 @@ def filter_cloud_questions_by_providers(questionnaire_data, cloud_providers):
     
     # If no matching providers found, return empty dict (no questions)
     # This ensures only relevant cloud provider questions are shown
+    return filtered_data
+
+def filter_database_questions_by_types(questionnaire_data, database_types):
+    """Filter database questions based on selected database types"""
+    if not database_types or not questionnaire_data:
+        return questionnaire_data
+    
+    # Convert to list if string
+    if isinstance(database_types, str):
+        db_list = [db.strip().lower() for db in database_types.split(',')]
+    else:
+        db_list = [db.lower() for db in database_types]
+    
+    # Map database types to category keys (exact match with questionnaire structure)
+    db_mapping = {
+        'mongodb': 'mongodb_security',
+        'postgresql': 'postgresql_security', 
+        'mysql': 'mysql_security'
+    }
+    
+    # Filter categories based on selected database types
+    filtered_data = {}
+    for db_type in db_list:
+        if db_type in db_mapping:
+            category_key = db_mapping[db_type]
+            if category_key in questionnaire_data:
+                filtered_data[category_key] = questionnaire_data[category_key]
+    
+    # If no matching database types found, return empty dict (no questions)
+    # This ensures only relevant database questions are shown
     return filtered_data
 
 # Web Routes
@@ -1542,7 +1830,7 @@ def web_dashboard():
         pending_apps_data = conn.execute('''
             SELECT a.id as application_id, a.name as app_name, a.business_criticality,
                    a.description, a.technology_stack, a.deployment_environment,
-                   a.data_classification, a.cloud_review_required,
+                   a.data_classification, a.cloud_review_required, a.database_review_required,
                    (u.first_name || ' ' || u.last_name) as author_name, u.email as author_email,
                    MIN(sr.created_at) as earliest_review_date,
                    GROUP_CONCAT(sr.field_type) as review_types,
@@ -1555,9 +1843,11 @@ def web_dashboard():
             WHERE a.status = 'submitted' AND sr.status = 'submitted' AND sr.analyst_id IS NULL
             GROUP BY a.id, a.name, a.business_criticality, a.description, 
                      a.technology_stack, a.deployment_environment, a.data_classification,
-                     a.cloud_review_required, u.first_name, u.last_name, u.email
-            HAVING (a.cloud_review_required = 'no' AND COUNT(sr.id) >= 1) 
-                OR (a.cloud_review_required = 'yes' AND COUNT(sr.id) >= 2)
+                     a.cloud_review_required, a.database_review_required, u.first_name, u.last_name, u.email
+            HAVING (a.cloud_review_required = 'no' AND a.database_review_required = 'no' AND COUNT(sr.id) >= 1) 
+                OR (a.cloud_review_required = 'yes' AND a.database_review_required = 'no' AND COUNT(sr.id) >= 2)
+                OR (a.cloud_review_required = 'no' AND a.database_review_required = 'yes' AND COUNT(sr.id) >= 2)
+                OR (a.cloud_review_required = 'yes' AND a.database_review_required = 'yes' AND COUNT(sr.id) >= 3)
             ORDER BY CASE 
                 WHEN a.business_criticality = 'Critical' THEN 1
                 WHEN a.business_criticality = 'High' THEN 2
@@ -1720,7 +2010,9 @@ def web_create_application():
             'business_criticality': request.form.get('business_criticality'),
             'data_classification': request.form.get('data_classification'),
             'cloud_review_required': request.form.get('cloud_review_required', 'no'),
-            'cloud_providers': ', '.join(request.form.getlist('cloud_providers'))
+            'cloud_providers': ', '.join(request.form.getlist('cloud_providers')),
+            'database_review_required': request.form.get('database_review_required', 'no'),
+            'database_types': ', '.join(request.form.getlist('database_types'))
         }
         
         # Validate required fields
@@ -1751,19 +2043,19 @@ def web_create_application():
         
         conn = get_db()
         conn.execute('''
-            INSERT INTO applications (id, name, description, technology_stack, 
-                                    deployment_environment, business_criticality, 
-                                    data_classification, author_id, logical_architecture_file,
+            INSERT INTO applications (id, name, description, technology_stack,
+                                    deployment_environment, business_criticality,
+                                    data_classification, author_id, status, logical_architecture_file,
                                     physical_architecture_file, overview_document_file,
-                                    cloud_review_required, cloud_providers)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    cloud_review_required, cloud_providers, database_review_required, database_types, category_preferences)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (app_id, data['name'], data['description'], data['technology_stack'],
-              data['deployment_environment'], data['business_criticality'], 
-              data['data_classification'], session['user_id'],
+              data['deployment_environment'], data['business_criticality'],
+              data['data_classification'], session['user_id'], 'draft',
               file_paths.get('logical_architecture_file'),
               file_paths.get('physical_architecture_file'),
               file_paths.get('overview_document_file'),
-              data['cloud_review_required'], data['cloud_providers']))
+              data['cloud_review_required'], data['cloud_providers'], data['database_review_required'], data['database_types'], '{}'))
         
         conn.commit()
         conn.close()
@@ -1838,16 +2130,25 @@ def web_security_assessment(app_id):
     # Get user role to determine what they can see/do
     user_role = session.get('user_role', 'user')
     
-    # Check completion status for both categories
+    # Check completion status for all categories
     app_review_completed = False
     cloud_review_completed = False
+    database_review_completed = False
     app_review_status = 'not_started'
     cloud_review_status = 'not_started'
+    database_review_status = 'not_started'
     
-    # Check for existing reviews
+    # Check for existing reviews - get the latest status for each field_type
     existing_reviews = conn.execute('''
-        SELECT field_type, status FROM security_reviews 
-        WHERE application_id = ?
+        SELECT field_type, status 
+        FROM security_reviews sr1
+        WHERE application_id = ? AND field_type IS NOT NULL
+        AND created_at = (
+            SELECT MAX(created_at) 
+            FROM security_reviews sr2 
+            WHERE sr2.application_id = sr1.application_id 
+            AND sr2.field_type = sr1.field_type
+        )
         ORDER BY created_at DESC
     ''', (app_id,)).fetchall()
     
@@ -1856,22 +2157,32 @@ def web_security_assessment(app_id):
             if review['status'] == 'completed':
                 app_review_completed = True
                 app_review_status = 'completed'
-            elif review['status'] == 'submitted':
+            elif review['status'] == 'submitted' and app_review_status not in ['completed']:
                 app_review_status = 'submitted'
-            elif review['status'] == 'in_review':
+            elif review['status'] == 'in_review' and app_review_status not in ['completed', 'submitted']:
                 app_review_status = 'pending_analyst'
-            elif review['status'] == 'draft':
+            elif review['status'] == 'draft' and app_review_status == 'not_started':
                 app_review_status = 'draft'
         elif review['field_type'] == 'cloud_review':
             if review['status'] == 'completed':
                 cloud_review_completed = True
                 cloud_review_status = 'completed'
-            elif review['status'] == 'submitted':
+            elif review['status'] == 'submitted' and cloud_review_status not in ['completed']:
                 cloud_review_status = 'submitted'
-            elif review['status'] == 'in_review':
+            elif review['status'] == 'in_review' and cloud_review_status not in ['completed', 'submitted']:
                 cloud_review_status = 'pending_analyst'
-            elif review['status'] == 'draft':
+            elif review['status'] == 'draft' and cloud_review_status == 'not_started':
                 cloud_review_status = 'draft'
+        elif review['field_type'] == 'database_review':
+            if review['status'] == 'completed':
+                database_review_completed = True
+                database_review_status = 'completed'
+            elif review['status'] == 'submitted' and database_review_status not in ['completed']:
+                database_review_status = 'submitted'
+            elif review['status'] == 'in_review' and database_review_status not in ['completed', 'submitted']:
+                database_review_status = 'pending_analyst'
+            elif review['status'] == 'draft' and database_review_status == 'not_started':
+                database_review_status = 'draft'
     
     conn.close()
     
@@ -1879,6 +2190,13 @@ def web_security_assessment(app_id):
     cloud_review_required = (app['cloud_review_required'] if 'cloud_review_required' in app.keys() else 'no') == 'yes'
     cloud_providers_str = app['cloud_providers'] if 'cloud_providers' in app.keys() and app['cloud_providers'] else ''
     cloud_providers = cloud_providers_str.split(', ') if cloud_providers_str else []
+    
+    # Check if database review is required
+    database_review_required = (app['database_review_required'] if 'database_review_required' in app.keys() else 'no') == 'yes'
+    database_types_str = app['database_types'] if 'database_types' in app.keys() and app['database_types'] else ''
+    database_types = database_types_str.split(', ') if database_types_str else []
+    
+
     
     # Calculate question counts from questionnaires
     app_review_questions = sum(len(cat['questions']) for cat in SECURITY_QUESTIONNAIRES['application_review']['categories'].values())
@@ -1893,17 +2211,34 @@ def web_security_assessment(app_id):
         # Default to total count if no providers selected
         cloud_review_questions = sum(len(cat['questions']) for cat in SECURITY_QUESTIONNAIRES['cloud_review']['categories'].values())
     
+    # Calculate database review questions based on selected database types
+    if database_review_required and database_types:
+        # Filter database questions by selected types to get accurate count
+        database_questionnaire_data = SECURITY_QUESTIONNAIRES['database_review']['categories']
+        filtered_database_data = filter_database_questions_by_types(database_questionnaire_data, database_types)
+        database_review_questions = sum(len(cat['questions']) for cat in filtered_database_data.values())
+    elif database_review_required:
+        # If database review required but no types selected, show all
+        database_review_questions = sum(len(cat['questions']) for cat in SECURITY_QUESTIONNAIRES['database_review']['categories'].values())
+    else:
+        database_review_questions = 0
+    
     return render_template('security_assessment.html', 
                          application=app,
                          app_review_completed=app_review_completed,
                          cloud_review_completed=cloud_review_completed,
+                         database_review_completed=database_review_completed,
                          app_review_status=app_review_status,
                          cloud_review_status=cloud_review_status,
+                         database_review_status=database_review_status,
                          cloud_review_required=cloud_review_required,
+                         database_review_required=database_review_required,
                          cloud_providers=cloud_providers,
+                         database_types=database_types,
                          user_role=user_role,
                          app_review_questions=app_review_questions,
-                         cloud_review_questions=cloud_review_questions)
+                         cloud_review_questions=cloud_review_questions,
+                         database_review_questions=database_review_questions)
 
 @app.route('/field-selection')
 @app.route('/field-selection/<app_id>')
@@ -1977,21 +2312,36 @@ def web_questionnaire(app_id):
                 # Redirect back to security assessment to complete the other type
                 return redirect(url_for('web_security_assessment', app_id=app_id))
         
-        # Check for draft to load existing responses for this specific field type
-        draft_review = conn.execute('''
-            SELECT questionnaire_responses FROM security_reviews 
-            WHERE application_id = ? AND field_type = ? AND status = 'draft' 
-            ORDER BY created_at DESC LIMIT 1
+        # Check for existing review (both draft and submitted) to load responses
+        existing_review = conn.execute('''
+            SELECT questionnaire_responses, status FROM security_reviews 
+            WHERE application_id = ? AND field_type = ? AND status IN ('draft', 'submitted', 'completed')
+            ORDER BY 
+                CASE status 
+                    WHEN 'submitted' THEN 1 
+                    WHEN 'completed' THEN 2 
+                    WHEN 'draft' THEN 3 
+                END,
+                created_at DESC 
+            LIMIT 1
         ''', (app_id, field_type)).fetchone()
         
-        if draft_review and draft_review['questionnaire_responses']:
+        if existing_review and existing_review['questionnaire_responses']:
             try:
-                draft_data = json.loads(draft_review['questionnaire_responses'])
-                existing_responses = draft_data.get('responses', {})
-                existing_comments = draft_data.get('comments', {})
-                existing_screenshots = draft_data.get('screenshots', {})
-                saved_section = draft_data.get('current_section', 0)
-            except:
+                review_data = json.loads(existing_review['questionnaire_responses'])
+                existing_responses = review_data.get('responses', {})
+                existing_comments = review_data.get('comments', {})
+                existing_screenshots = review_data.get('screenshots', {})
+                
+                # Only use saved section for drafts, start from beginning for submitted reviews
+                if existing_review['status'] == 'draft':
+                    saved_section = review_data.get('current_section', 0)
+                else:
+                    saved_section = 0  # Start from beginning for submitted reviews
+                
+                # Successfully loaded existing review data
+            except Exception as e:
+                print(f"❌ ERROR: Failed to load review data: {e}")
                 pass
     
     conn.close()
@@ -2016,8 +2366,20 @@ def web_questionnaire(app_id):
         print(f"🔍 Cloud filtering applied for providers: {app['cloud_providers']}")
         print(f"📊 Filtered questionnaire has {len(questionnaire_data)} categories")
     
-    # Keep application review filtering disabled to show all 70 questions
-    # Technology filtering was too restrictive for application reviews
+    # Apply database type filtering for database reviews
+    if field_type == 'database_review' and 'database_types' in app.keys() and app['database_types']:
+        questionnaire_data = filter_database_questions_by_types(questionnaire_data, app['database_types'])
+        print(f"🔍 Database filtering applied for types: {app['database_types']}")
+        print(f"📊 Filtered questionnaire has {len(questionnaire_data)} categories")
+    
+    # Get category preferences for this application and field type
+    category_preferences = {}
+    if app['category_preferences']:
+        try:
+            all_preferences = json.loads(app['category_preferences'])
+            category_preferences = all_preferences.get(field_type, {})
+        except:
+            category_preferences = {}
     
     return render_template('questionnaire.html', 
                          application=app, 
@@ -2028,7 +2390,8 @@ def web_questionnaire(app_id):
                          existing_responses=existing_responses,
                          existing_comments=existing_comments,
                          existing_screenshots=existing_screenshots,
-                         saved_section=saved_section)
+                         saved_section=saved_section,
+                         category_preferences=category_preferences)
 
 # === SECURITY ANALYST ROUTES ===
 
@@ -2583,15 +2946,66 @@ def analyze_stride_threats(responses):
     
     return threats
 
+@app.route('/update-category-preferences/<app_id>', methods=['POST'])
+@login_required
+def update_category_preferences(app_id):
+    """Update category enable/disable preferences for an application"""
+    try:
+        data = request.get_json()
+        field_type = data.get('field_type', 'application_review')
+        category_preferences = data.get('preferences', {})
+        
+        conn = get_db()
+        
+        # Verify user owns this application
+        app = conn.execute('SELECT * FROM applications WHERE id = ? AND author_id = ?', 
+                          (app_id, session['user_id'])).fetchone()
+        
+        if not app:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Application not found'}), 404
+        
+        # Get existing preferences
+        current_preferences = {}
+        if app['category_preferences']:
+            try:
+                current_preferences = json.loads(app['category_preferences'])
+            except:
+                current_preferences = {}
+        
+        # Update preferences for this field type
+        current_preferences[field_type] = category_preferences
+        
+        # Save back to database
+        conn.execute('UPDATE applications SET category_preferences = ? WHERE id = ?', 
+                    (json.dumps(current_preferences), app_id))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/auto-save-questionnaire/<app_id>', methods=['POST'])
 @login_required 
 def auto_save_questionnaire(app_id):
     """Auto-save questionnaire responses as draft"""
     try:
-        data = request.get_json()
+        # Handle both JSON and form data (for sendBeacon compatibility)
+        if request.is_json:
+            data = request.get_json()
+        else:
+            # Handle sendBeacon blob data
+            try:
+                data = json.loads(request.data.decode('utf-8'))
+            except:
+                data = {}
+        
         responses = data.get('responses', {})
         comments = data.get('comments', {})
         screenshots = data.get('screenshots', {})
+        field_type = data.get('field_type', 'application_review')  # Get field type from request
         
         # Compile draft data
         questionnaire_data = {
@@ -2603,34 +3017,36 @@ def auto_save_questionnaire(app_id):
             'is_draft': True
         }
         
+        # Auto-saving responses for current field type
+        
         conn = get_db()
         
         try:
             # Begin transaction
             conn.execute('BEGIN')
             
-            # Check if draft already exists
+            # Check if draft already exists for this specific field type
             existing_draft = conn.execute('''
                 SELECT id FROM security_reviews 
-                WHERE application_id = ? AND status = 'draft'
-            ''', (app_id,)).fetchone()
+                WHERE application_id = ? AND field_type = ? AND status = 'draft'
+            ''', (app_id, field_type)).fetchone()
             
             if existing_draft:
                 # Update existing draft
                 conn.execute('''
                     UPDATE security_reviews 
-                    SET questionnaire_responses = ?
+                    SET questionnaire_responses = ?, updated_at = ?
                     WHERE id = ?
-                ''', (json.dumps(questionnaire_data), existing_draft[0]))
+                ''', (json.dumps(questionnaire_data), datetime.now().isoformat(), existing_draft[0]))
             else:
                 # Create new draft
                 draft_id = str(uuid.uuid4())
                 conn.execute('''
                     INSERT INTO security_reviews (id, application_id, questionnaire_responses, 
-                                                 status, created_at)
-                    VALUES (?, ?, ?, ?, ?)
-                ''', (draft_id, app_id, json.dumps(questionnaire_data), 'draft', 
-                      datetime.now().isoformat()))
+                                                 status, field_type, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (draft_id, app_id, json.dumps(questionnaire_data), 'draft', field_type,
+                      datetime.now().isoformat(), datetime.now().isoformat()))
             
             conn.commit()
             conn.close()
@@ -2659,21 +3075,28 @@ def submission_review(app_id):
         if not app:
             conn.close()
             return redirect(url_for('web_applications'))
-        # Get existing draft review responses
+        # Get existing review responses (both draft and submitted)
         existing_responses = {}
         existing_comments = {}
         
-        draft_review = conn.execute('''
-            SELECT questionnaire_responses FROM security_reviews 
-            WHERE application_id = ? AND field_type = ? AND status = 'draft' 
-            ORDER BY created_at DESC LIMIT 1
+        review = conn.execute('''
+            SELECT questionnaire_responses, status FROM security_reviews 
+            WHERE application_id = ? AND field_type = ? AND status IN ('draft', 'submitted', 'completed')
+            ORDER BY 
+                CASE status 
+                    WHEN 'submitted' THEN 1 
+                    WHEN 'completed' THEN 2 
+                    WHEN 'draft' THEN 3 
+                END,
+                created_at DESC 
+            LIMIT 1
         ''', (app_id, field_type)).fetchone()
         
-        if draft_review and draft_review['questionnaire_responses']:
+        if review and review['questionnaire_responses']:
             try:
-                draft_data = json.loads(draft_review['questionnaire_responses'])
-                existing_responses = draft_data.get('responses', {})
-                existing_comments = draft_data.get('comments', {})
+                review_data = json.loads(review['questionnaire_responses'])
+                existing_responses = review_data.get('responses', {})
+                existing_comments = review_data.get('comments', {})
             except:
                 pass
         
@@ -2683,8 +3106,17 @@ def submission_review(app_id):
         if field_type == 'cloud_review' and app['cloud_providers']:
             questionnaire_data = SECURITY_QUESTIONNAIRES[field_type]['categories']
             questionnaire_data = filter_cloud_questions_by_providers(questionnaire_data, app['cloud_providers'])
+        elif field_type == 'database_review':
+            questionnaire_data = SECURITY_QUESTIONNAIRES[field_type]['categories']
+            # Filter database questions by selected database types
+            if app.get('database_types'):
+                questionnaire_data = filter_database_questions_by_types(questionnaire_data, app['database_types'])
         else:
             questionnaire_data = SECURITY_QUESTIONNAIRES.get(field_type, {}).get('categories', {})
+        
+
+        
+
         
         # Analyze completion by category
         categories_summary = []
@@ -2698,13 +3130,15 @@ def submission_review(app_id):
             
             for question in category_data['questions']:
                 total_questions += 1
-                if question['id'] in existing_responses and existing_responses[question['id']]:
+                # Check if question is answered (response exists and is not empty/null)
+                response_value = existing_responses.get(question['id'])
+                if response_value and str(response_value).strip():
                     category_answered += 1
                     total_answered += 1
                 else:
                     unanswered_questions.append({
                         'id': question['id'],
-                        'text': question['text']
+                        'text': question['text'][:100] + ('...' if len(question['text']) > 100 else '')  # Truncate long questions
                     })
             
             categories_summary.append({
@@ -2826,8 +3260,8 @@ def submit_questionnaire(app_id):
         # Begin transaction
         conn.execute('BEGIN')
         
-        # Delete any existing draft for this application
-        conn.execute('DELETE FROM security_reviews WHERE application_id = ? AND status = "draft"', (app_id,))
+        # Delete any existing draft for this specific field_type
+        conn.execute('DELETE FROM security_reviews WHERE application_id = ? AND field_type = ? AND status = "draft"', (app_id, field_type))
         
         conn.execute('''
             INSERT INTO security_reviews (id, application_id, author_id, field_type, questionnaire_responses, 
@@ -2837,7 +3271,7 @@ def submit_questionnaire(app_id):
         ''', (review_id, app_id, session['user_id'], field_type, json.dumps(questionnaire_data), risk_score, 
               json.dumps(recommendations), 'submitted', datetime.now().isoformat()))
         
-        # Check if both review types are completed after this submission
+        # Check if all required review types are submitted after this submission
         existing_reviews = conn.execute('''
             SELECT field_type, status FROM security_reviews 
             WHERE application_id = ? AND author_id = ? AND status IN ('submitted', 'completed')
@@ -2846,22 +3280,28 @@ def submit_questionnaire(app_id):
         # Check completion status
         app_review_done = False
         cloud_review_done = False
+        database_review_done = False
         
         for review in existing_reviews:
             if review['field_type'] == 'application_review':
                 app_review_done = True
             elif review['field_type'] == 'cloud_review':
                 cloud_review_done = True
+            elif review['field_type'] == 'database_review':
+                database_review_done = True
         
-        # Get application to check if cloud review is required
-        app = conn.execute('SELECT cloud_review_required FROM applications WHERE id = ?', (app_id,)).fetchone()
+        # Get application to check if cloud and database reviews are required
+        app = conn.execute('SELECT cloud_review_required, database_review_required FROM applications WHERE id = ?', (app_id,)).fetchone()
         cloud_review_required = app and app['cloud_review_required'] == 'yes'
+        database_review_required = app and app['database_review_required'] == 'yes'
         
-        # Both completed only if app review is done AND (cloud review not required OR cloud review is done)
-        both_completed = app_review_done and (not cloud_review_required or cloud_review_done)
+        # All completed only if app review is done AND (cloud review not required OR cloud review is done) AND (database review not required OR database review is done)
+        all_completed = (app_review_done and 
+                        (not cloud_review_required or cloud_review_done) and 
+                        (not database_review_required or database_review_done))
         
-        # Only update application status to 'submitted' when ALL required reviews are completed
-        if both_completed:
+        # Only update application status to 'submitted' when ALL required reviews are submitted
+        if all_completed:
             success, error = update_application_status(app_id, 'submitted', conn, 'user')
             if not success:
                 conn.execute('ROLLBACK')
@@ -2878,16 +3318,9 @@ def submit_questionnaire(app_id):
     
     conn.close()
     
-    # Provide appropriate feedback based on completion status
-    if both_completed:
-        flash('All security assessments completed! Your application has been submitted to security analysts for review.', 'success')
-        return redirect(url_for('web_security_assessment', app_id=app_id))
-    else:
-        if cloud_review_required and not cloud_review_done:
-            flash('Application review submitted! Please complete the Cloud Review to submit your application to security analysts.', 'info')
-        else:
-            flash('Cloud review submitted! Please complete the Application Review to submit your application to security analysts.', 'info')
-        return redirect(url_for('web_security_assessment', app_id=app_id))
+    # Redirect back to security assessment page to show updated status
+    flash('Assessment submitted successfully! Your responses have been saved.', 'success')
+    return redirect(url_for('web_security_assessment', app_id=app_id))
 
 def generate_recommendations(responses, high_risk_percentage):
     """Generate security recommendations based on responses and risk percentage"""
@@ -3964,7 +4397,7 @@ def analyst_reviews():
         FROM applications a
         JOIN security_reviews sr ON a.id = sr.application_id
         JOIN users u ON a.author_id = u.id
-        WHERE sr.analyst_id = ? OR (sr.analyst_id IS NULL AND sr.status = 'submitted')
+        WHERE sr.analyst_id = ? OR (sr.analyst_id IS NULL AND sr.status IN ('submitted', 'in_review'))
         GROUP BY a.id, a.name, a.business_criticality, a.description, 
                  a.technology_stack, a.deployment_environment,
                  u.first_name, u.last_name, u.email
@@ -3989,6 +4422,17 @@ def analyst_reviews():
                 'created_at': review_dates[i] if i < len(review_dates) else ''
             })
         
+        # Determine overall review status based on all reviews
+        statuses = [review['status'] for review in reviews]
+        if 'completed' in statuses:
+            overall_status = 'completed'
+        elif 'in_review' in statuses:
+            overall_status = 'in_review'
+        elif 'submitted' in statuses:
+            overall_status = 'submitted'
+        else:
+            overall_status = 'draft'
+        
         applications.append({
             'application_id': app_data['application_id'],
             'app_name': app_data['app_name'],
@@ -4000,7 +4444,8 @@ def analyst_reviews():
             'email': app_data['email'],
             'earliest_review_date': app_data['earliest_review_date'],
             'reviews': reviews,
-            'review_count': len(reviews)
+            'review_count': len(reviews),
+            'review_status': overall_status
         })
     
     conn.close()

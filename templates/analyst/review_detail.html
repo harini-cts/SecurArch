@@ -222,8 +222,31 @@ let currentPage = 1;
 let questionsPerPage = 10;
 let allQuestions = [];
 
+// Initialize findings data from backend
+window.findingsByQuestionId = {};
+{% if stride_analysis %}
+{% for finding in stride_analysis %}
+{% if finding.question_id %}
+window.findingsByQuestionId['{{ finding.question_id }}'] = {
+    id: '{{ finding.id }}',
+    risk_level: '{{ finding.risk_level }}',
+    threat_category: '{{ finding.threat_category }}',
+    threat_description: {{ finding.threat_description|tojson }},
+    recommendations: {{ finding.recommendations|tojson }},
+    created_at: '{{ finding.created_at }}'
+};
+{% endif %}
+{% endfor %}
+{% endif %}
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    // Debug: Log loaded findings data
+    console.log('🔍 Findings data loaded on page init:', {
+        findingsCount: Object.keys(window.findingsByQuestionId).length,
+        findings: window.findingsByQuestionId
+    });
+    
     loadQuestionsData();
     setupPagination();
     displayQuestions();
@@ -391,22 +414,27 @@ function getResponseBadge(response) {
 }
 
 function getRiskAssessment(response, questionId) {
+    // Debug logging to understand what's happening
+    console.log(`🔍 getRiskAssessment called for question ${questionId}:`, {
+        response: response,
+        responseType: typeof response,
+        hasFindings: window.findingsByQuestionId ? 'yes' : 'no',
+        findings: window.findingsByQuestionId ? window.findingsByQuestionId[questionId] : 'none'
+    });
+    
     // Check if analyst has marked a finding for this question
     if (window.findingsByQuestionId && window.findingsByQuestionId[questionId]) {
         const analystFinding = window.findingsByQuestionId[questionId];
         // Use analyst's risk assessment
         const riskClass = analystFinding.risk_level === 'High' ? 'danger' : 
                          analystFinding.risk_level === 'Medium' ? 'warning' : 'success';
-        return `<span class="badge bg-${riskClass}">🔍 ${analystFinding.risk_level} Risk (Analyst)</span><small class="d-block text-${riskClass} mt-1"><i class="fas fa-user-shield"></i> Marked by security analyst</small>`;
+        console.log(`✅ Using analyst finding for question ${questionId}:`, analystFinding.risk_level);
+        return `<span class="badge bg-${riskClass}">${analystFinding.risk_level} Risk</span><small class="d-block text-${riskClass} mt-1"><i class="fas fa-user-shield"></i> Marked by security analyst</small>`;
     }
     
-    // Fall back to automatic assessment based on questionnaire response
-    const assessments = {
-        'no': '<span class="badge bg-danger">High Risk</span><small class="d-block text-danger mt-1"><i class="fas fa-exclamation-triangle"></i> Control not implemented</small>',
-        'partial': '<span class="badge bg-warning">Medium Risk</span><small class="d-block text-warning mt-1"><i class="fas fa-exclamation-triangle"></i> Partial implementation</small>',
-        'yes': '<span class="badge bg-success">Low Risk</span><small class="d-block text-success mt-1"><i class="fas fa-check-circle"></i> Control implemented</small>'
-    };
-    return assessments[response] || '<span class="badge bg-secondary">Unknown Risk</span><small class="d-block text-muted mt-1"><i class="fas fa-question-circle"></i> Response needed</small>';
+    // If no analyst finding exists, always show Unknown Risk
+    console.log(`❓ No analyst finding for question ${questionId} - showing Unknown Risk`);
+    return '<span class="badge bg-secondary">Unknown Risk</span><small class="d-block text-muted mt-1"><i class="fas fa-question-circle"></i> Analyst review pending</small>';
 }
 
 function getAnalystGuidance(response) {
@@ -651,6 +679,16 @@ function saveFinding(questionId) {
             // Show success toast
             showToast('Finding saved successfully!', 'success');
             
+            // Update local findings data
+            window.findingsByQuestionId[questionId] = {
+                risk_level: findingData.risk_level,
+                threat_category: findingData.stride_categories.join(', '),
+                threat_description: findingData.description,
+                recommendations: findingData.recommendation
+            };
+            
+            console.log('✅ Updated local findings data for question:', questionId, window.findingsByQuestionId[questionId]);
+            
             // Mark the question as having a finding
             const questionCard = document.querySelector(`[data-question-id="${questionId}"]`);
             if (questionCard) {
@@ -658,6 +696,17 @@ function saveFinding(questionId) {
                 questionCard.querySelector('.mark-finding-btn').innerHTML = 
                     '<i class="fas fa-check"></i> Finding Recorded';
                 questionCard.querySelector('.mark-finding-btn').classList.replace('btn-outline-warning', 'btn-success');
+                
+                // Update the risk assessment display immediately
+                const riskAssessmentElement = questionCard.querySelector('.stride-analysis-panel');
+                if (riskAssessmentElement) {
+                    const question = allQuestions.find(q => q.id === questionId);
+                    const newRiskHtml = getRiskAssessment(question ? question.response : '', questionId);
+                    const riskContainer = riskAssessmentElement.querySelector('div:nth-child(2) > div:nth-child(2)');
+                    if (riskContainer) {
+                        riskContainer.innerHTML = newRiskHtml;
+                    }
+                }
             }
         } else {
             showToast('Error saving finding: ' + data.error, 'error');

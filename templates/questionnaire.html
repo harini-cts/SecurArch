@@ -78,6 +78,10 @@
 
 
 
+
+
+
+
             <!-- Questionnaire Form -->
             <form method="POST" enctype="multipart/form-data" id="questionnaireForm" action="{{ url_for('submit_questionnaire', app_id=application.id) }}">
                 <!-- Hidden fields -->
@@ -120,6 +124,8 @@
 {{ questionnaire | tojson }}
 </script>
 
+
+
 <!-- Existing Responses Data -->
 <script type="application/json" id="existing-responses">
 {{ existing_responses | tojson }}
@@ -145,8 +151,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const sections = Object.keys(questionnaireData);
         
+        // Initialize category states (all enabled by default)
+        window.categoryStates = {};
+        sections.forEach(sectionKey => {
+            // Check localStorage for saved state, default to enabled
+            window.categoryStates[sectionKey] = localStorage.getItem(`category_${sectionKey}`) !== 'false';
+        });
+        
         // DEBUG: Check if data is loaded correctly
         console.log('✅ Questionnaire loaded. Sections:', sections.length);
+        console.log('🔍 Existing responses:', Object.keys(existingResponses).length);
+        console.log('🔍 Existing comments:', Object.keys(existingComments).length);
+        console.log('🔍 Saved section:', savedSection);
+        console.log('🔍 Sample responses:', Object.fromEntries(Object.entries(existingResponses).slice(0, 5)));
         
         if (sections.length === 0) {
             console.error('❌ No sections found in questionnaire data!', questionnaireData);
@@ -184,12 +201,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const responses = {};
             const comments = {};
             
-            // Collect all radio button responses across all sections (only from enabled categories)
+            // Collect all radio button responses across all sections
             sections.forEach(sectionKey => {
                 const section = questionnaireData[sectionKey];
-                const categoryEnabled = localStorage.getItem(`category_${sectionKey}`) !== 'false';
-                
-                if (!categoryEnabled) return; // Skip disabled categories
                 
                 section.questions.forEach(question => {
                     // Check for radio button responses
@@ -214,6 +228,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 existingComments[questionId] = comments[questionId];
             });
             
+            // Debug logging
+            console.log('🔍 Auto-save triggered:', {
+                responses: Object.keys(responses).length,
+                comments: Object.keys(comments).length,
+                section: currentSection,
+                sampleResponses: Object.fromEntries(Object.entries(responses).slice(0, 3))
+            });
+            
             // Only save if there are responses
             if (Object.keys(responses).length > 0 || Object.keys(comments).length > 0) {
                 // Save draft with current section
@@ -226,24 +248,92 @@ document.addEventListener('DOMContentLoaded', function() {
                         responses: responses,
                         comments: comments,
                         screenshots: existingScreenshots,
-                        current_section: currentSection
+                        current_section: currentSection,
+                        field_type: '{{ field }}'
                     })
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Show auto-save indicator
+                        // Show auto-save indicator with better styling
                         const status = document.getElementById('auto-save-status');
+                        status.innerHTML = '<i class="fas fa-check-circle text-success"></i> Saved';
                         status.style.display = 'inline';
+                        status.style.color = '#28a745';
+                        
+                        // Hide after 2 seconds
+                        setTimeout(() => {
+                            status.style.display = 'none';
+                        }, 2000);
+                    } else {
+                        // Show error indicator
+                        const status = document.getElementById('auto-save-status');
+                        status.innerHTML = '<i class="fas fa-exclamation-triangle text-warning"></i> Save failed';
+                        status.style.display = 'inline';
+                        status.style.color = '#ffc107';
+                        
                         setTimeout(() => {
                             status.style.display = 'none';
                         }, 3000);
                     }
                 })
-                .catch(error => console.log('Auto-save error:', error));
+                .catch(error => {
+                    console.error('❌ Auto-save error:', error);
+                    // Show error indicator
+                    const status = document.getElementById('auto-save-status');
+                    status.innerHTML = '<i class="fas fa-exclamation-triangle text-danger"></i> Save failed';
+                    status.style.display = 'inline';
+                    status.style.color = '#dc3545';
+                    
+                    setTimeout(() => {
+                        status.style.display = 'none';
+                    }, 4000);
+                });
             }
-        }, 2000); // Auto-save after 2 seconds of inactivity
+        }, 1000); // Auto-save after 1 second of inactivity
     }
+    
+    // Force auto-save when user navigates away from page
+    window.addEventListener('beforeunload', function(e) {
+        // Get current responses and save immediately
+        const responses = {};
+        const comments = {};
+        
+        sections.forEach(sectionKey => {
+            const section = questionnaireData[sectionKey];
+            section.questions.forEach(question => {
+                const radioButtons = document.querySelectorAll(`input[name="${question.id}"]:checked`);
+                if (radioButtons.length > 0) {
+                    responses[question.id] = radioButtons[0].value;
+                }
+                
+                const commentTextarea = document.getElementById(`${question.id}_comment`);
+                if (commentTextarea && commentTextarea.value.trim()) {
+                    comments[question.id] = commentTextarea.value.trim();
+                }
+            });
+        });
+        
+        // Use sendBeacon for reliable saving when navigating away
+        if (Object.keys(responses).length > 0 || Object.keys(comments).length > 0) {
+            const saveData = new Blob([JSON.stringify({
+                responses: responses,
+                comments: comments,
+                screenshots: existingScreenshots,
+                current_section: currentSection,
+                field_type: '{{ field }}'
+            })], { type: 'application/json' });
+            
+            navigator.sendBeacon('{{ url_for("auto_save_questionnaire", app_id=application.id) }}', saveData);
+        }
+    });
+    
+    // Auto-save on visibility change (when tab becomes hidden/visible)
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') {
+            autoSave();
+        }
+    });
     
     const sectionContainer = document.getElementById('section-container');
     const prevBtn = document.getElementById('prev-btn');
@@ -261,6 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Only populate responses for questions in the currently displayed section
         const sectionKey = sections[currentSection];
         const section = questionnaireData[sectionKey];
+        let populated = 0;
         
         section.questions.forEach(question => {
             // Populate radio button responses for this section's questions
@@ -269,6 +360,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const radioButton = document.getElementById(`${question.id}_${value}`);
                 if (radioButton) {
                     radioButton.checked = true;
+                    populated++;
+                } else {
+                    console.warn(`❌ Radio button not found: ${question.id}_${value}`);
                 }
             }
             
@@ -281,6 +375,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
+        
+        console.log(`🔍 Populated ${populated} responses in section ${currentSection} (${sectionKey})`);
     }
     
     function populateAllSavedResponses() {
@@ -319,8 +415,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
 
         
-        // Check if category is enabled (default: true)
-        const categoryEnabled = localStorage.getItem(`category_${sectionKey}`) !== 'false';
+        // Check if category is enabled
+        const categoryEnabled = window.categoryStates[sectionKey];
         
         let html = `
             <div class="section-header mb-4">
@@ -335,7 +431,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <span class="badge bg-light text-dark border me-3">
                             ${section.questions.length} questions
                         </span>
-                        <div class="form-check form-switch">
+                        <div class="form-check form-switch me-3">
                             <input class="form-check-input category-toggle" type="checkbox" 
                                    id="toggle_${sectionKey}" 
                                    ${categoryEnabled ? 'checked' : ''}>
@@ -458,7 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 textarea.addEventListener('blur', autoSave);
             });
             
-            // Handle category toggle
+            // Handle category toggle for this section
             const categoryToggle = document.querySelector('.category-toggle');
             if (categoryToggle) {
                 categoryToggle.addEventListener('change', function() {
@@ -469,6 +565,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Save category state
                     localStorage.setItem(`category_${sectionKey}`, isEnabled);
+                    window.categoryStates[sectionKey] = isEnabled;
                     
                     // Update UI
                     label.textContent = isEnabled ? 'Enabled' : 'Disabled';
@@ -497,8 +594,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Update completion progress
                     updateProgressBasedOnAnswers();
+                    
+                    // Update disabled categories list
+                    updateDisabledCategories();
                 });
             }
+            
+
             
             // Update progress for any already selected answers
             updateProgressBasedOnAnswers();
@@ -527,17 +629,19 @@ document.addEventListener('DOMContentLoaded', function() {
          function updateProgressBasedOnAnswers() {
          let totalQuestions = 0;
          let answeredQuestions = 0;
-         let disabledCategories = 0;
+ 
          
-         // Count all questions and answered questions across all sections
-         sections.forEach(sectionKey => {
-             const section = questionnaireData[sectionKey];
-             const categoryEnabled = localStorage.getItem(`category_${sectionKey}`) !== 'false';
-             
-             if (!categoryEnabled) {
-                 disabledCategories++;
-                 return; // Skip disabled categories
-             }
+                 let disabledCategories = 0;
+        
+        // Count all questions and answered questions across all sections
+        sections.forEach(sectionKey => {
+            const section = questionnaireData[sectionKey];
+            
+            // Check if category is disabled
+            if (window.categoryStates && !window.categoryStates[sectionKey]) {
+                disabledCategories++;
+                return; // Skip disabled categories
+            }
              
              section.questions.forEach(question => {
                  totalQuestions++;
@@ -555,15 +659,22 @@ document.addEventListener('DOMContentLoaded', function() {
          // Update progress based on actual completion
          const completionProgress = totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
          
-                 // Update the secondary progress indicator
-        const secondaryProgress = document.getElementById('completion-progress');
+         // Update the secondary progress indicator
+                 const secondaryProgress = document.getElementById('completion-progress');
         if (secondaryProgress) {
             const categoryText = disabledCategories > 0 ? ` (${disabledCategories} categories disabled)` : '';
             secondaryProgress.textContent = `${answeredQuestions}/${totalQuestions} questions answered (${completionProgress}%)${categoryText}`;
         }
-        
-        // Update submit button with completion status
+       
+               // Update submit button with completion status
         updateSubmitButtonStatus(answeredQuestions, totalQuestions, completionProgress);
+        
+        // Update submit button text with answer count
+        const submitBtn = document.getElementById('submit-btn');
+        const submitBtnText = document.getElementById('submit-btn-text');
+        if (submitBtn && submitBtnText && answeredQuestions > 0) {
+            submitBtnText.textContent = `Submit Assessment (${answeredQuestions} answers)`;
+        }
         
         // Debug log to verify the calculation
         console.log(`Progress Update: ${answeredQuestions}/${totalQuestions} questions (${completionProgress}%), ${disabledCategories} categories disabled`);
@@ -604,54 +715,88 @@ document.addEventListener('DOMContentLoaded', function() {
      }
     
     // Event Listeners
-             prevBtn.addEventListener('click', function() {
-        if (currentSection > 0) {
-            currentSection--;
-            renderSection(currentSection);
-            updateProgress();
-            updateButtons();
-            updateProgressBasedOnAnswers();
+         prevBtn.addEventListener('click', function() {
+         if (currentSection > 0) {
+             currentSection--;
+             renderSection(currentSection);
+             updateProgress();
+             updateButtons();
+             updateProgressBasedOnAnswers();
             autoSave(); // Save progress when navigating sections
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-    });
+             window.scrollTo({ top: 0, behavior: 'smooth' });
+         }
+     });
     
-                 nextBtn.addEventListener('click', function() {
-        if (currentSection < sections.length - 1) {
-            currentSection++;
-            renderSection(currentSection);
-            updateProgress();
-            updateButtons();
-            updateProgressBasedOnAnswers();
+         nextBtn.addEventListener('click', function() {
+         if (currentSection < sections.length - 1) {
+             currentSection++;
+             renderSection(currentSection);
+             updateProgress();
+             updateButtons();
+             updateProgressBasedOnAnswers();
             autoSave(); // Save progress when navigating sections
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-    });
+             window.scrollTo({ top: 0, behavior: 'smooth' });
+         }
+     });
     
     // Handle submission button click
     window.handleSubmission = function() {
         // Auto-save current responses first
         autoSave();
         
-        // Wait a moment for auto-save to complete, then redirect
-        setTimeout(() => {
-            const appId = '{{ application.id }}';
-            const fieldType = '{{ field_type }}';
-            const url = `/submission-review/${appId}?field=${fieldType}`;
-            console.log('Redirecting to:', url);
-            window.location.href = url;
-        }, 500);
+        // Count current responses before submission
+        const responses = {};
+        const comments = {};
+        
+        sections.forEach(sectionKey => {
+            // Skip disabled categories
+            if (window.categoryStates && !window.categoryStates[sectionKey]) {
+                return;
+            }
+            
+            const section = questionnaireData[sectionKey];
+            section.questions.forEach(question => {
+                const radioButtons = document.querySelectorAll(`input[name="${question.id}"]:checked`);
+                if (radioButtons.length > 0) {
+                    responses[question.id] = radioButtons[0].value;
+                }
+                
+                const commentTextarea = document.getElementById(`${question.id}_comment`);
+                if (commentTextarea && commentTextarea.value.trim()) {
+                    comments[question.id] = commentTextarea.value.trim();
+                }
+            });
+        });
+        
+        const answeredCount = Object.keys(responses).length;
+        const commentsCount = Object.keys(comments).length;
+        
+        console.log(`📊 Submitting assessment with:`, {
+            answers: answeredCount,
+            comments: commentsCount,
+            field: '{{ field }}'
+        });
+        
+        // Submit directly without confirmation
+        if (answeredCount > 0) {
+            // Submit the form to the backend (this will handle the redirect)
+            console.log('Submitting form to backend...');
+            document.getElementById('questionnaireForm').submit();
+        } else {
+            alert('Please answer at least one question before submitting.');
+        }
     };
     
     // Function to update disabled categories hidden field
     function updateDisabledCategories() {
         const disabledCategories = [];
-        sections.forEach(sectionKey => {
-            const categoryEnabled = localStorage.getItem(`category_${sectionKey}`) !== 'false';
-            if (!categoryEnabled) {
-                disabledCategories.push(sectionKey);
-            }
-        });
+        if (window.categoryStates) {
+            sections.forEach(sectionKey => {
+                if (!window.categoryStates[sectionKey]) {
+                    disabledCategories.push(sectionKey);
+                }
+            });
+        }
         document.getElementById('disabled_categories').value = JSON.stringify(disabledCategories);
     }
     
@@ -673,6 +818,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('section-container').innerHTML = '<div class="alert alert-danger">Error loading questionnaire: ' + error.message + '</div>';
     }
 });
+
+
+
 </script>
 
 <style>
@@ -742,19 +890,6 @@ document.addEventListener('DOMContentLoaded', function() {
     transition: all 0.3s ease;
 }
 
-.category-toggle {
-    width: 3rem;
-    height: 1.5rem;
-}
 
-.category-toggle:checked {
-    background-color: #28a745;
-    border-color: #28a745;
-}
-
-.form-switch .form-check-input:checked {
-    background-color: #28a745;
-    border-color: #28a745;
-}
 </style>
 {% endblock %} 

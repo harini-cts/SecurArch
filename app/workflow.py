@@ -39,9 +39,9 @@ class WorkflowEngine:
     # Valid status transitions based on user role
     VALID_TRANSITIONS = {
         ApplicationStatus.DRAFT: {
-            UserRole.USER: [ApplicationStatus.SUBMITTED, ApplicationStatus.ARCHIVED],
+            UserRole.USER: [ApplicationStatus.COMPLETED, ApplicationStatus.SUBMITTED, ApplicationStatus.ARCHIVED],
             UserRole.SECURITY_ANALYST: [],  # Analysts cannot modify draft applications
-            UserRole.ADMIN: [ApplicationStatus.SUBMITTED, ApplicationStatus.ARCHIVED]
+            UserRole.ADMIN: [ApplicationStatus.COMPLETED, ApplicationStatus.SUBMITTED, ApplicationStatus.ARCHIVED]
         },
         ApplicationStatus.SUBMITTED: {
             UserRole.USER: [],  # Users cannot change status once submitted (only after both reviews completed)
@@ -364,10 +364,12 @@ class WorkflowEngine:
                 JOIN users u ON a.author_id = u.id
                 LEFT JOIN security_reviews sr ON a.id = sr.application_id AND sr.status = 'submitted'
                 WHERE a.status = 'submitted'
-                GROUP BY a.id, a.name, a.description, a.cloud_review_required, 
+                GROUP BY a.id, a.name, a.description, a.cloud_review_required, a.database_review_required,
                          u.first_name, u.last_name, u.email
-                HAVING (a.cloud_review_required = 'no' AND COUNT(sr.id) >= 1) 
-                    OR (a.cloud_review_required = 'yes' AND COUNT(sr.id) >= 2)
+                HAVING (a.cloud_review_required = 'no' AND a.database_review_required = 'no' AND COUNT(sr.id) >= 1) 
+                    OR (a.cloud_review_required = 'yes' AND a.database_review_required = 'no' AND COUNT(sr.id) >= 2)
+                    OR (a.cloud_review_required = 'no' AND a.database_review_required = 'yes' AND COUNT(sr.id) >= 2)
+                    OR (a.cloud_review_required = 'yes' AND a.database_review_required = 'yes' AND COUNT(sr.id) >= 3)
                 ORDER BY a.created_at DESC
             ''').fetchall()
             

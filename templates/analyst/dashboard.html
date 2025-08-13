@@ -124,67 +124,79 @@
         <div class="applications-grid">
             {% for review in pending_reviews %}
             <div class="application-card">
-                <div class="app-header">
-                    <div class="app-title">
-                        <h4>{{ review.app_name }}</h4>
-                        <span class="badge badge-{{ review.business_criticality }}">
+                <!-- Card Header with Title and Action -->
+                <div class="card-header d-flex justify-content-between align-items-start mb-3">
+                    <div class="app-info">
+                        <h4 class="app-name mb-2">
+                            <i class="fas fa-cube me-2 text-primary"></i>{{ review.app_name }}
+                        </h4>
+                        <span class="badge bg-{% if review.business_criticality == 'Critical' %}danger{% elif review.business_criticality == 'High' %}warning text-dark{% elif review.business_criticality == 'Medium' %}info{% else %}success{% endif %} mb-2">
                             {{ review.business_criticality|title }} Priority
                         </span>
                     </div>
-                    <div class="app-actions">
-                        <a href="{{ url_for('analyst_security_assessment', app_id=review.application_id) }}" 
-                           class="btn btn-primary btn-sm">
-                            <i class="fas fa-eye me-1"></i>Review
-                        </a>
+                    <div class="card-actions">
+                        <span class="badge bg-warning text-dark mb-2">
+                            <i class="fas fa-clock me-1"></i>{{ review.created_at[:10] if review.created_at else 'N/A' }}
+                        </span>
+                        <div class="action-buttons">
+                            <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-clipboard-check me-1"></i>Select Review (3)
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-laptop-code me-2"></i>Application Review</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cloud me-2"></i>Cloud Review</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-database me-2"></i>Database Review</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="app-details">
-                    {% if review.description %}
-                    <p class="app-description">{{ review.description[:100] }}{% if review.description|length > 100 %}...{% endif %}</p>
-                    {% endif %}
-                    
-                    <div class="app-meta">
-                        <div class="meta-item">
-                            <i class="fas fa-user me-1"></i>
-                            <span>{{ review.first_name }} {{ review.last_name }}</span>
-                        </div>
-                        <div class="meta-item">
-                            <i class="fas fa-calendar me-1"></i>
-                            <span>{{ review.created_at[:10] if review.created_at else 'N/A' }}</span>
-                        </div>
-                        <div class="meta-item">
-                            <i class="fas fa-tag me-1"></i>
-                            <span class="review-type">{{ review.field_type.replace('_', ' ')|title }}</span>
-                        </div>
-                    </div>
-                    
-                    {% if review.technology_stack %}
-                    <div class="tech-stack">
-                        <div class="tech-label">Technology Stack:</div>
-                        <div class="tech-tags">
-                            {% set techs = review.technology_stack.split(',') %}
-                            {% for tech in techs[:4] %}
-                            <span class="tech-tag">{{ tech.strip() }}</span>
-                            {% endfor %}
-                            {% if techs|length > 4 %}
-                            <span class="tech-tag more">+{{ techs|length - 4 }} more</span>
+
+                <!-- Application Details Grid -->
+                <div class="app-details-grid">
+                    <div class="row g-3">
+                        <!-- Left Column -->
+                        <div class="col-md-6">
+                            {% if review.description %}
+                            <div class="detail-item">
+                                <label><i class="fas fa-align-left me-2"></i>Description:</label>
+                                <p class="text-muted mb-2">{{ review.description[:80] }}{% if review.description|length > 80 %}...{% endif %}</p>
+                            </div>
                             {% endif %}
+                            
+                            <div class="detail-item">
+                                <label><i class="fas fa-user me-2"></i>Submitted by:</label>
+                                <span class="fw-medium">{{ review.first_name }} {{ review.last_name }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Column -->
+                        <div class="col-md-6">
+                            {% if review.technology_stack %}
+                            <div class="detail-item">
+                                <label><i class="fas fa-cogs me-2"></i>Technology Stack:</label>
+                                <div class="tech-stack-compact">
+                                    {% set techs = review.technology_stack.split(',') %}
+                                    {% for tech in techs[:2] %}
+                                    <span class="badge bg-light text-dark me-1">{{ tech.strip() }}</span>
+                                    {% endfor %}
+                                    {% if techs|length > 2 %}
+                                    <span class="badge bg-secondary">+{{ techs|length - 2 }} more</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="detail-item">
+                                <label><i class="fas fa-cogs me-2"></i>Technology Stack:</label>
+                                <span class="text-muted">No technology stack specified</span>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="detail-item">
+                                <label><i class="fas fa-info-circle me-2"></i>3 reviews available</label>
+                                <span class="text-muted">Created: {{ review.created_at[:16] if review.created_at else 'N/A' }}</span>
+                            </div>
                         </div>
                     </div>
-                    {% endif %}
-                    
-                    {% if review.deployment_model %}
-                    <div class="deployment-info">
-                        <i class="fas fa-cloud me-1"></i>
-                        <span>{{ review.deployment_model|title }} Deployment</span>
-                        {% if review.data_classification %}
-                        <span class="mx-2">•</span>
-                        <i class="fas fa-lock me-1"></i>
-                        <span>{{ review.data_classification|title }} Data</span>
-                        {% endif %}
-                    </div>
-                    {% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -626,6 +638,84 @@
     }
     
     .dashboard-actions {
+        margin-top: 1rem;
+    }
+}
+
+/* Enhanced Application Card Styles */
+.application-card {
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 1.5rem;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: all 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+
+.application-card:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    border-bottom: 1px solid #f1f3f4;
+    padding-bottom: 1rem;
+}
+
+.app-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.app-details-grid {
+    margin-top: 1rem;
+}
+
+.detail-item {
+    margin-bottom: 1rem;
+}
+
+.detail-item label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #495057;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.tech-stack-compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.card-actions {
+    text-align: right;
+}
+
+.action-buttons .btn {
+    border-radius: 8px;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+
+/* Priority Badge Colors */
+.badge.bg-danger { background-color: #dc3545 !important; }
+.badge.bg-warning { background-color: #ffc107 !important; }
+.badge.bg-info { background-color: #0dcaf0 !important; }
+.badge.bg-success { background-color: #198754 !important; }
+
+@media (max-width: 768px) {
+    .card-header {
+        flex-direction: column;
+        align-items: start !important;
+    }
+    
+    .card-actions {
+        text-align: left;
         margin-top: 1rem;
     }
 }

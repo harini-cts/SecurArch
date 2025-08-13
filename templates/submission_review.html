@@ -127,11 +127,18 @@
 
         <!-- Submission Actions -->
         <div class="submission-actions">
-            {% if total_unanswered > 0 %}
+            {% if total_questions == 0 %}
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle"></i> Ready to Begin</h6>
+                <p class="mb-0">
+                    Start answering questions to build your security assessment. You can submit with partial answers and continue later.
+                </p>
+            </div>
+            {% elif total_unanswered > 0 %}
             <div class="alert alert-warning">
                 <h6><i class="fas fa-exclamation-triangle"></i> Incomplete Assessment</h6>
                 <p class="mb-2">
-                    You have <strong>{{ total_unanswered }} unanswered questions</strong> across multiple categories. 
+                    You have <strong>{{ total_unanswered }} unanswered questions</strong> out of {{ total_questions }} total questions. 
                     You can still submit your assessment, but completing all questions provides better security insights.
                 </p>
                 <p class="mb-0">
@@ -142,7 +149,7 @@
             <div class="alert alert-success">
                 <h6><i class="fas fa-check-circle"></i> Assessment Complete!</h6>
                 <p class="mb-0">
-                    Excellent! All questions have been answered. Your assessment is ready for submission.
+                    Excellent! All {{ total_questions }} questions have been answered. Your assessment is ready for submission.
                 </p>
             </div>
             {% endif %}
@@ -154,8 +161,7 @@
                 </a>
                 
                 <form method="POST" action="/submit-questionnaire/{{ application.id }}" 
-                      style="display: inline-block;" 
-                      onsubmit="return confirmSubmission()">
+                      style="display: inline-block;">
                     <input type="hidden" name="field_type" value="{{ field_type }}">
                     <button type="submit" class="btn btn-success btn-lg">
                         <i class="fas fa-paper-plane"></i> 
@@ -299,20 +305,6 @@ details > summary:hover {
 </style>
 
 <script>
-function confirmSubmission() {
-    const unanswered = {{ total_unanswered|int }};
-    const completion = {{ overall_completion|int }};
-    
-    if (unanswered > 0) {
-        const message = 'Are you sure you want to submit this assessment?\n\n' +
-                       'Completion: ' + completion + '%\n' +
-                       'Unanswered Questions: ' + unanswered + '\n\n' +
-                       'You can always come back to complete remaining questions later.';
-        return confirm(message);
-    }
-    
-    return confirm('Submit your complete security assessment?');
-}
 
 // Add hash navigation support for direct category links
 window.addEventListener('load', function() {
