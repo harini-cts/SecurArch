@@ -4481,6 +4481,104 @@ def debug_reviews():
     
     return jsonify(reviews_list)
 
+@app.route('/edit-application/<app_id>', methods=['GET', 'POST'])
+@login_required
+def edit_application(app_id):
+	"""Edit an existing application (only for the author while in draft/rejected)."""
+	conn = get_db()
+	application = conn.execute('SELECT * FROM applications WHERE id = ? AND author_id = ?',
+							   (app_id, session['user_id'])).fetchone()
+	if not application:
+		conn.close()
+		flash('Application not found.', 'error')
+		return redirect(url_for('web_applications'))
+
+	# Prevent editing once submitted/in_review/completed by default
+	if application['status'] not in ('draft', 'rejected'):
+		conn.close()
+		flash('Editing is only allowed while the application is in Draft or Rejected state.', 'warning')
+		return redirect(url_for('web_applications'))
+
+	if request.method == 'POST':
+		# Extract form data
+		data = {
+			'name': request.form.get('name', application['name']),
+			'description': request.form.get('description', application['description']),
+			'technology_stack': ', '.join(request.form.getlist('technology_stack')),
+			'deployment_environment': request.form.get('deployment_environment', application['deployment_environment']),
+			'business_criticality': request.form.get('business_criticality', application['business_criticality']),
+			'data_classification': request.form.get('data_classification', application['data_classification']),
+			'cloud_review_required': request.form.get('cloud_review_required', application['cloud_review_required'] or 'no'),
+			'cloud_providers': ', '.join(request.form.getlist('cloud_providers')),
+			'database_review_required': request.form.get('database_review_required', application['database_review_required'] or 'no'),
+			'database_types': ', '.join(request.form.getlist('database_types'))
+		}
+
+		# If no new multi-select values are provided, keep existing values
+		if not data['technology_stack']:
+			data['technology_stack'] = application['technology_stack'] or ''
+		if not data['cloud_providers']:
+			data['cloud_providers'] = application['cloud_providers'] or ''
+		if not data['database_types']:
+			data['database_types'] = application['database_types'] or ''
+
+		# Validate required fields
+		if not all([data['name'], data['business_criticality'], data['data_classification']]):
+			flash('Please fill in all required fields.', 'error')
+			conn.close()
+			return redirect(url_for('edit_application', app_id=app_id))
+
+		# Handle optional file uploads; if not provided, keep existing
+		file_paths = {
+			'logical_architecture_file': application['logical_architecture_file'],
+			'physical_architecture_file': application['physical_architecture_file'],
+			'overview_document_file': application['overview_document_file']
+		}
+		file_fields = {
+			'logical_architecture': 'architecture',
+			'physical_architecture': 'architecture',
+			'overview_document': 'document'
+		}
+		for field_name, file_type in file_fields.items():
+			if field_name in request.files:
+				file = request.files[field_name]
+				if file and getattr(file, 'filename', ''):
+					path = secure_upload(file, file_type, session['user_id'], app_id)
+					if path:
+						file_paths[f"{field_name}_file"] = path
+					else:
+						flash(f'Invalid file type for {field_name.replace("_", " ").title()}.', 'error')
+						conn.close()
+						return redirect(url_for('edit_application', app_id=app_id))
+
+		# Perform update
+		conn.execute('''
+			UPDATE applications
+			SET name = ?, description = ?, technology_stack = ?,
+				deployment_environment = ?, business_criticality = ?,
+				data_classification = ?, logical_architecture_file = ?,
+				physical_architecture_file = ?, overview_document_file = ?,
+				cloud_review_required = ?, cloud_providers = ?,
+				database_review_required = ?, database_types = ?
+			WHERE id = ? AND author_id = ?
+		''', (
+			data['name'], data['description'], data['technology_stack'],
+			data['deployment_environment'], data['business_criticality'],
+			data['data_classification'], file_paths['logical_architecture_file'],
+			file_paths['physical_architecture_file'], file_paths['overview_document_file'],
+			data['cloud_review_required'], data['cloud_providers'],
+			data['database_review_required'], data['database_types'],
+			app_id, session['user_id']
+		))
+		conn.commit()
+		conn.close()
+		flash('Application updated successfully.', 'success')
+		return redirect(url_for('web_applications'))
+
+	# GET: show form with existing values
+	conn.close()
+	return render_template('edit_application.html', application=application)
+
 if __name__ == '__main__':
     # Initialize database
     init_db()
