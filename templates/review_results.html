@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-12">
+    <div class="col-12" id="reportRoot">
         <!-- Header Section -->
         <div class="card mb-4">
             <div class="card-header">
@@ -289,10 +289,23 @@
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 function exportReport() {
-    // Placeholder for export functionality
-    alert('Export functionality coming soon! Report will be available in PDF format.');
+    const element = document.getElementById('reportRoot');
+    if (!element) {
+        alert('Unable to export: report container not found.');
+        return;
+    }
+    const filename = `Security_Review_{{ application.name|replace(' ', '_') }}.pdf`;
+    const opt = {
+        margin:       [10, 10, 10, 10],
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
 }
 
 function shareReport() {
