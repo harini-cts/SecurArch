@@ -8,7 +8,7 @@ import os
 import json
 import uuid
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_from_directory, Response
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
@@ -16,6 +16,7 @@ import jwt
 from functools import wraps
 from werkzeug.utils import secure_filename
 from app.workflow import workflow_engine
+import io, csv
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -4578,6 +4579,61 @@ def edit_application(app_id):
 	# GET: show form with existing values
 	conn.close()
 	return render_template('edit_application.html', application=application)
+
+@app.route('/uploads/<path:filename>')
+@login_required
+def serve_uploads(filename):
+	"""Serve files from the uploads directory (screenshots, docs, diagrams)."""
+	uploads_base = os.path.join(app.root_path, 'uploads')
+	# Normalize path to prevent traversal
+	file_path = os.path.join(uploads_base, filename)
+	real_uploads = os.path.realpath(uploads_base)
+	real_file = os.path.realpath(file_path)
+	if not real_file.startswith(real_uploads):
+		return ('Forbidden', 403)
+	if not os.path.exists(real_file):
+		return ('Not Found', 404)
+	return send_from_directory(os.path.dirname(real_file), os.path.basename(real_file))
+
+@app.route('/admin/applications/export')
+@login_required
+def admin_export_applications():
+	"""Export applications list as CSV for admins/analysts."""
+	# Basic role check: allow admin and security_analyst
+	user_role = session.get('user_role', 'user')
+	if user_role not in ('admin', 'security_analyst'):
+		flash('Access denied.', 'error')
+		return redirect(url_for('web_dashboard'))
+	
+	conn = get_db()
+	rows = conn.execute('''
+		SELECT a.name, a.description, a.technology_stack, a.deployment_environment,
+		       a.business_criticality, a.data_classification, a.status,
+		       (u.first_name || ' ' || u.last_name) as author_name,
+		       a.created_at
+		FROM applications a
+		LEFT JOIN users u ON a.author_id = u.id
+		ORDER BY a.created_at DESC
+	''').fetchall()
+	conn.close()
+	
+	# Build CSV
+	output = io.StringIO()
+	writer = csv.writer(output)
+	writer.writerow(['Application', 'Description', 'Tech Stack', 'Environment', 'Criticality', 'Classification', 'Status', 'Author', 'Created'])
+	for r in rows:
+		writer.writerow([
+			r['name'], r['description'], r['technology_stack'], r['deployment_environment'],
+			r['business_criticality'], r['data_classification'], r['status'], r['author_name'], r['created_at']
+		])
+	csv_data = output.getvalue()
+	output.close()
+	
+	return Response(
+		csv_data,
+		mimetype='text/csv',
+		headers={'Content-Disposition': 'attachment; filename=applications_export.csv'}
+	)
 
 if __name__ == '__main__':
     # Initialize database
