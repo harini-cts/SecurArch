@@ -86,32 +86,7 @@
 						</div>
 					</div>
 
-					<!-- Database Review -->
-					<div class="mb-3">
-						<label class="form-label fw-semibold">Database Review Required?</label>
-						<div class="form-check form-check-inline">
-							<input class="form-check-input" type="radio" name="database_review_required" value="yes" id="db_yes" {{ 'checked' if application.database_review_required=='yes' else '' }}>
-							<label class="form-check-label" for="db_yes">Yes</label>
-						</div>
-						<div class="form-check form-check-inline">
-							<input class="form-check-input" type="radio" name="database_review_required" value="no" id="db_no" {{ 'checked' if application.database_review_required!='yes' else '' }}>
-							<label class="form-check-label" for="db_no">No</label>
-						</div>
-					</div>
-					<div class="mb-3">
-						<label class="form-label">Database Types</label>
-						{% set db_selected = (application.database_types or '').split(',') %}
-						<div class="row g-2">
-							{% for db in ['MongoDB','PostgreSQL','MySQL'] %}
-							<div class="col-md-4">
-								<div class="form-check">
-									<input class="form-check-input" type="checkbox" name="database_types" value="{{ db }}" id="db_{{ db|lower }}" {{ 'checked' if db in db_selected else '' }}>
-									<label class="form-check-label" for="db_{{ db|lower }}">{{ db }}</label>
-								</div>
-							</div>
-							{% endfor %}
-						</div>
-					</div>
+					<!-- Database Review fields removed per requirement -->
 
 					<!-- Technology Stack -->
 					<div class="mb-3">

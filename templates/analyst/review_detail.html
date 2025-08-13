@@ -348,9 +348,9 @@ function createQuestionHTML(question, questionNumber) {
                     <div class="mb-3">
                         <strong>Supporting Screenshot:</strong>
                         <div class="mt-2">
-                            <img src="/static/${question.screenshot}" 
+                            <img src="/${(question.screenshot || '').replace(/\\/g, '/')}" 
                                  class="img-thumbnail" style="max-width: 300px; max-height: 200px; cursor: pointer;" 
-                                 onclick="showScreenshot('${question.screenshot}', '${question.question}')">
+                                 onclick="showScreenshot(this.src, '${question.question}')">
                         </div>
                     </div>
                     ` : ''}
@@ -507,32 +507,90 @@ function changePage(page) {
     }
 }
 
-// Show screenshot modal
+// Show screenshot modal with zoom controls
 function showScreenshot(screenshot, questionText) {
+    const resolveSrc = (src) => {
+        if (!src) return '';
+        const s = src.toString();
+        if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('data:')) return s;
+        if (s.startsWith('/')) return s;
+        return '/' + s.replace(/\\/g, '/');
+    };
+    const safeSrc = resolveSrc(screenshot);
+    console.log('Opening screenshot modal for:', safeSrc);
     const modalHTML = `
         <div class="modal fade" id="screenshotModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
+            <div class="modal-dialog modal-xl">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">Screenshot - ${questionText}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="zoomOutBtn" title="Zoom out">
+                                <i class="fas fa-search-minus"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="zoomInBtn" title="Zoom in">
+                                <i class="fas fa-search-plus"></i>
+                            </button>
+                            <button type="button" class="btn-close ms-2" data-bs-dismiss="modal"></button>
+                        </div>
                     </div>
-                    <div class="modal-body text-center">
-                        <img src="/static/${screenshot}" class="img-fluid">
+                    <div class="modal-body d-flex justify-content-center align-items-center" style="min-height:60vh; overflow:auto; background:#f7f7f7;">
+                        <img id="zoomableImage" src="${safeSrc}" style="max-width:100%; max-height:100%; transform: scale(1); transform-origin: center center; transition: transform 0.15s ease; cursor: grab;" />
                     </div>
                 </div>
             </div>
         </div>
     `;
-    
+
     // Remove existing modal
     const existingModal = document.getElementById('screenshotModal');
     if (existingModal) existingModal.remove();
-    
+
     // Add and show modal
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    const modal = new bootstrap.Modal(document.getElementById('screenshotModal'));
+    const modalEl = document.getElementById('screenshotModal');
+    const modal = new bootstrap.Modal(modalEl);
     modal.show();
+
+    // Zoom logic
+    let scale = 1;
+    const step = 0.2;
+    const minScale = 0.4;
+    const maxScale = 4;
+    const img = document.getElementById('zoomableImage');
+    const applyScale = () => { img.style.transform = `scale(${scale})`; }
+
+    document.getElementById('zoomInBtn').addEventListener('click', () => {
+        scale = Math.min(maxScale, scale + step); applyScale();
+    });
+    document.getElementById('zoomOutBtn').addEventListener('click', () => {
+        scale = Math.max(minScale, scale - step); applyScale();
+    });
+
+    // Wheel zoom
+    img.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (e.deltaY < 0) scale = Math.min(maxScale, scale + step);
+        else scale = Math.max(minScale, scale - step);
+        applyScale();
+    }, { passive: false });
+
+    // Drag/pan when zoomed
+    let isPanning = false; let startX = 0; let startY = 0; let scrollLeft = 0; let scrollTop = 0;
+    const container = modalEl.querySelector('.modal-body');
+    container.addEventListener('mousedown', (e) => {
+        if (scale <= 1) return; isPanning = true; container.style.cursor = 'grabbing';
+        startX = e.pageX - container.offsetLeft; startY = e.pageY - container.offsetTop;
+        scrollLeft = container.scrollLeft; scrollTop = container.scrollTop;
+    });
+    container.addEventListener('mouseleave', () => { isPanning = false; container.style.cursor = 'grab'; });
+    container.addEventListener('mouseup', () => { isPanning = false; container.style.cursor = 'grab'; });
+    container.addEventListener('mousemove', (e) => {
+        if (!isPanning) return; e.preventDefault();
+        const x = e.pageX - container.offsetLeft; const y = e.pageY - container.offsetTop;
+        const walkX = (x - startX); const walkY = (y - startY);
+        container.scrollLeft = scrollLeft - walkX; container.scrollTop = scrollTop - walkY;
+    });
 }
 
 // Mark question as finding for STRIDE analysis
