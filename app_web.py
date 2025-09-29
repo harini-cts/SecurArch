@@ -17,6 +17,8 @@ from functools import wraps
 from werkzeug.utils import secure_filename
 from app.workflow import workflow_engine
 import io, csv
+import logging
+from flask_talisman import Talisman
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -51,9 +53,45 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(os.path.join(UPLOAD_FOLDER, 'architecture'), exist_ok=True)
 os.makedirs(os.path.join(UPLOAD_FOLDER, 'documents'), exist_ok=True)
 
+# Production security and logging configuration
+if os.getenv('FLASK_ENV', '').lower() == 'production':
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+log_level_name = os.getenv('LOG_LEVEL', 'INFO').upper()
+log_to_stdout = os.getenv('LOG_TO_STDOUT', 'false').lower() in ('1', 'true', 'yes')
+logging.basicConfig(
+    level=getattr(logging, log_level_name, logging.INFO),
+    format='%(asctime)s %(levelname)s %(name)s: %(message)s'
+)
+if log_to_stdout:
+    # Ensure logs go to stdout (useful on Azure)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(getattr(logging, log_level_name, logging.INFO))
+    logging.getLogger().addHandler(console_handler)
+
+# Optional security headers via Talisman (can be toggled)
+if os.getenv('ENABLE_TALISMAN', 'true').lower() in ('1', 'true', 'yes'):
+    force_https = os.getenv('FORCE_HTTPS', 'false').lower() in ('1', 'true', 'yes')
+    Talisman(app, force_https=force_https, content_security_policy=None)
+
+def _resolve_sqlite_path(db_value: str) -> str:
+    """Convert sqlite:/// style URLs to filesystem paths for sqlite3.connect."""
+    if db_value.startswith('sqlite:///'):
+        # Handles both relative (sqlite:///file.db) and absolute (sqlite:////home/site/wwwroot/file.db)
+        return db_value.replace('sqlite:///', '', 1)
+    return db_value
+
 def get_db():
-    """Get database connection"""
-    conn = sqlite3.connect(DATABASE)
+    """Get database connection (SQLite only for app_web.py)."""
+    if DATABASE.startswith('sqlite:'):
+        db_path = _resolve_sqlite_path(DATABASE)
+    else:
+        if '://' in DATABASE:
+            raise RuntimeError('Unsupported DATABASE_URL for app_web.py. Use a SQLite file path or sqlite:/// URL.')
+        db_path = DATABASE
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
